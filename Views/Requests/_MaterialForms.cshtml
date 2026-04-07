@@ -5,14 +5,24 @@
     <h5 class="mb-3">Material Information</h5>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,AddStorage,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="CurrentICS" class="control-label">ICS Code FG</label>
+                <input asp-for="CurrentICS" class="form-control" placeholder="Enter ICS Code FG" />
+                <span asp-validation-for="CurrentICS" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,AddStorage,IPO,Passthrough,CrossPlantPurchase">
             <div class="form-group">
                 <label asp-for="ItemCode" class="control-label">ICS Code</label>
                 <input asp-for="ItemCode" class="form-control" />
                 <span asp-validation-for="ItemCode" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-8" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-12" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
             <div class="form-group">
                 <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (max 40)</label>
                 <input asp-for="EnglishMatDescription" class="form-control" maxlength="40" />

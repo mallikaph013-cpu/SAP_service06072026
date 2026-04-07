@@ -24,6 +24,20 @@
 
                 <dt class="col-sm-3">@Html.DisplayNameFor(model => model.PublishedDate)</dt>
                 <dd class="col-sm-9">@Model.PublishedDate.ToString("d MMMM yyyy")</dd>
+
+                <dt class="col-sm-3">Attachment</dt>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                    {
+                        <a href="@Model.ImageUrl" target="_blank" class="current-attachment-link">
+                            <i class="fas fa-paperclip"></i> View
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">-</span>
+                    }
+                </dd>
             </dl>
 
             <form asp-action="Delete" class="mt-4">

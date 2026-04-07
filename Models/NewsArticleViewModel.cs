@@ -12,5 +12,6 @@ namespace myapp.Models
         public DateTime PublishedDate { get; set; }
         public string Author { get; set; } = string.Empty;
         public string ArticleUrl { get; set; } = string.Empty;
+        public List<AttachmentViewModel> Attachments { get; set; } = new List<AttachmentViewModel>();
     }
 }

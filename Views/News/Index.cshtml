@@ -5,6 +5,15 @@
 }
 
 <style>
+        /* Ensure News content stays behind navbar dropdown */
+        .news-admin-shell {
+            position: relative;
+            z-index: 1;
+        }
+        .news-table-card {
+            position: relative;
+            z-index: 1;
+        }
     body {
         background:
             radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 26%),
@@ -26,11 +35,11 @@
         align-items: center;
         gap: 1rem;
         flex-wrap: wrap;
-        background: linear-gradient(135deg, #ea580c 0%, #fb923c 58%, #ffedd5 170%);
-        color: #fff7ed;
+        background: rgba(255,255,255,0.15); /* transparent white */
+        color: #c2410c;
         border-radius: 30px;
-        padding: 2.25rem;
-        box-shadow: 0 28px 65px rgba(234, 88, 12, 0.2);
+        padding: 1.1rem 1.2rem;
+        box-shadow: 0 28px 65px rgba(234, 88, 12, 0.08);
         margin-bottom: 1.5rem;
     }
 
@@ -234,23 +243,22 @@
 </style>
 
 <div class="news-admin-shell">
-    <section class="news-admin-hero">
-        <div>
-            <h1 class="news-admin-title"><i class="fas fa-newspaper me-2"></i>@ViewData["Title"]</h1>
-            <p class="news-admin-copy">จัดการข่าวทั้งหมดในธีมเดียวกับหน้าแสดงผลข่าว เพิ่ม แก้ไข และลบรายการได้จากตารางที่อ่านง่ายและโทนสีส้ม-ขาวต่อเนื่องกันทั้งระบบ</p>
+    <div class="news-admin-hero" style="background: linear-gradient(90deg, #fff7ed 60%, #fef3c7 100%); box-shadow: 0 8px 32px rgba(251, 146, 60, 0.10); border-radius: 36px; padding: 2.2rem 2.2rem 2.2rem 1.6rem; align-items: flex-end;">
+        <div style="display: flex; align-items: center; gap: 1.2rem;">
+            <div style="background: linear-gradient(135deg, #fb923c 60%, #fbbf24 100%); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(251, 146, 60, 0.13);">
+                <i class="fas fa-newspaper" style="font-size: 2.2rem; color: #fff; filter: drop-shadow(0 2px 8px #fb923c44);"></i>
+            </div>
+            <div>
+                <h1 class="news-admin-title" style="color: #c2410c; font-size: clamp(2.2rem, 4vw, 3.3rem); font-weight: 900; margin: 0 0 0.4rem; letter-spacing: -1px;">
+                    @ViewData["Title"]
+                </h1>
+                <p class="news-admin-copy" style="color: #b45309; font-size: 1.13rem; margin: 0; font-weight: 500;">Manage your news articles. Create, edit, and highlight important updates for your organization.</p>
+            </div>
         </div>
-        <a asp-action="Create" class="news-admin-create">
-            <i class="fas fa-plus"></i>Create New
+        <a asp-action="Create" class="news-admin-create" style="background: linear-gradient(90deg, #fb923c 60%, #fbbf24 100%); color: #fff; font-weight: 900; font-size: 1.13rem; box-shadow: 0 6px 18px rgba(251, 146, 60, 0.13); border: none; min-width: 160px; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 0.7rem; transition: background 0.2s;">
+            <i class="fas fa-plus"></i> Create New
         </a>
-    </section>
-
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show news-success" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
+    </div>
 
     <div class="news-table-card">
         <div>
@@ -263,34 +271,43 @@
                         <th>Author</th>
                         <th>Published Date</th>
                         <th>Featured</th>
+                        <th>Attachment</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
             @foreach (var item in Model)
             {
-                    <tr>
-                        <td class="news-title-cell">
+                    <tr style="box-shadow: 0 2px 12px rgba(249,115,22,0.04); border-radius: 18px;">
+                        <td class="news-title-cell" style="font-size: 1.08rem;">
                            @Html.DisplayFor(modelItem => item.Title)
                         </td>
-                        <td>
+                        <td style="font-size: 1.02rem; color: #b45309;">
                            @Html.DisplayFor(modelItem => item.Author)
                         </td>
-                        <td>
+                        <td style="font-size: 0.98rem; color: #a16207;">
                             @item.PublishedDate.ToString("d MMMM yyyy")
                         </td>
                         <td>
                             <span class="news-featured-badge @(item.IsFeatured ? "news-featured-yes" : "news-featured-no")">
-                                <i class="fas @(item.IsFeatured ? "fa-star" : "fa-circle")"></i>@(item.IsFeatured ? "Yes" : "No")
+                                <i class="fas @(item.IsFeatured ? "fa-star" : "fa-circle")"></i> <span style="margin-left:2px;">@(item.IsFeatured ? "Yes" : "No")</span>
                             </span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <a href="@item.ImageUrl" target="_blank" class="current-attachment-link" style="color: #fb923c; font-weight: 700;">
+                                    <i class="fas fa-paperclip"></i> View
+                                </a>
+                            }
                         </td>
                         <td class="text-end">
                             <span class="news-actions">
                                 <a asp-action="Edit" asp-route-id="@item.Id" class="news-action-btn news-action-edit">
-                                    <i class="fas fa-edit"></i>Edit
+                                    <i class="fas fa-edit"></i> Edit
                                 </a>
                                 <a asp-action="Delete" asp-route-id="@item.Id" class="news-action-btn news-action-delete">
-                                    <i class="fas fa-trash"></i>Delete
+                                    <i class="fas fa-trash"></i> Delete
                                 </a>
                             </span>
                         </td>

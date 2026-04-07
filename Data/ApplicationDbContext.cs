@@ -24,9 +24,18 @@ namespace myapp.Data
         public DbSet<NewsArticle> NewsArticles { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
+        public DbSet<NewsAttachment> NewsAttachments { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // NewsArticle - NewsAttachment relation
+            builder.Entity<NewsAttachment>()
+                .HasOne(a => a.NewsArticle)
+                .WithMany(n => n.Attachments)
+                .HasForeignKey(a => a.NewsArticleId)
+                .OnDelete(DeleteBehavior.Cascade);
             
             builder.Entity<RequestItem>()
                 .HasMany(r => r.BomComponents)

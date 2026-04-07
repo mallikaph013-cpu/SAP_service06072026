@@ -24,6 +24,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="PuppeteerSharp" Version="24.39.1" />
+    <PackageReference Include="QuestPDF" Version="2026.2.3" />
+    <!-- PDF-related packages removed -->
   </ItemGroup>
 
 </Project>

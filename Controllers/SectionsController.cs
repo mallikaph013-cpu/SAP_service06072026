@@ -90,7 +90,7 @@ namespace myapp.Controllers
 
                 _context.Add(section);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Section created successfully!";
+                TempData["SaveSuccessMessage"] = "Section created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             ViewBag.Departments = new SelectList(
@@ -144,7 +144,7 @@ namespace myapp.Controllers
                     existing.UpdatedBy = User.Identity?.Name ?? "System";
 
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Section updated successfully!";
+                    TempData["SaveSuccessMessage"] = "Section updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -328,17 +328,9 @@ namespace myapp.Controllers
                     var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == row.DepartmentName);
                     if (department == null)
                     {
-                        var now = DateTime.UtcNow;
-                        department = new Department
-                        {
-                            DepartmentName = row.DepartmentName,
-                            CreatedAt = now,
-                            UpdatedAt = now,
-                            CreatedBy = actor,
-                            UpdatedBy = actor
-                        };
-                        _context.Departments.Add(department);
-                        await _context.SaveChangesAsync();
+                        skipped++;
+                        reports.Add($"Row {row.RowNumber}: Department '{row.DepartmentName}' does not exist in the system.");
+                        continue;
                     }
 
                     var exists = await _context.Sections.AnyAsync(s => s.SectionName == row.SectionName && s.DepartmentId == department.DepartmentId);

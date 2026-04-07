@@ -1,0 +1,53 @@
+@model IEnumerable<myapp.Models.RequestItem>
+@{
+    ViewData["Title"] = "SAP Service Report";
+    // ใช้ Layout ปกติ (_Layout)
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>SAP Required</title>
+</head>
+<body>
+    <h1>SAP Required</h1>
+    <div class="section-title">SAP Service Report</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Document No.</th>
+                <th>Requester</th>
+                <th>Division</th>
+                <th>Department</th>
+                <th>Email</th>
+                <th>Request Type</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>PDF</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.DocumentNumber</td>
+                <td>@item.Requester</td>
+                <td>@item.DivisionCode</td>
+                <td>@item.DivisionCode</td>
+                <td>@item.UpdatedBy</td>
+                <td>@item.RequestType</td>
+                <td>@item.Status</td>
+                <td class="desc-cell" title="@item.Description">@item.Description</td>
+                <td>@item.RequestDate.ToString("dd/MM/yy")</td>
+                <td>
+                    <a href="@Url.Action("ExportToPdf", "Report", new { id = item.Id })" target="_blank" class="btn btn-danger">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</body>
+</html>

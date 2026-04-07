@@ -198,15 +198,10 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="imageFile" class="form-label">Attachment</label>
-                    <input id="imageFile" name="imageFile" class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" />
-                    <small class="attachment-help">Upload new file to replace current attachment (optional). Maximum 10 MB.</small>
-                    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
-                    {
-                        <div class="mt-2">
-                            <a href="@Model.ImageUrl" target="_blank" rel="noopener" class="current-attachment-link">Current attachment</a>
-                        </div>
-                    }
+                    <label for="attachments" class="form-label">ไฟล์แนบ (แนบได้หลายไฟล์)</label>
+                    <input id="attachments" name="attachments" class="form-control" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple />
+                    <small class="attachment-help">เลือกไฟล์ได้หลายไฟล์ (สูงสุด 10 MB ต่อไฟล์)</small>
+                    @* ส่วนแสดงไฟล์แนบเดิม (ถ้ามี) สามารถเพิ่มโค้ดแสดงไฟล์แนบจาก Attachments ได้ *@
                 </div>
 
                 <div class="form-check mb-4">

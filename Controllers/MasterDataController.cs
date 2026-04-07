@@ -86,31 +86,35 @@ namespace myapp.Controllers
                 var createdSection = false;
                 var createdPlant = false;
 
-                var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == combination.DepartmentName);
+                var department = combination != null ? await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == combination.DepartmentName) : null;
                 if (department == null)
                 {
-                    department = new Department { DepartmentName = combination.DepartmentName };
+                    if (combination != null)
+                        department = new Department { DepartmentName = combination.DepartmentName };
                     _context.Departments.Add(department);
                     createdDepartment = true;
                 }
 
-                var section = await _context.Sections.FirstOrDefaultAsync(s => s.SectionName == combination.SectionName);
+                var section = combination != null ? await _context.Sections.FirstOrDefaultAsync(s => s.SectionName == combination.SectionName) : null;
                 if (section == null)
                 {
-                    section = new Section { SectionName = combination.SectionName, Department = department };
+                    if (combination != null && department != null)
+                        section = new Section { SectionName = combination.SectionName, Department = department };
                     _context.Sections.Add(section);
                     createdSection = true;
                 }
 
-                var plant = await _context.Plants.FirstOrDefaultAsync(p => p.PlantName == combination.PlantName);
+                var plant = combination != null ? await _context.Plants.FirstOrDefaultAsync(p => p.PlantName == combination.PlantName) : null;
                 if (plant == null)
                 {
-                    plant = new Plant { PlantName = combination.PlantName, Department = department };
+                    if (combination != null && department != null)
+                        plant = new Plant { PlantName = combination.PlantName, Department = department };
                     _context.Plants.Add(plant);
                     createdPlant = true;
                 }
 
-                combination.CreatedAt = DateTime.UtcNow;
+                if (combination != null)
+                    combination.CreatedAt = DateTime.UtcNow;
                 combination.UpdatedAt = DateTime.UtcNow;
                 combination.CreatedBy = User.Identity?.Name ?? "System";
                 combination.UpdatedBy = User.Identity?.Name ?? "System";
@@ -129,7 +133,7 @@ namespace myapp.Controllers
                     createdSection,
                     createdPlant);
 
-                TempData["SuccessMessage"] = "Master data combination created successfully!";
+                TempData["SaveSuccessMessage"] = "Master data combination created successfully!";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -287,21 +291,30 @@ namespace myapp.Controllers
             if (department == null)
             {
                 department = new Department { DepartmentName = departmentName };
-                _context.Departments.Add(department);
+                    if (department != null)
+                    {
+                        _context.Departments.Add(department);
+                    }
             }
 
             var section = await _context.Sections.FirstOrDefaultAsync(s => s.SectionName == sectionName);
             if (section == null)
             {
                 section = new Section { SectionName = sectionName, Department = department };
-                _context.Sections.Add(section);
+                    if (section != null)
+                    {
+                        _context.Sections.Add(section);
+                    }
             }
 
             var plant = await _context.Plants.FirstOrDefaultAsync(p => p.PlantName == plantName);
             if (plant == null)
             {
                 plant = new Plant { PlantName = plantName, Department = department };
-                _context.Plants.Add(plant);
+                    if (plant != null)
+                    {
+                        _context.Plants.Add(plant);
+                    }
             }
 
             var now = DateTime.UtcNow;
@@ -350,7 +363,10 @@ namespace myapp.Controllers
             {
                 try
                 {
-                    combination.UpdatedAt = DateTime.UtcNow;
+                    if (combination != null)
+                    {
+                        combination.UpdatedAt = DateTime.UtcNow;
+                    }
                     combination.UpdatedBy = User.Identity?.Name ?? "System";
                     _context.Update(combination);
                     await _context.SaveChangesAsync();

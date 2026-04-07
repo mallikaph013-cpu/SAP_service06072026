@@ -90,7 +90,7 @@ namespace myapp.Controllers
                     var result = await _userManager.CreateAsync(user, model.Password);
                     if (result.Succeeded)
                     {
-                        TempData["SuccessMessage"] = "User created successfully!";
+                        TempData["SaveSuccessMessage"] = "User created successfully!";
                         return RedirectToAction(nameof(Index));
                     }
                     foreach (var error in result.Errors)
@@ -205,7 +205,7 @@ namespace myapp.Controllers
                             await _userManager.UpdateAsync(user);
                         }
 
-                        TempData["SuccessMessage"] = "User updated successfully!";
+                        TempData["SaveSuccessMessage"] = "User updated successfully!";
                         return RedirectToAction(nameof(Index));
                     }
                      foreach (var error in result.Errors)

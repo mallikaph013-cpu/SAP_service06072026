@@ -36,5 +36,8 @@ namespace myapp.Models
 
         [StringLength(256)]
         public string UpdatedBy { get; set; } = string.Empty;
+
+        // Navigation property for attachments
+        public ICollection<NewsAttachment> Attachments { get; set; } = new List<NewsAttachment>();
     }
 }

@@ -1,3 +1,4 @@
+using QuestPDF.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using myapp.Data;
@@ -5,6 +6,8 @@ using myapp.Models;
 using Microsoft.AspNetCore.Identity;
 using myapp.Services;
 using Microsoft.Extensions.DependencyInjection;
+QuestPDF.Settings.License = LicenseType.Community;
+// Configure QuestPDF license (required)
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +50,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddControllersWithViews();
+
 
 var app = builder.Build();
 
@@ -92,6 +96,8 @@ app.Use(async (context, next) =>
     await next();
 });
 
+
+// ...existing code...
 app.UseAuthorization();
 
 app.MapControllerRoute(

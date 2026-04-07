@@ -40,13 +40,34 @@ namespace myapp.Controllers
             }
 
             var article = await _context.NewsArticles
+                .Include(a => a.Attachments)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (article == null)
             {
                 return NotFound();
             }
 
-            return View(article);
+            // Map NewsAttachment เป็น AttachmentViewModel
+            var attachments = article.Attachments.Select(att => new AttachmentViewModel
+            {
+                FileName = att.FileName,
+                Url = att.FilePath
+            }).ToList();
+
+            var viewModel = new NewsArticleViewModel
+            {
+                Id = article.Id,
+                Title = article.Title,
+                IsFeatured = article.IsFeatured,
+                Excerpt = article.Content,
+                ImageUrl = article.ImageUrl,
+                PublishedDate = article.PublishedDate,
+                Author = article.Author,
+                ArticleUrl = string.Empty,
+                Attachments = attachments
+            };
+
+            return View(viewModel);
         }
 
         // GET: News/Create
@@ -60,44 +81,12 @@ namespace myapp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "IT")]
-        public async Task<IActionResult> Create(NewsArticle article, IFormFile? imageFile)
+        public async Task<IActionResult> Create(NewsArticle article, List<IFormFile> attachments)
         {
             if (ModelState.IsValid)
             {
                 var actor = User.Identity?.Name ?? "System";
                 var now = DateTime.UtcNow;
-
-                if (imageFile != null && imageFile.Length > 0)
-                {
-                    const long maxFileSize = 10 * 1024 * 1024; // 10 MB
-                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt" };
-                    var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-                    if (imageFile.Length > maxFileSize)
-                    {
-                        ModelState.AddModelError("", "Attached file size must not exceed 10 MB.");
-                        return View(article);
-                    }
-
-                    if (!allowedExtensions.Contains(extension))
-                    {
-                        ModelState.AddModelError("", "File type is not supported.");
-                        return View(article);
-                    }
-
-                    var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads", "news");
-                    Directory.CreateDirectory(uploadsDirectory);
-
-                    var fileName = $"{Guid.NewGuid():N}{extension}";
-                    var filePath = Path.Combine(uploadsDirectory, fileName);
-
-                    await using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await imageFile.CopyToAsync(stream);
-                    }
-
-                    article.ImageUrl = $"/uploads/news/{fileName}";
-                }
 
                 article.CreatedAt = now;
                 article.UpdatedAt = now;
@@ -106,7 +95,45 @@ namespace myapp.Controllers
 
                 _context.Add(article);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Article created successfully!";
+
+                // แนบไฟล์หลายไฟล์
+                if (attachments != null && attachments.Count > 0)
+                {
+                    var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads", "news");
+                    Directory.CreateDirectory(uploadsDirectory);
+                    const long maxFileSize = 10 * 1024 * 1024; // 10 MB
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt" };
+
+                    foreach (var file in attachments)
+                    {
+                        if (file.Length > 0)
+                        {
+                            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                            if (file.Length > maxFileSize) continue;
+                            if (!allowedExtensions.Contains(extension)) continue;
+
+                            var fileName = $"{Guid.NewGuid():N}{extension}";
+                            var filePath = Path.Combine(uploadsDirectory, fileName);
+
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            var attachment = new NewsAttachment
+                            {
+                                NewsArticleId = article.Id,
+                                FileName = file.FileName,
+                                FilePath = $"/uploads/news/{fileName}",
+                                UploadedAt = DateTime.UtcNow
+                            };
+                            _context.NewsAttachments.Add(attachment);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
+                TempData["SaveSuccessMessage"] = "Article created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             return View(article);
@@ -121,7 +148,9 @@ namespace myapp.Controllers
                 return NotFound();
             }
 
-            var article = await _context.NewsArticles.FindAsync(id);
+            var article = await _context.NewsArticles
+                .Include(a => a.Attachments)
+                .FirstOrDefaultAsync(a => a.Id == id);
             if (article == null)
             {
                 return NotFound();
@@ -140,46 +169,52 @@ namespace myapp.Controllers
                 return NotFound();
             }
 
+            var existing = await _context.NewsArticles.Include(a => a.Attachments).FirstOrDefaultAsync(a => a.Id == id);
+            if (existing == null)
+            {
+                return NotFound();
+            }
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    var existing = await _context.NewsArticles.FindAsync(id);
-                    if (existing == null)
+                    // แนบไฟล์หลายไฟล์
+                    var attachments = Request.Form.Files.Where(f => f.Name == "attachments").ToList();
+                    if (attachments != null && attachments.Count > 0)
                     {
-                        return NotFound();
-                    }
-
-                    if (imageFile != null && imageFile.Length > 0)
-                    {
-                        const long maxFileSize = 10 * 1024 * 1024; // 10 MB
-                        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt" };
-                        var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-                        if (imageFile.Length > maxFileSize)
-                        {
-                            ModelState.AddModelError("", "Attached file size must not exceed 10 MB.");
-                            return View(article);
-                        }
-
-                        if (!allowedExtensions.Contains(extension))
-                        {
-                            ModelState.AddModelError("", "File type is not supported.");
-                            return View(article);
-                        }
-
                         var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads", "news");
                         Directory.CreateDirectory(uploadsDirectory);
+                        const long maxFileSize = 10 * 1024 * 1024; // 10 MB
+                        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt" };
 
-                        var fileName = $"{Guid.NewGuid():N}{extension}";
-                        var filePath = Path.Combine(uploadsDirectory, fileName);
-
-                        await using (var stream = new FileStream(filePath, FileMode.Create))
+                        foreach (var file in attachments)
                         {
-                            await imageFile.CopyToAsync(stream);
-                        }
+                            if (file.Length > 0)
+                            {
+                                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                                if (file.Length > maxFileSize) continue;
+                                if (!allowedExtensions.Contains(extension)) continue;
 
-                        existing.ImageUrl = $"/uploads/news/{fileName}";
+                                var fileName = $"{Guid.NewGuid():N}{extension}";
+                                var filePath = Path.Combine(uploadsDirectory, fileName);
+
+                                using (var stream = new FileStream(filePath, FileMode.Create))
+                                {
+                                    await file.CopyToAsync(stream);
+                                }
+
+                                var attachment = new NewsAttachment
+                                {
+                                    NewsArticleId = existing.Id,
+                                    FileName = file.FileName,
+                                    FilePath = $"/uploads/news/{fileName}",
+                                    UploadedAt = DateTime.UtcNow
+                                };
+                                _context.NewsAttachments.Add(attachment);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
                     }
 
                     existing.Title = article.Title;
@@ -191,7 +226,7 @@ namespace myapp.Controllers
                     existing.UpdatedBy = User.Identity?.Name ?? "System";
 
                     await _context.SaveChangesAsync();
-                     TempData["SuccessMessage"] = "Article updated successfully!";
+                    TempData["SaveSuccessMessage"] = "Article updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {

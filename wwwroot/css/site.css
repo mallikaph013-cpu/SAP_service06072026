@@ -139,6 +139,8 @@ main[role="main"] {
     background: rgba(255, 255, 255, 0.96);
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
+    position: absolute;
+    z-index: 2000;
 }
 
 .dropdown-item {

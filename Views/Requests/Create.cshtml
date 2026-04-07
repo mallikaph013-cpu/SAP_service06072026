@@ -33,7 +33,6 @@
 
             <form id="create-form" asp-action="Create" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
 
                 <h5>Requester Information</h5>
                 <div class="row g-3 mb-4">
@@ -61,10 +60,10 @@
                             <label asp-for="Plant" class="form-label"></label>
                             <select asp-for="Plant" id="RequestPlant" class="form-select">
                                 <option value="">-- Select Plant --</option>
-                                <option value="6021">6021 (Device)</option>
-                                <option value="6031">6031 (Assembly)</option>
-                                <option value="6051">6051 (Injection)</option>
-                                <option value="6081">6081 (IPO)</option>
+                                <option value="6021">6021</option>
+                                <option value="6031">6031</option>
+                                <option value="6051">6051</option>
+                                <option value="6081">6081</option>
                                 <option value="6090">6090</option>
                             </select>
                             <span asp-validation-for="Plant" class="text-danger"></span>
@@ -96,10 +95,6 @@
                                 <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
                                     <option value="">-- Please select a request type first --</option>
                                 </select>
-                                @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
-                                {
-                                    <small class="text-muted">ระบบจะกำหนดเป็นตัวเองอัตโนมัติสำหรับผู้ใช้ IT</small>
-                                }
                             </div>
                         </div>
                     </div>
@@ -340,10 +335,11 @@
                 nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
 
                 const renderApproverOptions = (data) => {
-                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
                     data.forEach(user => {
                         const stepPrefix = user.step ? `Step ${user.step} - ` : '';
-                        const option = new Option(`${stepPrefix}${user.fullName}`, user.id);
+                        const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                        const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
                         nextResponsibleUserSelect.add(option);
                     });
 
@@ -769,7 +765,37 @@
                 licenseRequestOptionSelect.addEventListener('change', toggleLicenseRequestOptionFields);
             }
 
-            createForm.addEventListener('submit', syncLicensePermissionUsernames);
+            function hasBlankRequiredRequestFields() {
+                const names = ['RequesterName', 'RequestType', 'Description'];
+                return names.some(name => {
+                    const field = createForm.querySelector(`[name="${name}"]`);
+                    return field && !field.value.trim();
+                });
+            }
+
+            createForm.addEventListener('submit', function(event) {
+                syncLicensePermissionUsernames();
+                let isValid = true;
+
+                if (hasBlankRequiredRequestFields()) {
+                    isValid = false;
+                } else if (window.jQuery && typeof jQuery(createForm).valid === 'function') {
+                    isValid = jQuery(createForm).valid();
+                } else if (typeof createForm.checkValidity === 'function') {
+                    isValid = createForm.checkValidity();
+                }
+
+                if (!isValid) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: 'Please fill in all required fields before submitting.',
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316'
+                    });
+                }
+            });
             importForm.addEventListener('submit', checkResponsibleUser);
         });
     </script>

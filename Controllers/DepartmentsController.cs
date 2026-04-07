@@ -73,7 +73,7 @@ namespace myapp.Controllers
 
                 _context.Add(department);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Department created successfully!";
+                TempData["SaveSuccessMessage"] = "Department created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             return View(department);
@@ -120,7 +120,7 @@ namespace myapp.Controllers
                     existing.UpdatedBy = User.Identity?.Name ?? "System";
 
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Department updated successfully!";
+                    TempData["SaveSuccessMessage"] = "Department updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -215,7 +215,7 @@ namespace myapp.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
-
+    
         private bool DepartmentExists(int id)
         {
             return _context.Departments.Any(e => e.DepartmentId == id);

@@ -173,7 +173,7 @@ namespace myapp.Controllers
                     };
                     _context.DocumentRoutings.Add(newRouting);
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Document routing created successfully!";
+                    TempData["SaveSuccessMessage"] = "Document routing created successfully!";
                 }
                 else
                 {
@@ -225,34 +225,57 @@ namespace myapp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,DocumentTypeId,DepartmentId,SectionId,PlantId,Step")] DocumentRouting documentRoutingFromForm)
         {
+
+            // รับ PlantName จากฟอร์ม
+            var plantName = Request.Form["PlantName"].ToString();
+            if (string.IsNullOrWhiteSpace(plantName))
+            {
+                ModelState.AddModelError("PlantName", "Please select a plant.");
+            }
+
             if (id != documentRoutingFromForm.Id)
             {
                 return NotFound();
             }
 
-            var routingToUpdate = await _context.DocumentRoutings.FindAsync(id);
+            // Navigation properties are not posted from this form.
+            ModelState.Remove(nameof(DocumentRouting.DocumentType));
+            ModelState.Remove(nameof(DocumentRouting.Department));
+            ModelState.Remove(nameof(DocumentRouting.Section));
+            ModelState.Remove(nameof(DocumentRouting.Plant));
 
+            var routingToUpdate = await _context.DocumentRoutings.FindAsync(id);
             if (routingToUpdate == null)
             {
                 return NotFound();
             }
 
-            routingToUpdate.DepartmentId = documentRoutingFromForm.DepartmentId;
-            routingToUpdate.SectionId = documentRoutingFromForm.SectionId;
-            routingToUpdate.PlantId = documentRoutingFromForm.PlantId;
-            routingToUpdate.Step = documentRoutingFromForm.Step;
-            routingToUpdate.UpdatedAt = DateTime.UtcNow;
-            routingToUpdate.UpdatedBy = User.Identity?.Name ?? "System";
-
-            try
+            // หา PlantId จาก PlantName
+            var plant = await _context.Plants.FirstOrDefaultAsync(p => p.PlantName == plantName);
+            if (plant == null)
             {
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Document routing updated successfully!";
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("PlantName", "Selected plant does not exist in database.");
             }
-            catch (DbUpdateException)
+
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError("", "Unable to save changes. Please try again.");
+                routingToUpdate.DepartmentId = documentRoutingFromForm.DepartmentId;
+                routingToUpdate.SectionId = documentRoutingFromForm.SectionId;
+                routingToUpdate.PlantId = plant.PlantId;
+                routingToUpdate.Step = documentRoutingFromForm.Step;
+                routingToUpdate.UpdatedAt = DateTime.UtcNow;
+                routingToUpdate.UpdatedBy = User.Identity?.Name ?? "System";
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    TempData["SaveSuccessMessage"] = "Document routing updated successfully!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (DbUpdateException)
+                {
+                    ModelState.AddModelError("", "Unable to save changes. Please try again.");
+                }
             }
 
             ViewData["DepartmentId"] = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName), "DepartmentId", "DepartmentName", routingToUpdate.DepartmentId);
@@ -409,6 +432,12 @@ namespace myapp.Controllers
                     rows = ReadRoutingRowsFromXlsx(importFile);
                 }
 
+                var documentTypeCache = new Dictionary<string, DocumentType>(StringComparer.OrdinalIgnoreCase);
+                foreach (var dt in await _context.DocumentTypes.ToListAsync())
+                {
+                    documentTypeCache[dt.Name] = dt;
+                }
+
                 foreach (var row in rows)
                 {
                     if (string.IsNullOrWhiteSpace(row.DocumentTypeName) ||
@@ -430,50 +459,31 @@ namespace myapp.Controllers
                         continue;
                     }
 
-                    var documentType = await _context.DocumentTypes.FirstOrDefaultAsync(d => d.Name == row.DocumentTypeName);
-                    if (documentType == null)
+                    if (!documentTypeCache.TryGetValue(row.DocumentTypeName, out var documentType))
                     {
                         documentType = new DocumentType { Name = row.DocumentTypeName };
                         _context.DocumentTypes.Add(documentType);
-                        await _context.SaveChangesAsync();
+                        documentTypeCache[row.DocumentTypeName] = documentType;
+                        _logger.LogInformation("Created missing DocumentType '{DocumentTypeName}' during import", row.DocumentTypeName);
                     }
 
                     var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentName == row.DepartmentName);
                     if (department == null)
                     {
-                        var departmentNow = DateTime.UtcNow;
-                        department = new Department
-                        {
-                            DepartmentName = row.DepartmentName,
-                            CreatedAt = departmentNow,
-                            UpdatedAt = departmentNow,
-                            CreatedBy = actor,
-                            UpdatedBy = actor
-                        };
-                        _context.Departments.Add(department);
-                        await _context.SaveChangesAsync();
+                        skipped++;
+                        reports.Add($"Row {row.RowNumber}: Department '{row.DepartmentName}' does not exist in the system.");
+                        continue;
                     }
 
                     var section = await _context.Sections.FirstOrDefaultAsync(s => s.SectionName == row.SectionName && s.DepartmentId == department.DepartmentId);
                     if (section == null)
                     {
-                        var sectionNow = DateTime.UtcNow;
-                        section = new Section
-                        {
-                            SectionName = row.SectionName,
-                            DepartmentId = department.DepartmentId,
-                            CreatedAt = sectionNow,
-                            UpdatedAt = sectionNow,
-                            CreatedBy = actor,
-                            UpdatedBy = actor
-                        };
-                        _context.Sections.Add(section);
-                        await _context.SaveChangesAsync();
+                        skipped++;
+                        reports.Add($"Row {row.RowNumber}: Section '{row.SectionName}' does not exist in department '{row.DepartmentName}'.");
+                        continue;
                     }
 
-                    var plant = await _context.Plants.FirstOrDefaultAsync(p =>
-                        p.PlantName == row.PlantName &&
-                        p.DepartmentId == department.DepartmentId);
+                    var plant = await _context.Plants.FirstOrDefaultAsync(p => p.PlantName == row.PlantName);
                     if (plant == null)
                     {
                         plant = new Plant
@@ -482,7 +492,7 @@ namespace myapp.Controllers
                             DepartmentId = department.DepartmentId
                         };
                         _context.Plants.Add(plant);
-                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("Created missing Plant '{PlantName}' during import under department '{DepartmentName}'", row.PlantName, row.DepartmentName);
                     }
 
                     var exists = await _context.DocumentRoutings.AnyAsync(dr =>
@@ -502,6 +512,7 @@ namespace myapp.Controllers
                     var routingNow = DateTime.UtcNow;
                     _context.DocumentRoutings.Add(new DocumentRouting
                     {
+                        DocumentType = documentType,
                         DocumentTypeId = documentType.DocumentTypeId,
                         DepartmentId = department.DepartmentId,
                         SectionId = section.SectionId,

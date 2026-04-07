@@ -24,19 +24,25 @@ namespace myapp.Controllers
         public async Task<IActionResult> Index()
         {
             var articles = await _context.NewsArticles
-                                     .OrderByDescending(a => a.PublishedDate)
-                                     .Select(a => new NewsArticleViewModel
-                                     {
-                                         Id = a.Id,
-                                         IsFeatured = a.IsFeatured,
-                                         Title = a.Title,
-                                         Excerpt = a.Content.Substring(0, Math.Min(a.Content.Length, 150)) + "...",
-                                         ImageUrl = a.ImageUrl,
-                                         PublishedDate = a.PublishedDate,
-                                         Author = a.Author,
-                                         ArticleUrl = "/News/Details/" + a.Id
-                                     })
-                                     .ToListAsync();
+                .Include(a => a.Attachments)
+                .OrderByDescending(a => a.PublishedDate)
+                .Select(a => new NewsArticleViewModel
+                {
+                    Id = a.Id,
+                    IsFeatured = a.IsFeatured,
+                    Title = a.Title,
+                    Excerpt = a.Content.Length > 150 ? a.Content.Substring(0, 150) + "..." : a.Content,
+                    ImageUrl = a.ImageUrl,
+                    PublishedDate = a.PublishedDate,
+                    Author = a.Author,
+                    ArticleUrl = "/News/Details/" + a.Id,
+                    Attachments = a.Attachments.Select(att => new AttachmentViewModel
+                    {
+                        FileName = att.FileName,
+                        Url = att.FilePath
+                    }).ToList()
+                })
+                .ToListAsync();
 
             return View(articles);
         }

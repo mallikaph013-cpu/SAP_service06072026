@@ -45,7 +45,7 @@
                 <div class="row g-3">
                     <div class="col-md-6"><strong>Requester:</strong> <span class="text-secondary">@Model.Requester</span></div>
                     <div class="col-md-6"><strong>Request Date:</strong> <span class="text-secondary">@Model.RequestDate.ToString("MMMM dd, yyyy")</span></div>
-                    <div class="col-md-6"><strong>ผู้รับผิดชอบลำดับถัดไป:</strong> <span class="text-secondary">@ViewBag.NextResponsibleUserName</span></div>
+                    <div class="col-md-6"><strong>ผู้รับผิดชอบลำดับถัดไป:</strong> <span class="text-secondary">@(ViewBag.NextResponsibleUserName ?? "-")</span></div>
                 </div>
             </div>
 
@@ -253,9 +253,12 @@
                         </li>
                     </ul>
                 </div>
-                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
-                    <i class="fas fa-pencil-alt me-2"></i>Edit Request
-                </a> 
+                @if (string.Equals(Model.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                        <i class="fas fa-pencil-alt me-2"></i>Edit Request
+                    </a>
+                }
             </div>
         </div>
     </div>

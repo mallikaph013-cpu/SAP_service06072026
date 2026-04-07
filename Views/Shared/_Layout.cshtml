@@ -18,7 +18,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="~/css/orange-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/myapp.styles.css" asp-append-version="true" />
@@ -30,6 +30,48 @@
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="fas fa-cogs text-primary"></i> 
                     SAP Service
+        <style>
+            /* --- Prevent dropdown clipping globally --- */
+            .container,
+            .container-fluid,
+            .news-container,
+            .news-admin-shell,
+            .news-hero,
+            .news-table-card {
+                overflow: visible !important;
+            }
+            .navbar {
+                z-index: 1050;
+                position: relative;
+            }
+            .dropdown-menu {
+                z-index: 9999 !important;
+                position: absolute !important;
+                left: unset !important;
+                top: unset !important;
+                min-width: 220px;
+                background: #fff;
+                box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.25);
+                border-radius: 1rem;
+                padding: 0.5rem 0;
+            }
+            .navbar-nav .dropdown-menu {
+                margin-top: 0.5rem;
+            }
+            .dropdown:hover>.dropdown-menu, .dropdown-menu.show {
+                display: block;
+            }
+            .dropdown-menu .dropdown-item {
+                color: #333;
+            }
+            .dropdown-menu .dropdown-item:hover {
+                background: #f8f9fa;
+            }
+            /* Remove stacking context from hero/cards/shell to fix dropdown overlap */
+            .news-admin-hero, .news-table-card, .news-admin-shell {
+                /* z-index and position removed to prevent stacking context */
+            }
+        </style>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -50,17 +92,22 @@
                                 </a>
                             </li>
 
+                    
+
                             @if (User.IsInRole("IT"))
                             {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <li class="nav-item dropdown position-static">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="z-index: 1055; position: relative;">
                                         <i class="fas fa-cogs me-1"></i><span class="d-none d-lg-inline">Management</span>
                                     </a>
-                                    <div class="dropdown-menu" aria-labelledby="navbarDropdownAdmin">
-                                        <a class="dropdown-item" asp-controller="News" asp-action="Index">Manage News</a>
-                                        <a class="dropdown-item" asp-controller="Users" asp-action="Index">Manage Users</a>
-                                        <a class="dropdown-item" asp-controller="Departments" asp-action="Index">Manage Departments</a>
-                                        <a class="dropdown-item" asp-controller="Sections" asp-action="Index">Manage Sections</a>
+                                    <div class="dropdown-menu shadow-lg border-0 rounded-4 mt-2" aria-labelledby="navbarDropdownAdmin" style="z-index: 2000; min-width: 240px; background: #fffdfa; box-shadow: 0 8px 32px rgba(251, 146, 60, 0.13); border-radius: 1.2rem; padding: 0.7rem 0;">
+                                        <a class="dropdown-item py-2 px-4" asp-controller="News" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-newspaper me-2 text-warning"></i>Manage News</a>
+                                        <a class="dropdown-item py-2 px-4" asp-controller="Users" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-users-cog me-2 text-primary"></i>Manage Users</a>
+                                        <a class="dropdown-item py-2 px-4" asp-controller="Departments" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-building me-2 text-success"></i>Manage Departments</a>
+                                        <a class="dropdown-item py-2 px-4" asp-controller="Sections" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-layer-group me-2 text-info"></i>Manage Sections</a>
+                                        <div class="dropdown-divider"></div>
+                                        <!-- <a class="dropdown-item" asp-controller="Departments" asp-action="Import">Import Departments</a> -->
+                                        <!-- <a class="dropdown-item" asp-controller="DocumentRouting" asp-action="Import">Import Document Routing</a> -->
                                     </div>
                                 </li>
                                 <li class="nav-item">
@@ -68,6 +115,16 @@
                                         <i class="fas fa-project-diagram me-1"></i><span class="d-none d-lg-inline">Document Routing</span>
                                     </a>
                                 </li>
+
+                                   <!-- เมนู Report -->
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-chart-bar me-1"></i><span class="d-none d-lg-inline">Report</span>
+                                        </a>
+                                        <div class="dropdown-menu" aria-labelledby="navbarDropdownReport">
+                                            <a class="dropdown-item" asp-controller="Report" asp-action="SAPService">SAP Service Report</a>
+                                        </div>
+                                    </li>
                             }
                         </ul>
                     }
@@ -80,10 +137,6 @@
     </header>
 
     <div class="container-fluid">
-         @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
-        {
-             <!-- TempData messages will be handled by the SweetAlert2 script below -->
-        }
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
@@ -97,30 +150,172 @@
 
     <script src="~/lib/jquery/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <script>
-        // Display TempData messages using SweetAlert2 with the new theme color
-        document.addEventListener('DOMContentLoaded', function () {
-            const successMessage = '@TempData["SuccessMessage"]';
-            const errorMessage = '@TempData["ErrorMessage"]';
+    <style>
+        .save-success-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.2), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(45, 212, 191, 0.18), transparent 45%),
+                        rgba(7, 12, 20, 0.35);
+            backdrop-filter: blur(6px);
+        }
 
-            if (successMessage) {
-                Swal.fire({
-                    title: 'Success!',
-                    text: successMessage,
-                    icon: 'success',
-                    confirmButtonColor: '#F97316' // Primary Orange
+        .save-success-box {
+            width: min(520px, 100%);
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: linear-gradient(170deg, rgba(255, 255, 255, 0.94), rgba(245, 253, 248, 0.94));
+            box-shadow: 0 28px 70px rgba(8, 30, 20, 0.35);
+            transform: translateY(12px) scale(0.98);
+            opacity: 0;
+            transition: transform 240ms ease, opacity 240ms ease;
+        }
+
+        .save-success-overlay.show .save-success-box {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .save-success-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: linear-gradient(120deg, #16a34a, #10b981 60%, #14b8a6);
+            color: #fff;
+        }
+
+        .save-success-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 0.2px;
+            margin: 0;
+        }
+
+        .save-success-title i {
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .save-success-close {
+            border: 0;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.6rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        .save-success-close:hover {
+            color: #fff;
+        }
+
+        .save-success-body {
+            padding: 20px 20px 14px;
+            color: #1f2937;
+            font-size: 1rem;
+            line-height: 1.65;
+        }
+
+        .save-success-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 20px 20px;
+        }
+
+        .save-success-btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 22px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            background: linear-gradient(120deg, #16a34a, #10b981);
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.35);
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .save-success-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(16, 185, 129, 0.38);
+        }
+    </style>
+
+    <div id="saveSuccessOverlay" class="save-success-overlay" role="dialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-describedby="saveSuccessMessage">
+        <div class="save-success-box">
+            <div class="save-success-header">
+                <h2 id="saveSuccessTitle" class="save-success-title">
+                    <i class="fas fa-check"></i>
+                    บันทึกสำเร็จ
+                </h2>
+                <button type="button" class="save-success-close" aria-label="Close" data-close-save-success="true">&times;</button>
+            </div>
+            <div id="saveSuccessMessage" class="save-success-body"></div>
+            <div class="save-success-footer">
+                <button type="button" class="save-success-btn" data-close-save-success="true">
+                    <i class="fas fa-check me-1"></i>ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Display save success message with modern dialog
+        document.addEventListener('DOMContentLoaded', function () {
+            const successMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SaveSuccessMessage"] as string ?? ""));
+            const overlay = document.getElementById('saveSuccessOverlay');
+            const messageEl = document.getElementById('saveSuccessMessage');
+
+            function closeMessageBox() {
+                if (!overlay) return;
+                overlay.classList.remove('show');
+                window.setTimeout(function () {
+                    overlay.style.display = 'none';
+                }, 200);
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', function (event) {
+                    if (event.target === overlay) {
+                        closeMessageBox();
+                    }
+                });
+
+                overlay.querySelectorAll('[data-close-save-success="true"]').forEach(function (btn) {
+                    btn.addEventListener('click', closeMessageBox);
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape' && overlay.style.display === 'flex') {
+                        closeMessageBox();
+                    }
                 });
             }
 
-            if (errorMessage) {
-                Swal.fire({
-                    title: 'Error!',
-                    text: errorMessage,
-                    icon: 'error',
-                    confirmButtonColor: '#F97316' // Primary Orange
+            if (successMessage && overlay && messageEl) {
+                messageEl.textContent = successMessage;
+                overlay.style.display = 'flex';
+                window.requestAnimationFrame(function () {
+                    overlay.classList.add('show');
                 });
             }
         });

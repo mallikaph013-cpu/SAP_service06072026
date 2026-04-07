@@ -593,6 +593,35 @@ namespace myapp.Migrations
                     b.ToTable("NewsArticles");
                 });
 
+            modelBuilder.Entity("myapp.Models.NewsAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("NewsArticleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewsArticleId");
+
+                    b.ToTable("NewsAttachments");
+                });
+
             modelBuilder.Entity("myapp.Models.Plant", b =>
                 {
                     b.Property<int>("PlantId")
@@ -1099,6 +1128,17 @@ namespace myapp.Migrations
                     b.Navigation("RequestItem");
                 });
 
+            modelBuilder.Entity("myapp.Models.NewsAttachment", b =>
+                {
+                    b.HasOne("myapp.Models.NewsArticle", "NewsArticle")
+                        .WithMany("Attachments")
+                        .HasForeignKey("NewsArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NewsArticle");
+                });
+
             modelBuilder.Entity("myapp.Models.Plant", b =>
                 {
                     b.HasOne("myapp.Models.Department", "Department")
@@ -1135,6 +1175,11 @@ namespace myapp.Migrations
             modelBuilder.Entity("myapp.Models.DocumentType", b =>
                 {
                     b.Navigation("DocumentRoutings");
+                });
+
+            modelBuilder.Entity("myapp.Models.NewsArticle", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("myapp.Models.RequestItem", b =>

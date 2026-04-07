@@ -42,7 +42,7 @@ namespace myapp.Controllers
 
             try
             {
-                var propertyInfo = GetPropertyByHeader(typeof(BomComponent), propertyName);
+                var propertyInfo = this.GetPropertyByHeader(typeof(BomComponent), propertyName);
                 if (propertyInfo == null || !propertyInfo.CanWrite) return;
 
                 var targetType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
@@ -69,7 +69,7 @@ namespace myapp.Controllers
 
             try
             {
-                var propertyInfo = GetPropertyByHeader(typeof(BomEditComponent), propertyName);
+                var propertyInfo = this.GetPropertyByHeader(typeof(BomEditComponent), propertyName);
                 if (propertyInfo == null || !propertyInfo.CanWrite) return;
 
                 var targetType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
@@ -96,7 +96,7 @@ namespace myapp.Controllers
 
             try
             {
-                var propertyInfo = GetPropertyByHeader(typeof(Routing), propertyName);
+                var propertyInfo = this.GetPropertyByHeader(typeof(Routing), propertyName);
                 if (propertyInfo == null || !propertyInfo.CanWrite) return;
 
                 var targetType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
@@ -241,7 +241,7 @@ namespace myapp.Controllers
                     return false;
                 }
 
-                if (!usersById.TryGetValue(request.NextApproverId, out var nextApprover))
+                if (!usersById.TryGetValue(request.NextApproverId.Split('|')[0], out var nextApprover))
                 {
                     return false;
                 }
@@ -274,9 +274,10 @@ namespace myapp.Controllers
                         return "-";
                     }
 
-                    return usersById.TryGetValue(r.NextApproverId, out var nextApprover)
+                    var userId = r.NextApproverId.Split('|')[0];
+                    return usersById.TryGetValue(userId, out var nextApprover)
                         ? $"{nextApprover.FirstName} {nextApprover.LastName}".Trim()
-                        : "-";
+                        : userId;  // Show userId if name not found
                 });
 
             var allRoutingRules = await _context.DocumentRoutings
@@ -295,7 +296,7 @@ namespace myapp.Controllers
                     return false;
                 }
 
-                if (!usersById.TryGetValue(request.NextApproverId, out var currentApprover))
+                if (!usersById.TryGetValue(request.NextApproverId.Split('|')[0], out var currentApprover))
                 {
                     return false;
                 }
@@ -388,12 +389,19 @@ namespace myapp.Controllers
                 return NotFound();
             }
 
-            var nextApproverUser = !string.IsNullOrWhiteSpace(requestItem.NextApproverId)
-                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == requestItem.NextApproverId)
+            string? nextApproverUserId = null;
+            if (!string.IsNullOrWhiteSpace(requestItem.NextApproverId))
+            {
+                var idParts = requestItem.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                nextApproverUserId = idParts.Length > 0 ? idParts[0] : requestItem.NextApproverId;
+            }
+
+            var nextApproverUser = !string.IsNullOrWhiteSpace(nextApproverUserId)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == nextApproverUserId)
                 : null;
 
             ViewBag.NextResponsibleUserName = nextApproverUser != null
-                ? $"{nextApproverUser.FirstName} {nextApproverUser.LastName}"
+                ? $"{nextApproverUser.FirstName} {nextApproverUser.LastName}".Trim()
                 : "-";
 
             return View(requestItem);
@@ -728,41 +736,45 @@ namespace myapp.Controllers
                 viewModel.RequesterName,
                 viewModel.NextResponsibleUserId);
 
-            // IT users can create requests with partial data and complete details later in Edit.
-            if (!isITUser)
+
+            // Check required fields: RequesterName, Department, Section, RequesterPlant, RequestType, Plant, NextResponsibleUserId (if not IT)
+            if (string.IsNullOrWhiteSpace(viewModel?.RequesterName))
             {
-                ValidateRequest(viewModel);
+                ModelState.AddModelError(nameof(viewModel.RequesterName), "Requester is required.");
             }
-            else
+            if (string.IsNullOrWhiteSpace(viewModel?.Department))
             {
-                // Plant has [Required] on the view model; allow IT to submit incomplete data in Create.
-                ModelState.Remove(nameof(viewModel.Plant));
+                ModelState.AddModelError(nameof(viewModel.Department), "Department is required.");
             }
-
-            if (viewModel.RequestType == RequestType.Request)
+            if (string.IsNullOrWhiteSpace(viewModel?.Section))
             {
-                // Plant is not required for the generic Request flow.
-                ModelState.Remove(nameof(viewModel.Plant));
-
-                if (requestAttachment == null || requestAttachment.Length == 0)
-                {
-                    ModelState.AddModelError("requestAttachment", "Attachment file is required for this request type.");
-                }
-
-                if (!isITUser && string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
-                {
-                    ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
-                }
+                ModelState.AddModelError(nameof(viewModel.Section), "Section is required.");
+            }
+            if (string.IsNullOrWhiteSpace(viewModel?.RequesterPlant))
+            {
+                ModelState.AddModelError(nameof(viewModel.RequesterPlant), "Requester Plant is required.");
+            }
+            // RequestType is not nullable, so no need to check for null
+            // Plant is required except for generic Request type
+            if (viewModel == null || (viewModel.RequestType != RequestType.Request && string.IsNullOrWhiteSpace(viewModel.Plant)))
+            {
+                ModelState.AddModelError(nameof(viewModel.Plant), "Plant is required.");
+            }
+            if (!isITUser && string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
+            {
+                ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
             }
 
             if (!ModelState.IsValid)
             {
                 var errorCount = ModelState.Values.Sum(v => v.Errors.Count);
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
                 _logger.LogWarning(
-                    "Create POST validation failed. ErrorCount={ErrorCount}, RequestType={RequestType}, Requester={Requester}",
+                    "Create POST validation failed. ErrorCount={ErrorCount}, RequestType={RequestType}, Requester={Requester}, Errors={Errors}",
                     errorCount,
-                    viewModel.RequestType,
-                    viewModel.RequesterName);
+                    viewModel?.RequestType,
+                    viewModel?.RequesterName,
+                    string.Join("; ", errors));
             }
 
             if (ModelState.IsValid)
@@ -797,21 +809,13 @@ namespace myapp.Controllers
                 }
 
                 string? nextApproverId = null;
-                if (isITUser && currentUser != null)
+                if (viewModel != null && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
                 {
-                    // Business rule: IT creators route to themselves as next responsible user.
-                    nextApproverId = currentUser.Id;
-                }
-                else if (!string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
-                {
-                    var parts = viewModel.NextResponsibleUserId.Split('|');
-                    if (parts.Length > 0)
-                    {
-                        nextApproverId = parts[0];
-                    }
+                    // เก็บค่าเต็ม userId|routingId
+                    nextApproverId = viewModel.NextResponsibleUserId;
                 }
 
-                if (viewModel.RequestType == RequestType.Request)
+                if (viewModel != null && viewModel.RequestType == RequestType.Request)
                 {
                     var yearPart = requestDateUtc.ToString("yy", CultureInfo.InvariantCulture);
                     var prefix = $"SR-{yearPart}-";
@@ -835,12 +839,12 @@ namespace myapp.Controllers
                     documentNumber = $"{prefix}{maxSequence + 1:000}";
                 }
 
-                 var requestItem = new RequestItem
+                var requestItem = new RequestItem
                 {
-                    RequestType = viewModel.RequestType.ToString(),
-                    Description = viewModel.Description,
-                    Requester = viewModel.RequesterName,
-                    Status = User.IsInRole("IT") ? viewModel.Status : "Pending",
+                    RequestType = viewModel?.RequestType.ToString() ?? string.Empty,
+                    Description = viewModel?.Description ?? string.Empty,
+                    Requester = viewModel?.RequesterName ?? string.Empty,
+                    Status = (User?.IsInRole("IT") ?? false) ? (viewModel?.Status ?? "Pending") : "Pending",
                     UsageStatus = 1,
                     RequestDate = requestDateUtc,
                     NextApproverId = nextApproverId, // Set the next approver
@@ -849,52 +853,53 @@ namespace myapp.Controllers
                     DocumentNumber = documentNumber,
 
                     // Correctly parse and assign values
-                    Plant = viewModel.Plant,
-                    ItemCode = viewModel.ItemCode,
-                    EnglishMatDescription = viewModel.EnglishMatDescription,
-                    ModelName = viewModel.ModelName,
-                    BaseUnit = viewModel.BaseUnit,
-                    MaterialGroup = viewModel.MaterialGroup,
-                    ExternalMaterialGroup = viewModel.ExternalMaterialGroup,
-                    DivisionCode = viewModel.DivisionCode,
-                    ProfitCenter = viewModel.ProfitCenter,
-                    DistributionChannel = viewModel.DistributionChannel,
-                    BoiCode = viewModel.BoiCode,
-                    MrpController = viewModel.MrpController,
-                    StorageLocation = viewModel.StorageLocation,
-                    ProductionSupervisor = viewModel.ProductionSupervisor,
-                    CostingLotSize = int.TryParse(viewModel.CostingLotSize, out var costingLotSize) ? costingLotSize : null,
-                    ValClass = viewModel.ValClass,
-                    StandardPack = viewModel.StandardPack,
-                    BoiDescription = viewModel.BoiDescription,
-                    MakerMfrPartNumber = viewModel.MakerMfrPartNumber,
-                    CommCodeTariffCode = viewModel.CommCodeTariffCode,
-                    TraffCodePercentage = decimal.TryParse(viewModel.TraffCodePercentage, out var traffCodePercentage) ? traffCodePercentage : null,
-                    StorageLocationB1 = viewModel.StorageLocationB1,
-                    PriceControl = viewModel.PriceControl,
-                    Currency = viewModel.Currency,
-                    SupplierCode = viewModel.SupplierCode,
-                    MatType = viewModel.MatType,
-                    Check = viewModel.Check,
-                    DevicePlant = viewModel.DevicePlant,
-                    AssemblyPlant = viewModel.AssemblyPlant,
-                    IpoPlant = viewModel.IpoPlant,
-                    AsiOfPlant = viewModel.AsiOfPlant,
-                    PriceUnit = int.TryParse(viewModel.PriceUnit, out var priceUnit) ? priceUnit : null,
-                    StorageLocationEP = viewModel.StorageLocationEP,
-                    ToolingBSection = viewModel.ToolingBSection,
-                    PoNumber = viewModel.PoNumber,
-                    DateIn = DateTime.TryParse(viewModel.DateIn, out var dateIn) ? dateIn : null,
-                    QuotationNumber = viewModel.QuotationNumber,
-                    ToolingBModel = viewModel.ToolingBModel,
-                    TariffCode = viewModel.TariffCode,
-                    Planner = viewModel.Planner,
-                    PurchasingGroup = viewModel.PurchasingGroup,
-                    EditBomFg = viewModel.EditBomFg,
-                    EditBomAllFg = viewModel.EditBomAllFg,
-                    Price = decimal.TryParse(viewModel.Price, out var price) ? price : null,
+                    Plant = viewModel?.Plant,
+                    ItemCode = viewModel?.ItemCode,
+                    EnglishMatDescription = viewModel?.EnglishMatDescription,
+                    ModelName = viewModel?.ModelName,
+                    BaseUnit = viewModel?.BaseUnit,
+                    MaterialGroup = viewModel?.MaterialGroup,
+                    ExternalMaterialGroup = viewModel?.ExternalMaterialGroup,
+                    DivisionCode = viewModel?.DivisionCode,
+                    ProfitCenter = viewModel?.ProfitCenter,
+                    DistributionChannel = viewModel?.DistributionChannel,
+                    BoiCode = viewModel?.BoiCode,
+                    MrpController = viewModel?.MrpController,
+                    StorageLocation = viewModel?.StorageLocation,
+                    ProductionSupervisor = viewModel?.ProductionSupervisor,
+                    CostingLotSize = int.TryParse(viewModel?.CostingLotSize, out var costingLotSize) ? costingLotSize : null,
+                    ValClass = viewModel?.ValClass,
+                    StandardPack = viewModel?.StandardPack,
+                    BoiDescription = viewModel?.BoiDescription,
+                    MakerMfrPartNumber = viewModel?.MakerMfrPartNumber,
+                    CommCodeTariffCode = viewModel?.CommCodeTariffCode,
+                    TraffCodePercentage = decimal.TryParse(viewModel?.TraffCodePercentage, out var traffCodePercentage) ? traffCodePercentage : null,
+                    StorageLocationB1 = viewModel?.StorageLocationB1,
+                    PriceControl = viewModel?.PriceControl,
+                    Currency = viewModel?.Currency,
+                    SupplierCode = viewModel?.SupplierCode,
+                    MatType = viewModel?.MatType,
+                    Check = viewModel?.Check ?? false,
+                    DevicePlant = viewModel?.DevicePlant,
+                    AssemblyPlant = viewModel?.AssemblyPlant,
+                    IpoPlant = viewModel?.IpoPlant,
+                    AsiOfPlant = viewModel?.AsiOfPlant,
+                    PriceUnit = int.TryParse(viewModel?.PriceUnit, out var priceUnit) ? priceUnit : null,
+                    StorageLocationEP = viewModel?.StorageLocationEP,
+                    ToolingBSection = viewModel?.ToolingBSection,
+                    PoNumber = viewModel?.PoNumber,
+                    DateIn = DateTime.TryParse(viewModel?.DateIn, out var dateIn) ? dateIn : null,
+                    QuotationNumber = viewModel?.QuotationNumber,
+                    ToolingBModel = viewModel?.ToolingBModel,
+                    TariffCode = viewModel?.TariffCode,
+                    Planner = viewModel?.Planner,
+                    CurrentICS = viewModel?.CurrentICS,
+                    PurchasingGroup = viewModel?.PurchasingGroup,
+                    EditBomFg = viewModel?.EditBomFg,
+                    EditBomAllFg = viewModel?.EditBomAllFg ?? false,
+                    Price = decimal.TryParse(viewModel?.Price, out var price) ? price : null,
 
-                    BomComponents = (viewModel.Components ?? new List<BomComponentViewModel>()).Select(c => new BomComponent
+                    BomComponents = (viewModel?.Components ?? new List<BomComponentViewModel>()).Select(c => new BomComponent
                     {
                         Level = c.Level,
                         Item = c.Item,
@@ -908,7 +913,7 @@ namespace myapp.Controllers
                         Sloc = c.Sloc
                     }).ToList(),
 
-                    Routings = (viewModel.Routings ?? new List<RoutingViewModel>()).Select(r => new Routing
+                    Routings = (viewModel?.Routings ?? new List<RoutingViewModel>()).Select(r => new Routing
                     {
                         Material = r.Material,
                         Description = r.Description,
@@ -932,7 +937,7 @@ namespace myapp.Controllers
                         GroupCounter = r.GroupCounter
                     }).ToList(),
 
-                    LicensePermissions = (viewModel.LicensePermissions ?? new List<LicensePermissionViewModel>())
+                    LicensePermissions = (viewModel?.LicensePermissions ?? new List<LicensePermissionViewModel>())
                         .Where(lp => !string.IsNullOrWhiteSpace(lp.TCode))
                         .Select(lp => new LicensePermissionItem
                         {
@@ -941,25 +946,33 @@ namespace myapp.Controllers
                         }).ToList()
                 };
 
-                _context.Add(requestItem);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    _context.Add(requestItem);
+                    await _context.SaveChangesAsync();
 
-                await AddAuditLogAsync(
-                    entityName: nameof(RequestItem),
-                    entityId: requestItem.Id.ToString(),
-                    action: "Create",
-                    details: $"RequestType={requestItem.RequestType}; Status={requestItem.Status}; NextApproverId={requestItem.NextApproverId}");
+                    await AddAuditLogAsync(
+                        entityName: nameof(RequestItem),
+                        entityId: requestItem.Id.ToString(),
+                        action: "Create",
+                        details: $"RequestType={requestItem.RequestType}; Status={requestItem.Status}; NextApproverId={requestItem.NextApproverId}");
 
-                _logger.LogInformation(
-                    "Create POST succeeded. RequestId={RequestId}, RequestType={RequestType}, Requester={Requester}, NextApproverId={NextApproverId}, DocumentNumber={DocumentNumber}",
-                    requestItem.Id,
-                    requestItem.RequestType,
-                    requestItem.Requester,
-                    requestItem.NextApproverId,
-                    requestItem.DocumentNumber);
+                    _logger.LogInformation(
+                        "Create POST succeeded. RequestId={RequestId}, RequestType={RequestType}, Requester={Requester}, NextApproverId={NextApproverId}, DocumentNumber={DocumentNumber}",
+                        requestItem.Id,
+                        requestItem.RequestType,
+                        requestItem.Requester,
+                        requestItem.NextApproverId,
+                        requestItem.DocumentNumber);
 
-                TempData["SuccessMessage"] = "Request created successfully!";
-                return RedirectToAction(nameof(Index));
+                    TempData["SaveSuccessMessage"] = "Request created successfully!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error saving request in Create POST. RequestType={RequestType}, Requester={Requester}", viewModel?.RequestType, viewModel?.RequesterName);
+                    ModelState.AddModelError("", "An error occurred while saving the request. Please try again.");
+                }
             }
             
             // If we got this far, something failed, redisplay form
@@ -980,11 +993,13 @@ namespace myapp.Controllers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
+            _logger.LogInformation("[DEBUG] Edit GET: id={Id}", id);
+
             if (requestItem == null)
             {
                 return NotFound();
             }
-
+        //user ที่ login เข้ามา
             var currentUser = await _userManager.GetUserAsync(User);
             var currentUserFullName = currentUser == null
                 ? string.Empty
@@ -992,23 +1007,167 @@ namespace myapp.Controllers
             var isRequesterEditor = !string.IsNullOrWhiteSpace(currentUserFullName)
                 && string.Equals(currentUserFullName, requestItem.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
 
+            // Only allow requester or next responsible user to edit
+            var isNextApprover = false;
+            if (!string.IsNullOrWhiteSpace(requestItem.NextApproverId) && currentUser != null)
+            {
+                // Always compare only the userId part (before '|')
+                var nextApproverId = requestItem.NextApproverId.Split('|')[0];
+                isNextApprover = string.Equals(currentUser.Id, nextApproverId, StringComparison.OrdinalIgnoreCase);
+            }
+
+            _logger.LogInformation("[DEBUG] Edit GET: currentUser.Id={CurrentUserId}, NextApproverId={NextApproverId}, nextApproverId(userId)={NextApproverUserId}, isNextApprover={IsNextApprover}, isRequesterEditor={IsRequesterEditor}, IsIT={IsIT}",
+                currentUser?.Id,
+                requestItem.NextApproverId,
+                !string.IsNullOrWhiteSpace(requestItem.NextApproverId) ? requestItem.NextApproverId.Split('|')[0] : null,
+                isNextApprover,
+                isRequesterEditor,
+                User.IsInRole("IT"));
+
+
             // Find the original requester to populate their details
             var requesterUser = await _userManager.Users.FirstOrDefaultAsync(u => (u.FirstName + " " + u.LastName) == requestItem.Requester);
-            var currentApproverUser = !string.IsNullOrWhiteSpace(requestItem.NextApproverId)
-                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == requestItem.NextApproverId)
+            // Always extract userId part from NextApproverId (before '|')
+            var nextApproverUserId = !string.IsNullOrWhiteSpace(requestItem.NextApproverId)
+                ? requestItem.NextApproverId.Split('|')[0]
                 : null;
-            
+            var currentApproverUser = !string.IsNullOrWhiteSpace(nextApproverUserId)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == nextApproverUserId)
+                : null;
+
+            // ดึง workflow candidates (next approvers)
+            var requestTypeName = requestItem.RequestType;
+            var normalizedPlant = (requestItem.Plant ?? string.Empty).Trim();
+
+            _logger.LogInformation("[DEBUG] Edit GET: requestTypeName={RequestTypeName}, normalizedPlant={NormalizedPlant}", requestTypeName, normalizedPlant);
+
+            // Log all DocumentRoutings for this requestTypeName
+            var allRoutings = await _context.DocumentRoutings
+                .Include(dr => dr.DocumentType)
+                .Include(dr => dr.Plant)
+                .ToListAsync();
+            var matchingRoutings = allRoutings.Where(dr => dr.DocumentType.Name.Trim().ToLower() == requestTypeName.Trim().ToLower()).ToList();
+            _logger.LogInformation("[DEBUG] Edit GET: allRoutings.Count={AllCount}, matchingRoutings.Count={MatchCount}", allRoutings.Count, matchingRoutings.Count);
+            foreach (var r in matchingRoutings)
+            {
+                _logger.LogInformation("[DEBUG] Routing: Id={Id}, DocType={DocType}, Plant={Plant}", r.Id, r.DocumentType.Name, r.Plant.PlantName);
+            }
+            var routings = await _context.DocumentRoutings
+                .Include(dr => dr.DocumentType)
+                .Include(dr => dr.Department)
+                .Include(dr => dr.Section)
+                .Include(dr => dr.Plant)
+                .Where(dr => dr.DocumentType.Name.Trim().ToLower() == requestTypeName.Trim().ToLower())
+                .Where(dr => string.IsNullOrWhiteSpace(normalizedPlant)
+                    || dr.Plant.PlantName.Trim().ToLower() == normalizedPlant.ToLower()
+                    || dr.Plant.PlantName.Trim().ToLower().StartsWith(normalizedPlant.ToLower() + " ")
+                    || dr.Plant.PlantName.Trim().ToLower().StartsWith(normalizedPlant.ToLower() + "("))
+                .OrderBy(dr => dr.Step)
+                .ThenBy(dr => dr.Id)
+                .ToListAsync();
+
+            _logger.LogInformation("[DEBUG] Edit GET: routings.Count={RoutingCount}", routings.Count);
+            foreach (var r in routings)
+            {
+                _logger.LogInformation("[DEBUG] Routing (filtered): Id={Id}, DocType={DocType}, Plant={Plant}", r.Id, r.DocumentType.Name, r.Plant.PlantName);
+            }
+
+            var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
+            var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
+
+            foreach (var stepRouting in routings)
+            {
+                var departmentName = stepRouting.Department?.DepartmentName;
+                var sectionName = stepRouting.Section?.SectionName;
+                var usersInRule = allUsers.AsQueryable();
+
+                if (!string.IsNullOrEmpty(departmentName))
+                    usersInRule = usersInRule.Where(u => !string.IsNullOrEmpty(u.Department) && u.Department.Trim().Equals(departmentName.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(sectionName))
+                    usersInRule = usersInRule.Where(u => !string.IsNullOrEmpty(u.Section) && u.Section.Trim().Equals(sectionName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                var foundUsers = usersInRule.ToList();
+                if (foundUsers.Any())
+                {
+                    var ruleForDisplay = $"Step {stepRouting.Step}: {departmentName}" + (string.IsNullOrEmpty(sectionName) ? "" : $" / {sectionName}");
+                    stepCandidates.Add((stepRouting.Step, stepRouting.Id, ruleForDisplay, foundUsers));
+                }
+            }
+
+
+            var availableSteps = stepCandidates.Select(c => c.Step).Distinct().OrderBy(s => s).ToList();
+            if (!availableSteps.Any())
+            {
+                // ถ้าไม่มี workflow steps เลย ให้แสดงหน้า Edit ตามปกติ (หรือแจ้งเตือนใน View ได้)
+                ViewBag.NextApproverCandidates = new List<object>();
+            }
+
+            int currentUserStep = 0;
+            if (availableSteps.Any())
+            {
+                if (!string.IsNullOrWhiteSpace(requestItem.NextApproverId))
+                {
+                    var idParts = requestItem.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    if (idParts.Length == 2 && int.TryParse(idParts[1], out var currentRoutingId))
+                    {
+                        currentUserStep = stepCandidates.Where(c => c.RoutingId == currentRoutingId).Select(c => c.Step).DefaultIfEmpty(0).First();
+                    }
+                }
+                if (currentUserStep == 0 && currentUser != null)
+                {
+                    currentUserStep = stepCandidates.Where(c => c.Users.Any(u => u.Id == currentUser.Id)).Select(c => c.Step).DefaultIfEmpty(0).Min();
+                }
+                int targetStep = currentUserStep == 0 ? availableSteps.First() : availableSteps.FirstOrDefault(s => s > currentUserStep);
+
+                var nextStepApprovers = stepCandidates
+                    .Where(c => c.Step == targetStep)
+                    .SelectMany(c => c.Users.Select(u => new
+                    {
+                        Id = $"{u.Id}|{c.RoutingId}",
+                        Step = c.Step,
+                        Rule = c.Rule,
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        IsCurrent = false,
+                        Disabled = false
+                    }))
+                    .GroupBy(a => a.Id)
+                    .Select(g => g.First())
+                    .OrderBy(a => a.Step)
+                    .ThenBy(a => a.FullName)
+                    .ToList();
+
+                if (!string.IsNullOrWhiteSpace(requestItem.NextApproverId) && !nextStepApprovers.Any(a => a.Id == requestItem.NextApproverId))
+                {
+                    var idParts = requestItem.NextApproverId.Split('|');
+                    var userId = idParts[0];
+                    var user = await _userManager.FindByIdAsync(userId);
+                    var fullName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User";
+                    nextStepApprovers.Insert(0, new {
+                        Id = requestItem.NextApproverId,
+                        Step = 0,
+                        Rule = "Current Approver",
+                        FullName = fullName,
+                        IsCurrent = true,
+                        Disabled = false
+                    });
+                }
+
+                ViewBag.NextApproverCandidates = nextStepApprovers;
+            }
+
+
             var viewModel = new CreateRequestViewModel
             {
                 Id = requestItem.Id,
                 RequestType = Enum.Parse<RequestType>(requestItem.RequestType, true),
                 Description = requestItem.Description,
-                RequesterName = requestItem.Requester,
                 // Populate from the found user, or leave empty if not found
+                RequesterName = requestItem.Requester ?? string.Empty,
                 Department = requesterUser?.Department ?? "",
                 Section = requesterUser?.Section ?? "",
                 RequesterPlant = requesterUser?.Plant ?? "",
                 Status = requestItem.Status,
+                // Always set full value (userId|routingId) for dropdown
                 NextResponsibleUserId = requestItem.NextApproverId,
 
                 // Convert model properties back to strings for display
@@ -1052,6 +1211,7 @@ namespace myapp.Controllers
                 ToolingBModel = requestItem.ToolingBModel,
                 TariffCode = requestItem.TariffCode,
                 Planner = requestItem.Planner,
+                CurrentICS = requestItem.CurrentICS,
                 PurchasingGroup = requestItem.PurchasingGroup,
                 EditBomFg = requestItem.EditBomFg,
                 EditBomAllFg = requestItem.EditBomAllFg,
@@ -1127,6 +1287,11 @@ namespace myapp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, CreateRequestViewModel viewModel, IFormFile? requestAttachment)
         {
+            if (viewModel == null)
+            {
+                return BadRequest();
+            }
+        {
             _logger.LogInformation("Edit POST called for id={Id}", id);
             try { _logger.LogDebug("Posted viewModel: {@ViewModel}", viewModel); } catch { }
             if (id != viewModel.Id)
@@ -1145,26 +1310,37 @@ namespace myapp.Controllers
                 return NotFound();
             }
 
-            if (viewModel.RequestType == RequestType.Request && requestAttachment == null && string.IsNullOrWhiteSpace(existingRequest.AttachmentPath))
-            {
-                ModelState.AddModelError("requestAttachment", "Attachment file is required for this request type.");
-            }
 
-            if (viewModel.RequestType == RequestType.Request && string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
+            // Check required fields: RequesterName, Department, Section, RequesterPlant, RequestType, Plant, NextResponsibleUserId (if not IT)
+            var isITUser = User.IsInRole("IT");
+            if (string.IsNullOrWhiteSpace(viewModel?.RequesterName))
+            {
+                ModelState.AddModelError(nameof(viewModel.RequesterName), "Requester is required.");
+            }
+            if (string.IsNullOrWhiteSpace(viewModel?.Department))
+            {
+                ModelState.AddModelError(nameof(viewModel.Department), "Department is required.");
+            }
+            if (string.IsNullOrWhiteSpace(viewModel?.Section))
+            {
+                ModelState.AddModelError(nameof(viewModel.Section), "Section is required.");
+            }
+            if (string.IsNullOrWhiteSpace(viewModel?.RequesterPlant))
+            {
+                ModelState.AddModelError(nameof(viewModel.RequesterPlant), "Requester Plant is required.");
+            }
+            // RequestType is not nullable, so no need to check for null
+            // Plant is required except for generic Request type
+            if (viewModel == null || (viewModel.RequestType != RequestType.Request && string.IsNullOrWhiteSpace(viewModel.Plant)))
+            {
+                ModelState.AddModelError(nameof(viewModel.Plant), "Plant is required.");
+            }
+            if (!isITUser && string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
             {
                 ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
-            var canReject = User.IsInRole("IT");
-
-            // Only validate strictly when not coming from import preview
-            if (!viewModel.FromImport)
-            {
-                ValidateRequest(viewModel);
-            }
-
-            if (viewModel.FromImport)
+            if (viewModel?.FromImport == true)
             {
                 // Clear ModelState errors that commonly come from imported data so user can save and then update later.
                 var fieldsToClear = new[] { "ItemCode", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize", "DivisionCode", "ProfitCenter", "Plant" };
@@ -1174,7 +1350,14 @@ namespace myapp.Controllers
                     var matched = keys.Where(k => fieldsToClear.Any(f => k.EndsWith(f, StringComparison.OrdinalIgnoreCase))).ToList();
                     foreach (var k in matched)
                     {
-                        ModelState[k].Errors.Clear();
+                        if (ModelState[k] != null)
+                        {
+                            if (ModelState[k]?.Errors != null)
+                                if (ModelState[k] != null)
+                                {
+                                    ModelState[k].Errors.Clear();
+                                }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -1188,11 +1371,11 @@ namespace myapp.Controllers
             {
                 try
                 {
-                    var errors = ModelState.Where(ms => ms.Value.Errors.Any())
+                    var errors = ModelState.Where(ms => ms.Value != null && ms.Value.Errors.Any())
                         .Select(ms => new
                         {
                             Key = ms.Key,
-                            Errors = ms.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                            Errors = ms.Value?.Errors?.Select(e => e.ErrorMessage).ToArray()
                         })
                         .ToArray();
                     _logger.LogWarning("ModelState invalid on Edit POST: {@Errors}", errors);
@@ -1213,12 +1396,19 @@ namespace myapp.Controllers
                     && !string.IsNullOrWhiteSpace(currentUserFullName)
                     && string.Equals(currentUserFullName, requestItemForView.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
 
-                var currentApproverUser = requestItemForView != null && !string.IsNullOrWhiteSpace(requestItemForView.NextApproverId)
-                    ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == requestItemForView.NextApproverId)
+                string? currentApproverUserId = null;
+                if (requestItemForView != null && !string.IsNullOrWhiteSpace(requestItemForView.NextApproverId))
+                {
+                    var idParts = requestItemForView.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    currentApproverUserId = idParts.Length > 0 ? idParts[0] : requestItemForView.NextApproverId;
+                }
+
+                var currentApproverUser = !string.IsNullOrWhiteSpace(currentApproverUserId)
+                    ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == currentApproverUserId)
                     : null;
 
                 ViewBag.CurrentNextApproverName = currentApproverUser != null
-                    ? $"{currentApproverUser.FirstName} {currentApproverUser.LastName}"
+                    ? $"{currentApproverUser.FirstName} {currentApproverUser.LastName}".Trim()
                     : "Current Responsible User";
                 ViewBag.IsRequesterEditor = isRequesterEditor;
                 ViewBag.CanReject = User.IsInRole("IT");
@@ -1260,7 +1450,7 @@ namespace myapp.Controllers
                 {
                     var previousStatus = requestItemToUpdate.Status;
                     var previousNextApproverId = requestItemToUpdate.NextApproverId;
-                    currentUser ??= await _userManager.GetUserAsync(User);
+                    var currentUser = await _userManager.GetUserAsync(User);
                     var currentUserFullName = currentUser == null
                         ? string.Empty
                         : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
@@ -1271,10 +1461,12 @@ namespace myapp.Controllers
                     // Update scalar properties from the view model
                     if (isRequesterEditor)
                     {
-                        requestItemToUpdate.RequestType = viewModel.RequestType.ToString();
+                        // RequestType is not nullable, so this check is unnecessary and can be removed
+                            requestItemToUpdate.RequestType = viewModel.RequestType.ToString();
                         requestItemToUpdate.Plant = viewModel.Plant;
                     }
-                    requestItemToUpdate.Description = viewModel.Description;
+                    if (viewModel != null && viewModel.Description != null)
+                        requestItemToUpdate.Description = viewModel.Description;
                     requestItemToUpdate.Status = canUpdateStatus ? viewModel.Status : requestItemToUpdate.Status;
                     requestItemToUpdate.UpdatedAt = DateTime.UtcNow;
                     requestItemToUpdate.UpdatedBy = User?.Identity?.Name ?? "Unknown";
@@ -1300,8 +1492,8 @@ namespace myapp.Controllers
 
                     if (!string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
                     {
-                        var nextApproverParts = viewModel.NextResponsibleUserId.Split('|');
-                        requestItemToUpdate.NextApproverId = nextApproverParts.Length > 0 ? nextApproverParts[0] : viewModel.NextResponsibleUserId;
+                        // เก็บค่าเต็ม userId|routingId
+                        requestItemToUpdate.NextApproverId = viewModel.NextResponsibleUserId;
                     }
                     requestItemToUpdate.ItemCode = viewModel.ItemCode;
                     requestItemToUpdate.EnglishMatDescription = viewModel.EnglishMatDescription;
@@ -1342,6 +1534,7 @@ namespace myapp.Controllers
                     requestItemToUpdate.ToolingBModel = viewModel.ToolingBModel;
                     requestItemToUpdate.TariffCode = viewModel.TariffCode;
                     requestItemToUpdate.Planner = viewModel.Planner;
+                    requestItemToUpdate.CurrentICS = viewModel.CurrentICS;
                     requestItemToUpdate.PurchasingGroup = viewModel.PurchasingGroup;
                     requestItemToUpdate.EditBomFg = viewModel.EditBomFg;
                     requestItemToUpdate.EditBomAllFg = viewModel.EditBomAllFg;
@@ -1414,12 +1607,13 @@ namespace myapp.Controllers
                         requestItemToUpdate.Status,
                         requestItemToUpdate.NextApproverId);
 
-                    TempData["SuccessMessage"] = "Request updated successfully!";
+                    TempData["SaveSuccessMessage"] = "Request updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    _logger.LogWarning("Edit POST concurrency conflict for RequestId={RequestId}", viewModel.Id);
+                    // Id is not nullable, so this check is unnecessary and can be removed
+                        _logger.LogWarning("Edit POST concurrency conflict for RequestId={RequestId}", viewModel.Id);
                     if (!RequestItemExists(viewModel.Id))
                     {
                         _logger.LogWarning("Edit POST failed because RequestId={RequestId} was not found", viewModel.Id);
@@ -1430,9 +1624,17 @@ namespace myapp.Controllers
                         throw;
                     }
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error saving request in Edit POST. RequestId={RequestId}, RequestType={RequestType}", viewModel?.Id, viewModel?.RequestType);
+                    ModelState.AddModelError("", "An error occurred while saving the request. Please try again.");
+                }
+
+                return View(viewModel);
             }
-            return View(viewModel);
+            // return View(viewModel); // unreachable code removed
         }
+   }
 
         public async Task<IActionResult> Delete(int? id)
         {
@@ -2062,21 +2264,24 @@ namespace myapp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNextApprovers(RequestType requestType, string? plant, string? requesterName, string? currentApproverId)
         {
-            var requestTypeName = requestType.ToString();
-            var normalizedPlant = (plant ?? string.Empty).Trim();
-            var routings = await _context.DocumentRoutings
-                .Include(dr => dr.DocumentType)
-                .Include(dr => dr.Department)
-                .Include(dr => dr.Section) // Include Section data
-                .Include(dr => dr.Plant)
-                .Where(dr => dr.DocumentType.Name == requestTypeName)
-                .Where(dr => string.IsNullOrWhiteSpace(normalizedPlant)
-                    || dr.Plant.PlantName == normalizedPlant
-                    || dr.Plant.PlantName.StartsWith(normalizedPlant + " ")
-                    || dr.Plant.PlantName.StartsWith(normalizedPlant + "("))
-                .OrderBy(dr => dr.Step)
-                .ThenBy(dr => dr.Id)
-                .ToListAsync();
+            try
+            {
+                var requestTypeName = requestType.ToString();
+                var normalizedPlant = (plant ?? string.Empty).Trim();
+                var routings = await _context.DocumentRoutings
+                    .Include(dr => dr.DocumentType)
+                    .Include(dr => dr.Department)
+                    .Include(dr => dr.Section) // Include Section data
+                    .Include(dr => dr.Plant)
+                    .Where(dr => dr.DocumentType != null && dr.DocumentType.Name == requestTypeName)
+                    .Where(dr => string.IsNullOrWhiteSpace(normalizedPlant)
+                        || (dr.Plant != null && (
+                            dr.Plant.PlantName == normalizedPlant
+                            || dr.Plant.PlantName.StartsWith(normalizedPlant + " ")
+                            || dr.Plant.PlantName.StartsWith(normalizedPlant + "("))))
+                    .OrderBy(dr => dr.Step)
+                    .ThenBy(dr => dr.Id)
+                    .ToListAsync();
 
             if (!routings.Any())
             {
@@ -2156,26 +2361,28 @@ namespace myapp.Controllers
                     .Min();
             }
 
-            // Show only the immediate next step.
-            // - Create flow (unknown current step): start at step 1.
-            // - Edit flow by current approver: show the next step after current.
-            int targetStep = currentUserStep == 0
+            // Show approvers according to the Document Routing flow order.
+            // - Create flow: show all configured steps starting from the first step.
+            // - Edit flow: show all remaining steps after the current step.
+            int firstStepToShow = currentUserStep == 0
                 ? availableSteps.First()
                 : availableSteps.FirstOrDefault(s => s > currentUserStep);
 
-            if (targetStep == 0)
+            if (firstStepToShow == 0)
             {
                 return Json(new List<object>());
             }
 
             var nextStepApprovers = stepCandidates
-                .Where(c => c.Step == targetStep)
+                .Where(c => c.Step >= firstStepToShow)
                 .SelectMany(c => c.Users.Select(u => new
                 {
                     Id = $"{u.Id}|{c.RoutingId}",
                     Step = c.Step,
                     Rule = c.Rule,
-                    FullName = $"{u.FirstName} {u.LastName}"
+                    FullName = $"{u.FirstName} {u.LastName}",
+                    IsCurrent = false,
+                    Disabled = false
                 }))
                 .GroupBy(a => a.Id)
                 .Select(g => g.First())
@@ -2183,7 +2390,37 @@ namespace myapp.Controllers
                 .ThenBy(a => a.FullName)
                 .ToList();
 
+            // If current approver is not in the list, fetch their actual name and add them
+            if (!string.IsNullOrWhiteSpace(currentApproverId) && !nextStepApprovers.Any(a => a.Id == currentApproverId))
+            {
+                var idParts = currentApproverId.Split('|');
+                var userId = idParts[0];
+                var user = await _userManager.FindByIdAsync(userId);
+                var fullName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User";
+                nextStepApprovers.Insert(0, new {
+                    Id = currentApproverId,
+                    Step = 0,
+                    Rule = "Current Approver",
+                    FullName = fullName,
+                    IsCurrent = true,
+                    Disabled = false
+                });
+            }
+
             return Json(nextStepApprovers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "GetNextApprovers failed. RequestType={RequestType}, Plant={Plant}, Requester={RequesterName}, CurrentApproverId={CurrentApproverId}",
+                    requestType,
+                    plant,
+                    requesterName,
+                    currentApproverId);
+
+                // Return empty list to keep UI usable instead of surfacing a fetch error.
+                return Json(new List<object>());
+            }
         }
 
         [HttpGet]

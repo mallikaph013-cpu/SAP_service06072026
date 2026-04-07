@@ -27,8 +27,7 @@ namespace myapp.Models.ViewModels
 
         // --- Main Material Fields ---
 
-        [Required(ErrorMessage = "Plant selection is required.")]
-        public string? Plant { get; set; } // Renamed from PlantFG and made required
+        public string? Plant { get; set; } // Renamed from PlantFG
 
         public string? ItemCode { get; set; }
         // Top-level quantity field for BOM requests (optional)
