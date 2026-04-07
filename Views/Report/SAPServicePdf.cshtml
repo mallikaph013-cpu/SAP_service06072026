@@ -12,8 +12,10 @@
         body { font-family: Tahoma, Arial, 'Noto Sans Thai', sans-serif; margin: 30px; }
         h1 { font-size: 2em; font-weight: bold; }
         .section-title { font-weight: bold; margin-top: 20px; border-top: 3px solid #222; border-bottom: 1px solid #222; padding: 4px 0; }
-        .info-table { width: 100%; margin-bottom: 10px; }
-        .info-table td { padding: 2px 5px; }
+        .info-table { width: 100%; margin-bottom: 14px; border-collapse: collapse; table-layout: fixed; }
+        .info-table td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        .info-label { width: 16%; font-weight: bold; color: #222; white-space: nowrap; }
+        .info-value { width: 34%; color: #333; word-break: break-word; }
         .gray-box { background: #ccc; height: 120px; text-align: center; vertical-align: middle; font-size: 1.2em; color: #444; margin-bottom: 10px; }
         .sign-table { width: 100%; margin-top: 30px; }
         .sign-table td { text-align: center; padding-top: 30px; }
@@ -26,9 +28,19 @@
     <div><b>Document No.</b> @item.DocumentNumber</div>
     <div class="section-title">รายละเอียดผู้ร้องขอ</div>
     <table class="info-table">
-        <tr><td>Name:</td><td style="width:40%">@item.Requester</td><td>Division:</td><td style="width:40%">@item.DivisionCode</td></tr>
-        <tr><td>Department:</td><td colspan="3">@item.DivisionCode</td></tr>
-        <tr><td>Email:</td><td colspan="3">@item.UpdatedBy</td></tr>
+        <tr>
+            <td class="info-label">Name:</td>
+            <td class="info-value">@item.Requester</td>
+
+        </tr>
+        <tr>
+            <td class="info-label">Department:</td>
+            <td class="info-value">@(string.IsNullOrWhiteSpace(item.RequesterDepartment) ? "-" : item.RequesterDepartment)</td>
+        </tr>
+        <tr>
+            <td class="info-label">Email:</td>
+            <td class="info-value">@(string.IsNullOrWhiteSpace(item.RequesterEmail) ? "-" : item.RequesterEmail)</td>
+        </tr>
     </table>
     <div class="section-title">รายละเอียดการร้องขอ</div>
     <div>Request Type: @item.RequestType<br />Status: @item.Status</div>
@@ -42,7 +54,7 @@
                 <div class="sign-date">@item.RequestDate.ToString("dd/MM/yy")</div>
             </td>
             <td>
-                <div class="sign-label">Mallika Phonok<br />เจ้าหน้าที่ IT</div>
+                <div class="sign-label">@(!string.IsNullOrWhiteSpace(item.UpdatedByDisplayName) ? item.UpdatedByDisplayName : (item.UpdatedBy ?? "-"))<br />เจ้าหน้าที่ IT</div>
                 <div class="sign-date">@item.UpdatedAt?.ToString("dd/MM/yy")</div>
             </td>
         </tr>

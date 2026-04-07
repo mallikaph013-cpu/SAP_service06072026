@@ -42,6 +42,8 @@ namespace sapservice.Controllers
             if (item == null)
                 return NotFound();
 
+            PopulateReportFields(item);
+
             // ใช้ QuestPDF สร้าง PDF
             var document = new myapp.Documents.SAPServicePdfDocument(item);
             using var stream = new System.IO.MemoryStream();
@@ -54,8 +56,54 @@ namespace sapservice.Controllers
 
         public IActionResult SAPService()
         {
-            var items = _context.RequestItems.Where(x => x.UsageStatus == 1).OrderByDescending(x => x.RequestDate).ToList();
+            var items = _context.RequestItems
+                .Where(x => x.UsageStatus == 1)
+                .OrderByDescending(x => x.RequestDate)
+                .ToList();
+
+            foreach (var item in items)
+            {
+                PopulateReportFields(item);
+            }
+
             return View(items);
+        }
+
+        private void PopulateReportFields(RequestItem item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            var requesterName = (item.Requester ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(requesterName))
+            {
+                var requesterUser = _context.Users
+                    .AsEnumerable()
+                    .FirstOrDefault(u =>
+                        string.Equals($"{u.FirstName} {u.LastName}".Trim(), requesterName, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(u.UserName, requesterName, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(u.Email, requesterName, StringComparison.OrdinalIgnoreCase));
+
+                item.RequesterEmail = requesterUser?.Email;
+                item.RequesterDepartment = requesterUser?.Department;
+            }
+
+            var updatedByValue = (item.UpdatedBy ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(updatedByValue))
+            {
+                var updatedByUser = _context.Users
+                    .AsEnumerable()
+                    .FirstOrDefault(u =>
+                        string.Equals(u.UserName, updatedByValue, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(u.Email, updatedByValue, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals($"{u.FirstName} {u.LastName}".Trim(), updatedByValue, StringComparison.OrdinalIgnoreCase));
+
+                item.UpdatedByDisplayName = updatedByUser != null
+                    ? $"{updatedByUser.FirstName} {updatedByUser.LastName}".Trim()
+                    : item.UpdatedBy;
+            }
         }
 
         [HttpPost]

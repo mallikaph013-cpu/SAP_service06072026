@@ -35,19 +35,19 @@ namespace myapp.Documents
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn();
-                                columns.RelativeColumn();
-                                columns.RelativeColumn();
-                                columns.RelativeColumn();
+                                columns.ConstantColumn(90);
+                                columns.RelativeColumn(2);
+                                columns.ConstantColumn(95);
+                                columns.RelativeColumn(2);
                             });
-                            table.Cell().Element(CellStyle).Text("Name:");
-                            table.Cell().Element(CellStyle).Text(_item.Requester);
-                            table.Cell().Element(CellStyle).Text("Division:");
-                            table.Cell().Element(CellStyle).Text(_item.DivisionCode);
-                            table.Cell().Element(CellStyle).Text("Department:");
-                            table.Cell().ColumnSpan(3).Element(CellStyle).Text(_item.DivisionCode);
-                            table.Cell().Element(CellStyle).Text("Email:");
-                            table.Cell().ColumnSpan(3).Element(CellStyle).Text(_item.UpdatedBy);
+                            table.Cell().Element(CellStyle).Text("Name:").SemiBold();
+                            table.Cell().Element(CellStyle).Text(string.IsNullOrWhiteSpace(_item.Requester) ? "-" : _item.Requester);
+                            
+
+                            table.Cell().Element(CellStyle).Text("Department:").SemiBold();
+                            table.Cell().Element(CellStyle).Text(string.IsNullOrWhiteSpace(_item.RequesterDepartment) ? "-" : _item.RequesterDepartment);
+                            table.Cell().Element(CellStyle).Text("Email:").SemiBold();
+                            table.Cell().Element(CellStyle).Text(string.IsNullOrWhiteSpace(_item.RequesterEmail) ? "-" : _item.RequesterEmail);
                         });
                         col.Item().PaddingVertical(10).Text("รายละเอียดการร้องขอ").Bold().FontSize(16);
                         col.Item().Text($"Request Type: {_item.RequestType}\nStatus: {_item.Status}");
@@ -127,7 +127,7 @@ namespace myapp.Documents
                             });
                             // แถวชื่อ
                             table.Cell().Element(CellStyle).Text((_item.Requester ?? "-") + "\nผู้ร้องขอ");
-                            table.Cell().Element(CellStyle).Text((!string.IsNullOrWhiteSpace(_item.UpdatedBy) ? _item.UpdatedBy : "-") + "\nเจ้าหน้าที่ IT");
+                            table.Cell().Element(CellStyle).Text((!string.IsNullOrWhiteSpace(_item.UpdatedByDisplayName) ? _item.UpdatedByDisplayName : (!string.IsNullOrWhiteSpace(_item.UpdatedBy) ? _item.UpdatedBy : "-")) + "\nเจ้าหน้าที่ IT");
                             // แถววันที่
                             table.Cell().Element(CellStyle).Text(_item.RequestDate.ToString("dd/MM/yy"));
                             table.Cell().Element(CellStyle).Text(_item.UpdatedAt?.ToString("dd/MM/yy") ?? "");

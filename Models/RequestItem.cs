@@ -19,6 +19,15 @@ namespace myapp.Models
         [Required]
         public string Requester { get; set; } = string.Empty;
 
+        [NotMapped]
+        public string? RequesterEmail { get; set; }
+
+        [NotMapped]
+        public string? RequesterDepartment { get; set; }
+
+        [NotMapped]
+        public string? UpdatedByDisplayName { get; set; }
+
         public string Status { get; set; } = "Pending";
 
         // 1 = Active, 9 = Soft deleted
