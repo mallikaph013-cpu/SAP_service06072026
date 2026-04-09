@@ -8,7 +8,8 @@
         switch (status?.ToLower()) {
             case "approved": return "status-approved";
             case "rejected": return "status-rejected";
-            case "processing": return "status-processing";
+            case "processing":
+            case "inprocess": return "status-processing";
             case "complete": return "status-approved"; // Assuming complete is a success status
             default: return "status-pending";
         }

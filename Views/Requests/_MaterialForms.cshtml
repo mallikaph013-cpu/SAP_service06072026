@@ -22,9 +22,9 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-12" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-12" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,IPO,Passthrough,CrossPlantPurchase">
             <div class="form-group">
-                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (max 40)</label>
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
                 <input asp-for="EnglishMatDescription" class="form-control" maxlength="40" />
                 <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
             </div>
@@ -82,16 +82,16 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,DistributionChanel,IPO">
+        <div class="col-md-4" data-types="FG,ToolingBFG,ToolingBPU,DistributionChanel,IPO">
            <div class="form-group">
                <label asp-for="DistributionChannel" class="control-label">Distribution Channel</label>
                <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
                <span asp-validation-for="DistributionChannel" class="text-danger"></span>
            </div>
        </div>
-       <div class="col-md-4" data-types="FG,IPO,DistributionChanel" id="boi-code-container" style="display: none;">
+       <div class="col-md-4" data-types="FG,ToolingBFG,IPO,DistributionChanel" id="boi-code-container" style="display: none;">
            <div class="form-group">
-               <label asp-for="BoiCode" class="control-label">BOI CODE (For Dist channel 20, 30 only)</label>
+               <label asp-for="BoiCode" class="control-label">BOI CODE</label>
                <input asp-for="BoiCode" class="form-control" />
                <span asp-validation-for="BoiCode" class="text-danger"></span>
            </div>
@@ -113,21 +113,21 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,SM,RM,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
              <div class="form-group">
                 <label asp-for="MrpController" class="control-label">MRP Controller</label>
                 <input asp-for="MrpController" class="form-control" />
                 <span asp-validation-for="MrpController" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,SM,RM,AddStorage,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
+        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,ToolingBPU,AddStorage,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
             <div class="form-group">
-                <label asp-for="StorageLocation" class="control-label">Storage Location</label>
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
                 <input asp-for="StorageLocation" class="form-control" />
                 <span asp-validation-for="StorageLocation" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,RM,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
             <div class="form-group">
                 <label asp-for="ValClass" class="control-label">Val Class</label>
                 <input asp-for="ValClass" class="form-control" />
@@ -137,16 +137,16 @@
     </div>
 
     <div class="row g-3 mb-3">
-       <div class="col-md-4" data-types="FG,IPO">
+       <div class="col-md-4" data-types="FG,SM,ToolingBFG,IPO">
             <div class="form-group">
                 <label asp-for="ProductionSupervisor" class="control-label"></label>
                 <input asp-for="ProductionSupervisor" class="form-control" />
                 <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,RM,IPO">
+        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,IPO">
             <div class="form-group">
-                <label asp-for="CostingLotSize" class="control-label">Costing Lot Size</label>
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
                 <input asp-for="CostingLotSize" class="form-control" />
                 <span asp-validation-for="CostingLotSize" class="text-danger"></span>
             </div>
@@ -154,14 +154,28 @@
     </div>
     
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,RM,ToolingB,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
             <div class="form-group">
                 <label asp-for="Price" class="control-label">Price</label>
                 <input asp-for="Price" class="form-control" />
                 <span asp-validation-for="Price" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="RM,ToolingB,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="ToolingB,ToolingBPU">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Moving Average Price</label>
+                <input asp-for="Price" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="ToolingB,ToolingBPU">
+            <div class="form-group">
+                <label asp-for="PriceUnit" class="control-label">Price Unit (Per)</label>
+                <input asp-for="PriceUnit" class="form-control" />
+                <span asp-validation-for="PriceUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="RM,ToolingB,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
              <div class="form-group">
                 <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
                 <input asp-for="PurchasingGroup" class="form-control" />
@@ -194,6 +208,13 @@
         </div>
         <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
             <div class="form-group">
+                <label asp-for="PriceControl" class="control-label">Price(Quotation)</label>
+                <input asp-for="PriceControl" class="form-control" />
+                <span asp-validation-for="PriceControl" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="IPO">
+            <div class="form-group">
                 <label asp-for="PriceControl" class="control-label">Price Control</label>
                 <input asp-for="PriceControl" class="form-control" />
                 <span asp-validation-for="PriceControl" class="text-danger"></span>
@@ -201,7 +222,14 @@
         </div>
     </div>
     <div class="row g-3 mb-3">
-    <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="RM">
+            <div class="form-group">
+                <label asp-for="Currency" class="control-label">Currency</label>
+                <input asp-for="Currency" class="form-control" />
+                <span asp-validation-for="Currency" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
             <div class="form-group">
                 <label asp-for="SupplierCode" class="control-label">Supplier Code</label>
                 <input asp-for="SupplierCode" class="form-control" />

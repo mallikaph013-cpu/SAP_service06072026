@@ -110,6 +110,7 @@
                                 <label asp-for="Status" class="form-label"></label>
                                 <select asp-for="Status" id="CreateStatus" class="form-select">
                                     <option value="Pending">Pending</option>
+                                    <option value="Inprocess">Inprocess</option>
                                     <option value="Run Standard Cost">Run Standard Cost</option>
                                     <option value="Check and Confirm">Check and Confirm</option>
                                     <option value="Release">Release</option>
@@ -222,14 +223,14 @@
             };
 
             function toggleBoiCode() {
-                if (!distributionChannelSelect) return;
-                const selectedChannel = distributionChannelSelect.value;
-                // Show BOI Code field only if Distribution Channel is 'Indirect' (2) or 'Export' (3)
-                if (selectedChannel === '2' || selectedChannel === '3') {
-                    boiCodeContainer.style.display = 'block';
-                } else {
-                    boiCodeContainer.style.display = 'none';
-                }
+                if (!boiCodeContainer) return;
+
+                const selectedRequestTypeValue = requestTypeSelect ? requestTypeSelect.value : '';
+                const selectedTypeName = selectedRequestTypeValue ? (typeMapping[selectedRequestTypeValue] || selectedRequestTypeValue) : '';
+                const normalizedTypeName = selectedTypeName.replace(/[_\s]/g, '');
+                const shouldShowBoiCode = ['FG', 'IPO', 'DistributionChanel', 'ToolingBFG'].includes(normalizedTypeName);
+
+                boiCodeContainer.style.display = shouldShowBoiCode ? 'block' : 'none';
             }
 
             function toggleEditBomFgInput() {

@@ -9,29 +9,33 @@ namespace myapp.Documents
         public static List<string> GetHeadersForRequestType(RequestType requestType)
         {
             var headers = new List<string>();
+
             switch (requestType)
             {
+                case RequestType.Request:
+                    headers.AddRange(new[] { "AttachmentFileName", "AttachmentPath" });
+                    break;
                 case RequestType.FG:
-                    headers.AddRange(new[] { "Plant", "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize", "ValClass" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price" });
                     break;
                 case RequestType.SM:
-                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "BaseUnit", "Plant", "MaterialGroup", "DivisionCode", "ProfitCenter", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize", "StandardPack" });
+                    headers.AddRange(new[] { "CurrentICS", "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize" });
                     break;
                 case RequestType.RM:
-                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "BoiDescription", "Plant", "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "MrpController", "StorageLocation", "StorageLocationB1", "PriceControl", "ValClass", "Price", "Currency", "CostingLotSize", "SupplierCode" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "BoiDescription", "MrpController", "StorageLocation", "ValClass", "CostingLotSize", "Price", "Currency", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "PriceControl", "SupplierCode" });
                     break;
                 case RequestType.Passthrough:
                 case RequestType.CrossPlantPurchase:
-                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "BoiDescription", "Plant", "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "MrpController", "StorageLocation", "PriceControl", "ValClass", "Price", "SupplierCode" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "BoiDescription", "MrpController", "StorageLocation", "ValClass", "Price", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "PriceControl", "SupplierCode" });
                     break;
                 case RequestType.ToolingB:
-                    headers.AddRange(new[] { "ItemCode", "MatType", "Check", "EnglishMatDescription", "MaterialGroup", "BaseUnit", "ExternalMaterialGroup", "Plant", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant", "PurchasingGroup", "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "StorageLocationEP", "ToolingBModel", "ToolingBSection", "PoNumber", "StatusInA", "DateIn", "QuotationNumber" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup" });
                     break;
                 case RequestType.ToolingB_FG:
-                    headers.AddRange(new[] { "CurrentICS", "ItemCode", "EnglishMatDescription", "Level", "Rohs", "MaterialGroup", "BaseUnit", "CodenMid", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant", "Plant", "SalesOrg", "DistributionChannel", "DivisionCode", "TaxTh", "MaterialStatisticsGroup", "AccountAssignment", "GeneralItemCategory", "Availability", "Transportation", "LoadingGroup", "BoiCode", "PurchasingGroup", "ProfitCenter", "PlanDelTime", "SchedMargin", "ValClass", "Price", "PriceUnit", "CostingLotSize", "MrpController", "MinLot", "MaxLot", "FixedLot", "Rounding", "Mtlsm", "Effective", "StorageLoc", "ReceiveStorage", "ProductionSupervisor", "QuotationNumber", "PoNumber", "StatusInA", "ToolingBSection", "DateIn", "ModelName" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price" });
                     break;
                 case RequestType.ToolingB_PU:
-                    headers.AddRange(new[] { "CurrentICS", "ItemCode", "EnglishMatDescription", "Level", "Rohs", "MaterialGroup", "BaseUnit", "ExternalMaterialGroup", "DivisionCode", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant", "Plant", "SalesOrg", "DistributionChannel" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "StorageLocation", "Price", "PriceUnit", "PurchasingGroup" });
                     break;
                 case RequestType.BOM:
                     headers.AddRange(new[] { "Level", "Item", "ItemCat", "ComponentNumber", "Description", "ItemQuantity", "Unit", "BomUsage", "Sloc", "Plant" });
@@ -46,12 +50,16 @@ namespace myapp.Documents
                     headers.AddRange(new[] { "ItemCode", "Plant", "StorageLocation" });
                     break;
                 case RequestType.DistributionChanel:
-                    headers.AddRange(new[] { "ItemCode", "Plant", "StorageLocation", "DistributionChannel", "DivisionCode", "AccountAssignment", "ProfitCenter", "BoiCode" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "AccountAssignment", "StorageLocation" });
                     break;
                 case RequestType.IPO:
-                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "Plant", "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "PurchasingGroup", "TariffCode", "MrpController", "StorageLocation", "ValClass", "Price", "Planner" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price", "PurchasingGroup", "TariffCode", "Planner", "PriceControl" });
+                    break;
+                case RequestType.LicensePermission:
+                    headers.AddRange(new[] { "ItemCode", "Plant" });
                     break;
             }
+
             return headers;
         }
     }

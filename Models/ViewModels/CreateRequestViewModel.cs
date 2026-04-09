@@ -24,6 +24,7 @@ namespace myapp.Models.ViewModels
         public string? NextResponsibleUserId { get; set; }
 
         public string Status { get; set; } = "Pending";
+        public string? RejectionRemark { get; set; }
 
         // --- Main Material Fields ---
 

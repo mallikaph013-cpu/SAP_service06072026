@@ -131,6 +131,9 @@ namespace myapp.Controllers
                 .Where(r => r.UsageStatus != 9)
                 .ToListAsync();
 
+            var currentUserFullName = $"{user.FirstName} {user.LastName}".Trim();
+            ViewBag.CurrentUserFullName = currentUserFullName;
+
             List<RequestItem> requests;
 
             if (User.IsInRole("IT"))
@@ -139,68 +142,16 @@ namespace myapp.Controllers
             }
             else
             {
-                var currentUserName = $"{user.FirstName} {user.LastName}".Trim();
                 var currentUserId = user.Id;
-                var currentActor = (User?.Identity?.Name ?? string.Empty).Trim();
-                var currentUserDepartment = (user.Department ?? string.Empty).Trim();
-                var currentUserSection = (user.Section ?? string.Empty).Trim();
-
-                var participatedRequestIds = await _context.AuditLogs
-                    .Where(a => a.EntityName == nameof(RequestItem)
-                        && (a.Action == "Create" || a.Action == "Update")
-                        && (
-                            (!string.IsNullOrWhiteSpace(currentActor) && a.PerformedBy == currentActor)
-                            || a.PerformedBy == currentUserName))
-                    .Select(a => a.EntityId)
-                    .ToListAsync();
-
-                var participatedIdSet = participatedRequestIds
-                    .Where(id => int.TryParse(id, out _))
-                    .Select(id => int.Parse(id!))
-                    .ToHashSet();
-
-                var routingRules = await _context.DocumentRoutings
-                    .Include(dr => dr.DocumentType)
-                    .Include(dr => dr.Department)
-                    .Include(dr => dr.Section)
-                    .Include(dr => dr.Plant)
-                    .ToListAsync();
-
-                bool IsUserInvolvedByRouting(RequestItem request)
-                {
-                    if (string.IsNullOrWhiteSpace(request.RequestType)) return false;
-
-                    var normalizedPlant = (request.Plant ?? string.Empty).Trim();
-
-                    var matchedRules = routingRules.Where(dr =>
-                        dr.DocumentType?.Name == request.RequestType &&
-                        (string.IsNullOrWhiteSpace(normalizedPlant)
-                            || dr.Plant.PlantName == normalizedPlant
-                            || dr.Plant.PlantName.StartsWith(normalizedPlant + " ")
-                            || dr.Plant.PlantName.StartsWith(normalizedPlant + "(")));
-
-                    return matchedRules.Any(dr =>
-                    {
-                        var departmentName = (dr.Department?.DepartmentName ?? string.Empty).Trim();
-                        var sectionName = (dr.Section?.SectionName ?? string.Empty).Trim();
-
-                        var departmentMatched = string.IsNullOrWhiteSpace(departmentName)
-                            || string.Equals(departmentName, currentUserDepartment, StringComparison.OrdinalIgnoreCase);
-                        var sectionMatched = string.IsNullOrWhiteSpace(sectionName)
-                            || string.Equals(sectionName, currentUserSection, StringComparison.OrdinalIgnoreCase);
-
-                        return departmentMatched && sectionMatched;
-                    });
-                }
 
                 requests = allRequests
                     .Where(r =>
-                        string.Equals(r.Requester, currentUserName, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(r.NextApproverId, currentUserId, StringComparison.Ordinal)
-                        || (!string.IsNullOrWhiteSpace(r.UpdatedBy)
-                            && (!string.IsNullOrWhiteSpace(currentActor) && string.Equals(r.UpdatedBy, currentActor, StringComparison.OrdinalIgnoreCase)))
-                        || participatedIdSet.Contains(r.Id)
-                        || IsUserInvolvedByRouting(r))
+                        string.Equals(r.Requester, currentUserFullName, StringComparison.OrdinalIgnoreCase)
+                        || (!string.IsNullOrWhiteSpace(r.NextApproverId)
+                            && string.Equals(
+                                r.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries)[0],
+                                currentUserId,
+                                StringComparison.OrdinalIgnoreCase)))
                     .ToList();
             }
 
@@ -211,7 +162,8 @@ namespace myapp.Controllers
                 var searchDate = parsedDate.Date;
 
                 requests = requests.Where(r =>
-                    (!string.IsNullOrWhiteSpace(r.RequestType) && r.RequestType.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    (!string.IsNullOrWhiteSpace(r.DocumentNumber) && r.DocumentNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(r.RequestType) && r.RequestType.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                     || (!string.IsNullOrWhiteSpace(r.Status) && r.Status.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                     || (!string.IsNullOrWhiteSpace(r.ItemCode) && r.ItemCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                     || (isDateSearch && r.RequestDate.Date == searchDate)
@@ -414,6 +366,7 @@ namespace myapp.Controllers
                 .Include(r => r.BomComponents)
                 .Include(r => r.bomEditComponents)
                 .Include(r => r.Routings)
+                .Include(r => r.LicensePermissions)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (requestItem == null)
@@ -435,7 +388,7 @@ namespace myapp.Controllers
             };
 
             var requestTypeHeaders = new List<string>();
-            if (Enum.TryParse<RequestType>(requestItem.RequestType, true, out var parsedRequestType))
+            if (TryResolveRequestType(requestItem.RequestType, out var parsedRequestType))
             {
                 requestTypeHeaders = GetHeadersForRequestType(parsedRequestType);
             }
@@ -636,11 +589,38 @@ namespace myapp.Controllers
                 routingSheet.Columns().AdjustToContents();
             }
 
+            if (requestItem.LicensePermissions != null && requestItem.LicensePermissions.Any())
+            {
+                var licenseSheet = workbook.Worksheets.Add("License Permissions");
+                var licenseHeaders = new[] { "SAP Username", "T-Code" };
+
+                for (var i = 0; i < licenseHeaders.Length; i++)
+                {
+                    licenseSheet.Cell(1, i + 1).Value = licenseHeaders[i];
+                }
+
+                var licenseRow = 2;
+                foreach (var item in requestItem.LicensePermissions)
+                {
+                    licenseSheet.Cell(licenseRow, 1).Value = item.SapUsername ?? string.Empty;
+                    licenseSheet.Cell(licenseRow, 2).Value = item.TCode ?? string.Empty;
+                    licenseRow++;
+                }
+
+                var licenseHeader = licenseSheet.Range(1, 1, 1, licenseHeaders.Length);
+                licenseHeader.Style.Font.Bold = true;
+                licenseHeader.Style.Fill.BackgroundColor = XLColor.LightGray;
+                licenseSheet.Columns().AdjustToContents();
+            }
+
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             stream.Position = 0;
 
-            var fileName = $"Request_{requestItem.Id}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            var safeRequestType = string.IsNullOrWhiteSpace(requestItem.RequestType)
+                ? "Request"
+                : new string(requestItem.RequestType.Where(char.IsLetterOrDigit).ToArray());
+            var fileName = $"{safeRequestType}_{requestItem.Id}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
             return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
@@ -1006,6 +986,13 @@ namespace myapp.Controllers
                 : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
             var isRequesterEditor = !string.IsNullOrWhiteSpace(currentUserFullName)
                 && string.Equals(currentUserFullName, requestItem.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
+            var isInprocess = string.Equals(requestItem.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+
+            if (!User.IsInRole("IT") && isRequesterEditor && isInprocess)
+            {
+                TempData["ErrorMessage"] = "Requests in Inprocess status cannot be edited by the requester.";
+                return RedirectToAction(nameof(Index));
+            }
 
             // Only allow requester or next responsible user to edit
             var isNextApprover = false;
@@ -1456,6 +1443,14 @@ namespace myapp.Controllers
                         : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
                     var isRequesterEditor = !string.IsNullOrWhiteSpace(currentUserFullName)
                         && string.Equals(currentUserFullName, requestItemToUpdate.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
+                    var isInprocess = string.Equals(requestItemToUpdate.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+
+                    if (!User.IsInRole("IT") && isRequesterEditor && isInprocess)
+                    {
+                        TempData["ErrorMessage"] = "Requests in Inprocess status cannot be edited by the requester.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
                     var canUpdateStatus = User.IsInRole("IT");
 
                     // Update scalar properties from the view model
@@ -1467,7 +1462,19 @@ namespace myapp.Controllers
                     }
                     if (viewModel != null && viewModel.Description != null)
                         requestItemToUpdate.Description = viewModel.Description;
-                    requestItemToUpdate.Status = canUpdateStatus ? viewModel.Status : requestItemToUpdate.Status;
+
+                    var wasRejected = string.Equals(previousStatus, "Rejected", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(previousStatus, "Reject", StringComparison.OrdinalIgnoreCase);
+
+                    if (canUpdateStatus)
+                    {
+                        requestItemToUpdate.Status = viewModel.Status;
+                    }
+                    else if (isRequesterEditor && wasRejected)
+                    {
+                        requestItemToUpdate.Status = "Pending";
+                    }
+
                     requestItemToUpdate.UpdatedAt = DateTime.UtcNow;
                     requestItemToUpdate.UpdatedBy = User?.Identity?.Name ?? "Unknown";
 
@@ -1593,11 +1600,18 @@ namespace myapp.Controllers
 
                     await _context.SaveChangesAsync();
 
+                    var rejectionRemarkDetails = string.Empty;
+                    if (string.Equals(requestItemToUpdate.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(viewModel.RejectionRemark))
+                    {
+                        rejectionRemarkDetails = $"; RejectionRemark={viewModel.RejectionRemark}";
+                    }
+
                     await AddAuditLogAsync(
                         entityName: nameof(RequestItem),
                         entityId: requestItemToUpdate.Id.ToString(),
                         action: "Update",
-                        details: $"RequestType={requestItemToUpdate.RequestType}; Status:{previousStatus}->{requestItemToUpdate.Status}; NextApproverId:{previousNextApproverId}->{requestItemToUpdate.NextApproverId}");
+                        details: $"RequestType={requestItemToUpdate.RequestType}; Status:{previousStatus}->{requestItemToUpdate.Status}; NextApproverId:{previousNextApproverId}->{requestItemToUpdate.NextApproverId}{rejectionRemarkDetails}");
 
                     _logger.LogInformation(
                         "Edit POST succeeded for RequestId={RequestId} by {Actor}. RequestType={RequestType}, Status={Status}, NextApproverId={NextApproverId}",
@@ -1650,6 +1664,20 @@ namespace myapp.Controllers
                 return NotFound();
             }
 
+            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUserFullName = currentUser == null
+                ? string.Empty
+                : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
+            var isRequester = !string.IsNullOrWhiteSpace(currentUserFullName)
+                && string.Equals(currentUserFullName, requestItem.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
+            var isInprocess = string.Equals(requestItem.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+
+            if (!User.IsInRole("IT") && isRequester && isInprocess)
+            {
+                TempData["ErrorMessage"] = "Requests in Inprocess status cannot be deleted by the requester.";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(requestItem);
         }
 
@@ -1665,6 +1693,21 @@ namespace myapp.Controllers
                 _logger.LogWarning("Delete POST failed because RequestId={RequestId} was not found", id);
                 TempData["ErrorMessage"] = "Request not found.";
                 return NotFound();
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUserFullName = currentUser == null
+                ? string.Empty
+                : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
+            var isRequester = !string.IsNullOrWhiteSpace(currentUserFullName)
+                && string.Equals(currentUserFullName, requestItem.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
+            var isInprocess = string.Equals(requestItem.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+
+            if (!User.IsInRole("IT") && isRequester && isInprocess)
+            {
+                _logger.LogWarning("Delete POST blocked for RequestId={RequestId} because requester attempted to delete an Inprocess item", id);
+                TempData["ErrorMessage"] = "Requests in Inprocess status cannot be deleted by the requester.";
+                return RedirectToAction(nameof(Index));
             }
 
             requestItem.UsageStatus = 9;
@@ -1684,7 +1727,7 @@ namespace myapp.Controllers
                 requestItem.RequestType,
                 requestItem.Requester);
 
-            TempData["SuccessMessage"] = "Request removed from active list successfully.";
+            TempData["SuccessMessage"] = "Request removed from active list successfully. / ลบรายการออกจากรายการที่ใช้งานอยู่เรียบร้อยแล้ว";
             return RedirectToAction(nameof(Index));
         }
 
@@ -2423,6 +2466,60 @@ namespace myapp.Controllers
             }
         }
 
+        private bool TryResolveRequestType(string? requestTypeValue, out RequestType requestType)
+        {
+            requestType = default;
+
+            if (string.IsNullOrWhiteSpace(requestTypeValue))
+            {
+                return false;
+            }
+
+            if (Enum.TryParse<RequestType>(requestTypeValue, true, out requestType))
+            {
+                return true;
+            }
+
+            string Normalize(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            var normalizedRequestType = Normalize(requestTypeValue);
+
+            foreach (var candidate in Enum.GetValues<RequestType>())
+            {
+                if (Normalize(candidate.ToString()) == normalizedRequestType)
+                {
+                    requestType = candidate;
+                    return true;
+                }
+
+                var member = typeof(RequestType).GetMember(candidate.ToString()).FirstOrDefault();
+                var displayName = member?
+                    .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+                    .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+                    .FirstOrDefault()?
+                    .Name;
+
+                if (!string.IsNullOrWhiteSpace(displayName) && Normalize(displayName) == normalizedRequestType)
+                {
+                    requestType = candidate;
+                    return true;
+                }
+            }
+
+            if (normalizedRequestType == "toolingbfg")
+            {
+                requestType = RequestType.ToolingB_FG;
+                return true;
+            }
+
+            if (normalizedRequestType == "toolingbpu")
+            {
+                requestType = RequestType.ToolingB_PU;
+                return true;
+            }
+
+            return false;
+        }
+
         [HttpGet]
         public IActionResult DownloadTemplate(RequestType requestType)
         {
@@ -2468,73 +2565,70 @@ namespace myapp.Controllers
 
             switch (requestType)
             {
-                case RequestType.FG:
-                    headers.AddRange(new[] 
+                case RequestType.Request:
+                    headers.AddRange(new[]
                     {
-                        "Plant", "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup",
-                        "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode",
-                        "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize", "ValClass"
+                        "AttachmentFileName", "AttachmentPath"
+                    });
+                    break;
+                case RequestType.FG:
+                    headers.AddRange(new[]
+                    {
+                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController",
+                        "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price"
                     });
                     break;
                 case RequestType.SM:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "ItemCode", "EnglishMatDescription", "BaseUnit", "Plant", "MaterialGroup", "DivisionCode",
-                        "ProfitCenter", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize", "StandardPack"
+                        "CurrentICS", "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "MrpController", "StorageLocation", "ProductionSupervisor", "CostingLotSize"
                     });
                     break;
                 case RequestType.RM:
-                     headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "BoiDescription", "Plant",
-                        "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "PurchasingGroup",
-                        "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "MrpController",
-                        "StorageLocation", "StorageLocationB1", "PriceControl", "ValClass", "Price", "Currency",
-                        "CostingLotSize", "SupplierCode"
+                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "BoiDescription", "MrpController", "StorageLocation",
+                        "ValClass", "CostingLotSize", "Price", "Currency", "PurchasingGroup", "MakerMfrPartNumber",
+                        "CommCodeTariffCode", "TraffCodePercentage", "PriceControl", "SupplierCode"
                     });
                     break;
                 case RequestType.Passthrough:
                 case RequestType.CrossPlantPurchase:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "BoiDescription", "Plant",
-                        "MaterialGroup", "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "PurchasingGroup",
-                        "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "MrpController",
-                        "StorageLocation", "PriceControl", "ValClass", "Price", "SupplierCode"
+                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "BoiDescription", "MrpController", "StorageLocation",
+                        "ValClass", "Price", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode",
+                        "TraffCodePercentage", "PriceControl", "SupplierCode"
                     });
                     break;
                 case RequestType.ToolingB:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "ItemCode", "MatType", "Check", "EnglishMatDescription", "MaterialGroup", "BaseUnit",
-                        "ExternalMaterialGroup", "Plant", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant",
-                        "PurchasingGroup", "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "StorageLocationEP",
-                        "ToolingBModel", "ToolingBSection", "PoNumber", "StatusInA", "DateIn", "QuotationNumber"
+                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup"
                     });
                     break;
                 case RequestType.ToolingB_FG:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "CurrentICS", "ItemCode", "EnglishMatDescription", "Level", "Rohs", "MaterialGroup", "BaseUnit",
-                        "CodenMid", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant", "Plant", "SalesOrg",
-                        "DistributionChannel", "DivisionCode", "TaxTh", "MaterialStatisticsGroup", "AccountAssignment",
-                        "GeneralItemCategory", "Availability", "Transportation", "LoadingGroup", "BoiCode", "PurchasingGroup",
-                        "ProfitCenter", "PlanDelTime", "SchedMargin", "ValClass", "Price", "PriceUnit", "CostingLotSize",
-                        "MrpController", "MinLot", "MaxLot", "FixedLot", "Rounding", "Mtlsm", "Effective", "StorageLoc",
-                        "ReceiveStorage", "ProductionSupervisor", "QuotationNumber", "PoNumber", "StatusInA", "ToolingBSection",
-                        "DateIn", "ModelName"
+                        "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode",
+                        "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation",
+                        "ValClass", "ProductionSupervisor", "CostingLotSize", "Price"
                     });
                     break;
                 case RequestType.ToolingB_PU:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
-                        "CurrentICS", "ItemCode", "EnglishMatDescription", "Level", "Rohs", "MaterialGroup", "BaseUnit",
-                        "ExternalMaterialGroup", "DivisionCode", "DevicePlant", "AssemblyPlant", "IpoPlant", "AsiOfPlant",
-                        "Plant", "SalesOrg", "DistributionChannel"
+                        "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode",
+                        "ProfitCenter", "DistributionChannel", "StorageLocation", "Price", "PriceUnit", "PurchasingGroup"
                     });
                     break;
                 case RequestType.BOM:
-                     headers.AddRange(new[] { "Level", "Item", "ItemCat", "ComponentNumber", "Description", "ItemQuantity", "Unit", "BomUsage", "Sloc","Plant" });
+                    headers.AddRange(new[] { "Level", "Item", "ItemCat", "ComponentNumber", "Description", "ItemQuantity", "Unit", "BomUsage", "Sloc", "Plant" });
                     break;
                 case RequestType.EditBOM:
                     headers.AddRange(new[]
@@ -2544,7 +2638,7 @@ namespace myapp.Controllers
                     });
                     break;
                 case RequestType.Routing:
-                    headers.AddRange(new[] 
+                    headers.AddRange(new[]
                     {
                         "Counter", "Plant", "Material", "Description", "WorkCenter",
                         "", "", "", "", "",
@@ -2559,20 +2653,32 @@ namespace myapp.Controllers
                     });
                     break;
                 case RequestType.AddStorage:
-                     headers.AddRange(new[] { "ItemCode", "Plant", "StorageLocation" });
+                    headers.AddRange(new[] { "ItemCode", "Plant", "StorageLocation" });
                     break;
                 case RequestType.DistributionChanel:
-                     headers.AddRange(new[] { "ItemCode", "Plant", "StorageLocation", "DistributionChannel", "DivisionCode", "AccountAssignment", "ProfitCenter", "BoiCode" });
+                    headers.AddRange(new[]
+                    {
+                        "ItemCode", "EnglishMatDescription", "Plant", "DivisionCode", "ProfitCenter",
+                        "DistributionChannel", "BoiCode", "AccountAssignment", "StorageLocation"
+                    });
                     break;
                 case RequestType.IPO:
-                     headers.AddRange(new[] 
-                     {
-                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "Plant", "MaterialGroup", 
-                        "ExternalMaterialGroup", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", 
-                        "PurchasingGroup", "TariffCode", "MrpController", "StorageLocation", "ValClass", "Price", "Planner"
-                     });
+                    headers.AddRange(new[]
+                    {
+                        "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
+                        "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController",
+                        "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price",
+                        "PurchasingGroup", "TariffCode", "Planner", "PriceControl"
+                    });
+                    break;
+                case RequestType.LicensePermission:
+                    headers.AddRange(new[]
+                    {
+                        "ItemCode", "Plant"
+                    });
                     break;
             }
+
             return headers;
         }
     }
