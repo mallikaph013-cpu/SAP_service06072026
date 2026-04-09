@@ -1727,7 +1727,7 @@ namespace myapp.Controllers
                 requestItem.RequestType,
                 requestItem.Requester);
 
-            TempData["SuccessMessage"] = "Request removed from active list successfully. / ลบรายการออกจากรายการที่ใช้งานอยู่เรียบร้อยแล้ว";
+            TempData["SuccessMessage"] = "Request removed from active list successfully.";
             return RedirectToAction(nameof(Index));
         }
 
