@@ -105,6 +105,22 @@ namespace myapp.Controllers
             return View(model);
         }
 
+        public async Task<IActionResult> Details(string id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return View(user);
+        }
+
         public async Task<IActionResult> Edit(string id)
         {
             if (id == null)
@@ -199,7 +215,13 @@ namespace myapp.Controllers
                                 return View(model);
                             }
 
-                            user.MustChangePasswordOnFirstLogin = true;
+                            // Only force password change on next login when an admin resets another user's password,
+                            // not when the IT user is changing their own password.
+                            var currentUserId = _userManager.GetUserId(User);
+                            if (user.Id != currentUserId)
+                            {
+                                user.MustChangePasswordOnFirstLogin = true;
+                            }
                             user.UpdatedBy = User.Identity?.Name ?? "System";
                             user.UpdatedAt = DateTime.UtcNow;
                             await _userManager.UpdateAsync(user);

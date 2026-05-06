@@ -20,6 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         var sqlServerConnection = builder.Configuration.GetConnectionString("DefaultConnectionSqlServer")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnectionSqlServer' not found.");
         options.UseSqlServer(sqlServerConnection);
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         return;
     }
 
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         var sqliteConnection = builder.Configuration.GetConnectionString("DefaultConnectionSqlite")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnectionSqlite' not found.");
         options.UseSqlite(sqliteConnection);
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         return;
     }
 

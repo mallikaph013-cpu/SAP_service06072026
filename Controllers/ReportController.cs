@@ -106,11 +106,53 @@ namespace sapservice.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpGet]
         public IActionResult ExportToExcel()
         {
-            // TODO: สร้างไฟล์ Excel จากข้อมูลและส่งออก
-            return File(new byte[0], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SAPServiceReport.xlsx");
+            var items = _context.RequestItems
+                .Where(x => x.UsageStatus == 1)
+                .OrderByDescending(x => x.RequestDate)
+                .ToList();
+
+            foreach (var item in items)
+            {
+                PopulateReportFields(item);
+            }
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var ws = workbook.Worksheets.Add("SAP Service Report");
+
+            // Header
+            var headers = new[] { "Document No.", "Requester", "Department", "Email", "Request Type", "Status", "Description", "Date" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                ws.Cell(1, i + 1).Value = headers[i];
+                ws.Cell(1, i + 1).Style.Font.Bold = true;
+                ws.Cell(1, i + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#FF8C1A");
+                ws.Cell(1, i + 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            }
+
+            // Data rows
+            int row = 2;
+            foreach (var item in items)
+            {
+                ws.Cell(row, 1).Value = item.DocumentNumber;
+                ws.Cell(row, 2).Value = item.Requester;
+                ws.Cell(row, 3).Value = item.RequesterDepartment;
+                ws.Cell(row, 4).Value = item.RequesterEmail;
+                ws.Cell(row, 5).Value = item.RequestType;
+                ws.Cell(row, 6).Value = item.Status;
+                ws.Cell(row, 7).Value = item.Description;
+                ws.Cell(row, 8).Value = item.RequestDate.ToString("dd/MM/yyyy");
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+
+            using var stream = new System.IO.MemoryStream();
+            workbook.SaveAs(stream);
+            var bytes = stream.ToArray();
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"SAPServiceReport_{System.DateTime.Now:yyyyMMdd}.xlsx");
         }
 
 // ...existing code...
