@@ -31,7 +31,10 @@ namespace myapp.Models
         EditBOM,
 
         [Display(Name = "สิทธิ์การใช้งาน")]
-        LicensePermission
+        LicensePermission,
+
+        [Display(Name = "แก้ไข Cost Center")]
+        EditCostCenter
 
     }
 }

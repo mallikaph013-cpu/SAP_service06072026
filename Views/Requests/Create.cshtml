@@ -46,6 +46,24 @@
 
                 <h5>Request Details</h5>
                 <div class="row g-3 mb-4">
+
+                      <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="SapModule" class="form-label">SAP Module</label>
+                            <select asp-for="SapModule" class="form-select">
+                                <option value="">-- Select SAP Module --</option>
+                                <option value="MM Module">MM Module</option>
+                                <option value="PP Module">PP Module</option>
+                                <option value="SD Module">SD Module</option>
+                                @* <option value="FI Module">FI Module</option> *@
+                                <option value="CO Module">CO Module</option>
+                                <option value="Other">Change Request</option>
+                            </select>
+                            <span asp-validation-for="SapModule" class="text-danger"></span>
+                        </div>
+                    </div>
+
+
                     <div class="col-md-6">
                         <div class="form-group">
                             <label asp-for="RequestType" class="form-label">Request Type</label>
@@ -69,6 +87,7 @@
                             <span asp-validation-for="Plant" class="text-danger"></span>
                         </div>
                     </div>
+                  
                 </div>
                 <div class="form-group mb-4" id="request-description-container">
                     <label asp-for="Description" class="form-label"></label>
@@ -175,6 +194,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const requestTypeSelect = document.getElementById('RequestType');
+            const sapModuleSelect = document.getElementById('SapModule');
             const requestPlantSelect = document.getElementById('RequestPlant');
             const requesterNameInput = document.getElementById('RequesterName');
             const materialFieldsContainer = document.getElementById('material-fields-container');
@@ -198,7 +218,15 @@
             const requestAttachmentInput = document.getElementById('RequestAttachment');
             const workflowSection = document.getElementById('workflow-section');
             const isITCreator = @Html.Raw((SignInManager.IsSignedIn(User) && User.IsInRole("IT")).ToString().ToLowerInvariant());
+            const isInitialCreateLoad = '@Context.Request.Method'.toUpperCase() === 'GET';
             let lastSuccessfulApprovers = [];
+            const allRequestTypeOptions = requestTypeSelect
+                ? Array.from(requestTypeSelect.options).map(option => ({ value: option.value, text: option.text }))
+                : [];
+
+            if (requestTypeSelect && isInitialCreateLoad) {
+                requestTypeSelect.value = '';
+            }
 
             const typeMapping = {
                 '0': 'Request',
@@ -216,11 +244,57 @@
                 '12': 'Passthrough',
                 '13': 'CrossPlantPurchase',
                 '14': 'EditBOM',
-                '15': 'LicensePermission'
+                '15': 'LicensePermission',
+                '16': 'EditCostCenter'
 
                 
 
             };
+
+            const normalizeKey = (value) => (value || '').replace(/[_\s-]/g, '').toLowerCase();
+
+            const allowedRequestTypeByModule = {
+                MM: new Set(['1', '2', '3', '4', '5', '6', '9', '11', '12', '13', 'fg', 'sm', 'rm', 'toolingb', 'toolingbfg', 'toolingbpu', 'addstorage', 'ipo', 'passthrough', 'crossplantpurchase']),
+                PP: new Set(['7', '8', '14', 'bom', 'routing', 'editbom']),
+                CO: new Set(['16', 'editcostcenter']),
+                SD: new Set(['10', 'distributionchanel']),
+                OTHER: new Set(['0', '15',  'request', 'licensepermission'])
+            };
+
+            function getSapModuleKey() {
+                const selectedModule = (sapModuleSelect?.value || '').trim().toUpperCase();
+                if (selectedModule.startsWith('MM')) return 'MM';
+                if (selectedModule.startsWith('PP')) return 'PP';
+                if (selectedModule.startsWith('CO')) return 'CO';
+                if (selectedModule.startsWith('SD')) return 'SD';
+                if (selectedModule.startsWith('OTHER')) return 'OTHER';
+                return '';
+            }
+
+            function applyRequestTypeFilterBySapModule() {
+                if (!requestTypeSelect || !allRequestTypeOptions.length) return;
+
+                const moduleKey = getSapModuleKey();
+                const previousValue = requestTypeSelect.value;
+                const allowedSet = moduleKey ? allowedRequestTypeByModule[moduleKey] : null;
+
+                const filteredOptions = allRequestTypeOptions.filter(option => {
+                    if (option.value === '') return true;
+                    if (!allowedSet) return true;
+
+                    const valueKey = normalizeKey(option.value);
+                    const textKey = normalizeKey(option.text);
+                    return allowedSet.has(valueKey) || allowedSet.has(textKey);
+                });
+
+                requestTypeSelect.innerHTML = '';
+                filteredOptions.forEach(option => {
+                    requestTypeSelect.add(new Option(option.text, option.value));
+                });
+
+                const keepSelection = previousValue && filteredOptions.some(option => option.value === previousValue);
+                requestTypeSelect.value = keepSelection ? previousValue : '';
+            }
 
             function toggleBoiCode() {
                 if (!boiCodeContainer) return;
@@ -254,7 +328,10 @@
                 if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
                     selectedTypeName = 'EditBOM';
                 }
-                const isSimpleRequest = selectedTypeName === 'Request' || selectedTypeName === 'ร้องขอ';
+                const isSimpleRequest = selectedTypeName === 'Request'
+                    || selectedTypeName === 'ร้องขอ'
+                    || selectedTypeName === 'EditCostCenter'
+                    || selectedTypeName === 'แก้ไข Cost Center';
 
                 const showMaterialFields = selectedValue && !isSimpleRequest && selectedTypeName !== 'Routing' && selectedTypeName !== 'LicensePermission';
                 if (materialFieldsContainer) materialFieldsContainer.style.display = showMaterialFields ? 'block' : 'none';
@@ -711,6 +788,7 @@
             }
 
             // Initial setup
+            applyRequestTypeFilterBySapModule();
             toggleMaterialFields();
             updateDownloadLink();
             fetchNextApprovers(); // Fetch approvers on page load if a type is already selected
@@ -722,6 +800,14 @@
                 toggleMaterialFields();
                 fetchNextApprovers();
             });
+
+            if (sapModuleSelect) {
+                sapModuleSelect.addEventListener('change', () => {
+                    applyRequestTypeFilterBySapModule();
+                    toggleMaterialFields();
+                    fetchNextApprovers();
+                });
+            }
 
             if (requestPlantSelect) {
                 requestPlantSelect.addEventListener('change', fetchNextApprovers);

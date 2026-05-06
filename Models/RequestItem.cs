@@ -120,6 +120,7 @@ namespace myapp.Models
         public string? StorageLoc { get; set; }
         public string? ReceiveStorage { get; set; }
         public string? PurchasingGroup { get; set; }
+        public string? SapModule { get; set; }
 
         public string? EditBomFg { get; set; }
         public bool EditBomAllFg { get; set; }

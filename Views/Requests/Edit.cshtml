@@ -58,6 +58,20 @@
                                     <span asp-validation-for="Plant" class="text-danger"></span>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="SapModule" class="form-label">SAP Module</label>
+                                    <select asp-for="SapModule" class="form-select">
+                                        <option value="">-- Select SAP Module --</option>
+                                        <option value="MM Module">MM Module</option>
+                                        <option value="PP Module">PP Module</option>
+                                        <option value="SD Module">SD Module</option>
+                                        <option value="FI Module">FI Module</option>
+                                        <option value="CO Module">CO Module</option>
+                                    </select>
+                                    <span asp-validation-for="SapModule" class="text-danger"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group mb-4" id="request-description-container">
                             <label asp-for="Description" class="form-label"></label>
@@ -186,7 +200,8 @@
                     '12': 'Passthrough',
                     '13': 'CrossPlantPurchase',
                     '14': 'EditBOM',
-                    '15': 'LicensePermission'
+                    '15': 'LicensePermission',
+                    '16': 'EditCostCenter'
                 };
 
                 function toggleBoiCode() {
@@ -230,7 +245,10 @@
                     if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
                         selectedTypeName = 'EditBOM';
                     }
-                    const isSimpleRequest = selectedTypeName === 'Request' || selectedTypeName === 'ร้องขอ';
+                    const isSimpleRequest = selectedTypeName === 'Request'
+                        || selectedTypeName === 'ร้องขอ'
+                        || selectedTypeName === 'EditCostCenter'
+                        || selectedTypeName === 'แก้ไข Cost Center';
 
                     const showMaterialFields = selectedValue && !isSimpleRequest && selectedTypeName !== 'Routing' && selectedTypeName !== 'LicensePermission';
                     if (materialFieldsContainer) materialFieldsContainer.style.display = showMaterialFields ? 'block' : 'none';

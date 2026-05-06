@@ -648,7 +648,8 @@ namespace myapp.Controllers
         {
             if (viewModel.RequestType == RequestType.LicensePermission ||
                 viewModel.RequestType == RequestType.Routing ||
-                viewModel.RequestType == RequestType.Request)
+                viewModel.RequestType == RequestType.Request ||
+                viewModel.RequestType == RequestType.EditCostCenter)
             {
                 return;
             }
@@ -736,7 +737,7 @@ namespace myapp.Controllers
             }
             // RequestType is not nullable, so no need to check for null
             // Plant is required except for generic Request type
-            if (viewModel == null || (viewModel.RequestType != RequestType.Request && string.IsNullOrWhiteSpace(viewModel.Plant)))
+            if (viewModel == null || ((viewModel.RequestType != RequestType.Request && viewModel.RequestType != RequestType.EditCostCenter) && string.IsNullOrWhiteSpace(viewModel.Plant)))
             {
                 ModelState.AddModelError(nameof(viewModel.Plant), "Plant is required.");
             }
@@ -875,6 +876,7 @@ namespace myapp.Controllers
                     Planner = viewModel?.Planner,
                     CurrentICS = viewModel?.CurrentICS,
                     PurchasingGroup = viewModel?.PurchasingGroup,
+                    SapModule = viewModel?.SapModule,
                     EditBomFg = viewModel?.EditBomFg,
                     EditBomAllFg = viewModel?.EditBomAllFg ?? false,
                     Price = decimal.TryParse(viewModel?.Price, out var price) ? price : null,
@@ -1200,6 +1202,7 @@ namespace myapp.Controllers
                 Planner = requestItem.Planner,
                 CurrentICS = requestItem.CurrentICS,
                 PurchasingGroup = requestItem.PurchasingGroup,
+                SapModule = requestItem.SapModule,
                 EditBomFg = requestItem.EditBomFg,
                 EditBomAllFg = requestItem.EditBomAllFg,
                 Price = requestItem.Price?.ToString(),
@@ -1217,6 +1220,7 @@ namespace myapp.Controllers
                     BomUsage = c.BomUsage,
                     Plant = c.Plant,
                     Sloc = c.Sloc
+                    
                 }).ToList(),
 
                 Routings = requestItem.Routings.Select(r => new RoutingViewModel
@@ -1318,7 +1322,7 @@ namespace myapp.Controllers
             }
             // RequestType is not nullable, so no need to check for null
             // Plant is required except for generic Request type
-            if (viewModel == null || (viewModel.RequestType != RequestType.Request && string.IsNullOrWhiteSpace(viewModel.Plant)))
+            if (viewModel == null || ((viewModel.RequestType != RequestType.Request && viewModel.RequestType != RequestType.EditCostCenter) && string.IsNullOrWhiteSpace(viewModel.Plant)))
             {
                 ModelState.AddModelError(nameof(viewModel.Plant), "Plant is required.");
             }
@@ -1543,6 +1547,7 @@ namespace myapp.Controllers
                     requestItemToUpdate.Planner = viewModel.Planner;
                     requestItemToUpdate.CurrentICS = viewModel.CurrentICS;
                     requestItemToUpdate.PurchasingGroup = viewModel.PurchasingGroup;
+                    requestItemToUpdate.SapModule = viewModel.SapModule;
                     requestItemToUpdate.EditBomFg = viewModel.EditBomFg;
                     requestItemToUpdate.EditBomAllFg = viewModel.EditBomAllFg;
                     requestItemToUpdate.Price = decimal.TryParse(viewModel.Price, out var price) ? price : null;
@@ -2566,6 +2571,7 @@ namespace myapp.Controllers
             switch (requestType)
             {
                 case RequestType.Request:
+                case RequestType.EditCostCenter:
                     headers.AddRange(new[]
                     {
                         "AttachmentFileName", "AttachmentPath"

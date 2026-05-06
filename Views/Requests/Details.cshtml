@@ -55,6 +55,10 @@
             <!-- Request Details -->
             <div class="mb-4">
                 <h5 class="mb-3">Request Details</h5>
+                @if (!string.IsNullOrWhiteSpace(Model.SapModule))
+                {
+                    <p><strong>SAP Module:</strong> <span class="text-secondary">@Model.SapModule</span></p>
+                }
                 @if (!string.IsNullOrWhiteSpace(Model.Description))
                 {
                     <p class="description-box">@Html.Raw(Model.Description.Replace("\n", "<br />"))</p>

@@ -95,6 +95,7 @@ namespace myapp.Models.ViewModels
         public string? StorageLoc { get; set; }
         public string? ReceiveStorage { get; set; }
         public string? PurchasingGroup { get; set; }
+        public string? SapModule { get; set; }
         public string? Price { get; set; }
 
         public string? EditBomFg { get; set; }

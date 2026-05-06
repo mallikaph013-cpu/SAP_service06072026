@@ -113,14 +113,14 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="SM,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
              <div class="form-group">
                 <label asp-for="MrpController" class="control-label">MRP Controller</label>
                 <input asp-for="MrpController" class="form-control" />
                 <span asp-validation-for="MrpController" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,ToolingBPU,AddStorage,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
+        <div class="col-md-4" data-types="SM,RM,ToolingBFG,ToolingBPU,AddStorage,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
             <div class="form-group">
                 <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
                 <input asp-for="StorageLocation" class="form-control" />
@@ -252,6 +252,24 @@
                 <label asp-for="Planner" class="control-label">Planner</label>
                 <input asp-for="Planner" class="form-control" />
                 <span asp-validation-for="Planner" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FG-specific fields at bottom -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
             </div>
         </div>
     </div>
