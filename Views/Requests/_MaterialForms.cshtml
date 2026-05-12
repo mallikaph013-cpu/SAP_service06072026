@@ -4,232 +4,1198 @@
     <hr class="my-4">
     <h5 class="mb-3">Material Information</h5>
 
+
+  
+ @* ==================================================================== FG ====================================================================== *@
+
     <div class="row g-3 mb-3">
-        <div class="col-md-6" data-types="SM">
-            <div class="form-group">
-                <label asp-for="CurrentICS" class="control-label">ICS Code FG</label>
-                <input asp-for="CurrentICS" class="form-control" placeholder="Enter ICS Code FG" />
-                <span asp-validation-for="CurrentICS" class="text-danger"></span>
+
+
+         <div class="col-md-12" data-types="FG">
+                <hr class="my-4" />
+                <div class="d-inline-block px-2 mt-2 text-white" style="background-color: #b51ddb;">Marketing</div>
             </div>
-        </div>
-        <div class="col-md-6" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,AddStorage,IPO,Passthrough,CrossPlantPurchase">
+
+
+        <div class="col-md-4" data-types="FG">
             <div class="form-group">
                 <label asp-for="ItemCode" class="control-label">ICS Code</label>
-                <input asp-for="ItemCode" class="form-control" />
+                <input asp-for="ItemCode" class="form-control " style="border-color: #b51ddb;"/>
                 <span asp-validation-for="ItemCode" class="text-danger"></span>
             </div>
         </div>
-    </div>
-
-    <div class="row g-3 mb-3">
-        <div class="col-md-12" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG">
             <div class="form-group">
-                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
-                <input asp-for="EnglishMatDescription" class="form-control" maxlength="40" />
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description</label>
+                <input asp-for="EnglishMatDescription" class="form-control " maxlength="40" style="border-color: #b51ddb;"/>
                 <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
             </div>
         </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="ModelName" class="control-label"></label>
+                <input asp-for="ModelName" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="ModelName" class="text-danger"></span>
+            </div>
+        </div>
+          <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control " style="border-color: #b51ddb;"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,RM,IPO,ToolingB,Passthrough,CrossPlantPurchase">
-            <div class="form-group">
-                <label asp-for="ModelName" class="control-label"></label>
-                <input asp-for="ModelName" class="form-control" />
-                 <span asp-validation-for="ModelName" class="text-danger"></span>
-            </div>
-        </div>
-         <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG">
             <div class="form-group">
                 <label asp-for="BaseUnit" class="control-label">Base Unit</label>
-                <input asp-for="BaseUnit" class="form-control" />
+                <input asp-for="BaseUnit" class="form-control " style="border-color: #b51ddb;" />
                 <span asp-validation-for="BaseUnit" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
             <div class="form-group">
                 <label asp-for="MaterialGroup" class="control-label">Material Group</label>
-                <input asp-for="MaterialGroup" class="form-control" />
+                <input asp-for="MaterialGroup" class="form-control " style="border-color: #b51ddb;" />
                 <span asp-validation-for="MaterialGroup" class="text-danger"></span>
             </div>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
+      
+        <div class="col-md-4" data-types="FG">
             <div class="form-group">
-                <label asp-for="Plant" class="control-label">Plant</label>
-                  <input type="text" id="MaterialSectionPlant" class="form-control"
-                      value="@Model.Plant"
-                      placeholder="(Synced from Plant dropdown above)"
-                      disabled />
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="DistributionChannel" class="control-label border-primary">Distribution Channel</label>
+                <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control " style="border-color: #b51ddb;"
+                        asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
+                <span asp-validation-for="DistributionChannel" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="BoiCode" class="control-label">BOI CODE</label>
+                <input asp-for="BoiCode" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="BoiCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="ValClass" class="control-label">ValClass</label>
+                <input asp-for="ValClass" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="ValClass" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Price</label>
+                <input asp-for="Price" class="form-control " style="border-color: #b51ddb;" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+      <div class="col-md-12" data-types="FG">
+                <hr class="my-4" />
+                <div class="d-inline-block px-2 bg-success mt-2">Planner</div>
+       </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+
+      <div class="col-md-12" data-types="FG">
+                <hr class="my-4" />
+                <div class="d-inline-block px-2 bg-warning mt-2">Production</div>
+       </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="ProductionSupervisor" class="control-label"></label>
+                <input asp-for="ProductionSupervisor" class="form-control border-warning" style="border-color: #ffc107 !important;" />
+                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-4" data-types="FG">
+            <div class="form-group">
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-warning" style="border-color: #ffc107 !important;" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    @* ==============================================================END FG ======================================================================== *@
+
+    @* ============================================================== SM ============================================================================ *@
+
+
+    <div class="row g-3 mb-3">
+
+        <div class="col-md-12" data-types="SM">
+                <hr class="my-4" />
+                <div class="d-inline-block px-2 bg-su mt-2 text-white" style="background-color: #198754;">Planner</div>
+       </div>
+
+
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="CurrentICS" class="control-label">ICS Code FG</label>
+                <input asp-for="CurrentICS" class="form-control border-success" placeholder="Enter ICS Code FG" style="border-color: #198754 !important;" />
+                <span asp-validation-for="CurrentICS" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" style="border-color: #198754 !important;" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+       
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success" style="border-color: #198754 !important;"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="SM">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="SM">
             <div class="form-group">
                 <label asp-for="DivisionCode" class="control-label">Division Code</label>
-                <input asp-for="DivisionCode" class="form-control" />
+                <input asp-for="DivisionCode" class="form-control border-success" style="border-color: #198754 !important;" />
                 <span asp-validation-for="DivisionCode" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingB,ToolingBFG,ToolingBPU,DistributionChanel,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="SM">
             <div class="form-group">
                 <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
-                <input asp-for="ProfitCenter" class="form-control" />
+                <input asp-for="ProfitCenter" class="form-control border-success" style="border-color: #198754 !important;" />
                 <span asp-validation-for="ProfitCenter" class="text-danger"></span>
             </div>
         </div>
     </div>
-
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,ToolingBFG,ToolingBPU,DistributionChanel,IPO">
-           <div class="form-group">
-               <label asp-for="DistributionChannel" class="control-label">Distribution Channel</label>
-               <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
-               <span asp-validation-for="DistributionChannel" class="text-danger"></span>
-           </div>
+         <div class="col-md-12" data-types="SM">
+                <hr class="my-4" />
+                <div class="d-inline-block px-2 bg-warning mt-2">Production</div>
        </div>
-       <div class="col-md-4" data-types="FG,ToolingBFG,IPO,DistributionChanel" id="boi-code-container" style="display: none;">
-           <div class="form-group">
-               <label asp-for="BoiCode" class="control-label">BOI CODE</label>
-               <input asp-for="BoiCode" class="form-control" />
-               <span asp-validation-for="BoiCode" class="text-danger"></span>
-           </div>
-       </div>
-       <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
+
+         <div class="col-md-6" data-types="SM">
             <div class="form-group">
-                <label asp-for="BoiDescription" class="control-label">BOI Description</label>
-                <input asp-for="BoiDescription" class="form-control" />
-                <span asp-validation-for="BoiDescription" class="text-danger"></span>
+                <label asp-for="ProductionSupervisor" class="control-label"></label>
+                <input asp-for="ProductionSupervisor" class="form-control border-warning" style="border-color: #ffc107 !important;" />
+                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
             </div>
         </div>
-         <div class="col-md-4" data-types="DistributionChanel">
+        <div class="col-md-6" data-types="SM">
             <div class="form-group">
-                <label asp-for="AccountAssignment" class="control-label">Account Assignment</label>
-                <input asp-for="AccountAssignment" class="form-control" />
-                <span asp-validation-for="AccountAssignment" class="text-danger"></span>
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-warning" style="border-color: #ffc107 !important;" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+          
+
+
+  
+
+ @* ============================================ RM ======================================================= *@
+
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-12" data-types="RM">
+            <hr class="my-4" />
+            <div class="d-inline-block px-2 bg-primary mt-2">Purchase</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">  
+                <div class="col-md-6" data-types="RM">
+                    <div class="form-group">
+                        <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                        <input asp-for="ItemCode" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                        <span asp-validation-for="ItemCode" class="text-danger"></span>
+                    </div>
+                </div>
+              <div class="col-md-6" data-types="RM">
+                    <div class="form-group">
+                            <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                            <input asp-for="EnglishMatDescription" class="form-control border-primary" style="border-color: #0772ff !important;" maxlength="40" />
+                            <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+                    </div>
+            
+                </div>
+            
+                <div class="col-md-6" data-types="RM">
+                    <div class="form-group">
+                                <label asp-for="ModelName" class="control-label"></label>
+                                <input asp-for="ModelName" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                                <span asp-validation-for="ModelName" class="text-danger"></span>
+                    </div>
+                </div>
+
+                 <div class="col-md-6" data-types="RM">
+                <div class="form-group">
+                        <label asp-for="Plant" class="control-label">Plant</label>
+                        <input type="text" id="MaterialSectionPlant" class="form-control border-primary " style="border-color: #0772ff !important;"
+                            value="@Model.Plant"
+                            placeholder="(Synced from Plant dropdown above)"
+                            disabled />
+                    </div>
+                </div>
+        </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="RM">
+    
+            <div class="form-group">
+                    <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                    <input asp-for="BaseUnit" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                    <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+    
+        <div class="col-md-6" data-types="RM"> 
+         <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+          </div>
+        </div>
+       
+    </div>
+
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="RM">
+                <div class="form-group">
+                    <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                    <input asp-for="DivisionCode" class="form-control border-primary" style="border-color: #0772ff !important;"/>
+                    <span asp-validation-for="DivisionCode" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-6" data-types="RM">        
+                <div class="form-group">
+                    <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                    <input asp-for="ProfitCenter" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                    <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-6" data-types="RM">
+
+                <div class="form-group">
+                    <label asp-for="BoiDescription" class="control-label">BOI Description</label>
+                    <input asp-for="BoiDescription" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                    <span asp-validation-for="BoiDescription" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="col-md-6" data-types="RM">
+            <div class="form-group">
+                <label asp-for="ValClass" class="control-label">Val Class</label>
+                <input asp-for="ValClass" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="ValClass" class="text-danger"></span>
+            </div>
+        </div>
+     </div>
+    <div class="row g-3 mb-3">
+        
+        <div class="col-md-6" data-types="RM">
+            <div class="form-group">
+                <label asp-for="CostingLotSize" class="control-label">Price Per / Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="RM">
+             <div class="form-group">
+                <label asp-for="SupplierCode" class="control-label">Supplier Code</label>
+                <input asp-for="SupplierCode" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="SupplierCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="RM">
+            <div class="form-group">
+                <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
+                <input asp-for="PurchasingGroup" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="RM">
+            <div class="form-group">
+                <label asp-for="MakerMfrPartNumber" class="control-label">Maker Mfr Part Number</label>
+                <input asp-for="MakerMfrPartNumber" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="MakerMfrPartNumber" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="RM">
+             <div class="form-group">
+                <label asp-for="PriceControl" class="control-label">Price(Quotation)</label>
+                <input asp-for="PriceControl" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="PriceControl" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="RM">
+             <div class="form-group">
+                <label asp-for="Currency" class="control-label">Currency</label>
+                <input asp-for="Currency" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="Currency" class="text-danger"></span>
             </div>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="SM,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
-             <div class="form-group">
+        <div class="col-md-6" data-types="RM">
+            <div class="form-group">
                 <label asp-for="MrpController" class="control-label">MRP Controller</label>
-                <input asp-for="MrpController" class="form-control" />
+                <input asp-for="MrpController" class="form-control border-primary" style="border-color: #0772ff !important;" />
                 <span asp-validation-for="MrpController" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="SM,RM,ToolingBFG,ToolingBPU,AddStorage,IPO,Passthrough,CrossPlantPurchase,DistributionChanel">
+        <div class="col-md-6" data-types="RM">
             <div class="form-group">
                 <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
-                <input asp-for="StorageLocation" class="form-control" />
+                <input asp-for="StorageLocation" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        
+        </div>
+ </div>
+
+ @* ============================================END RM=============================================================== *@
+
+
+ @* ================================================Tooling B========================================================= *@
+
+ <div class="row g-3 mb-3">
+        <div class="col-md-12" data-types="ToolingB">
+            <hr class="my-4" />
+        <div class="d-inline-block px-2 mt-2 text-white" style="background-color: #b51ddb;">Engineering</div>
+        </div>
+</div>
+
+
+
+     <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control " style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control " style="border-color: #b51ddb !important;" maxlength="40" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="ModelName" class="control-label"></label>
+                <input asp-for="ModelName" class="form-control " style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="ModelName" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control " style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Moving Average Price</label>
+                <input asp-for="Price" class="form-control"  style="border-color: #b51ddb !important;"/>
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control " style="border-color: #b51ddb !important;"/>
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control " style="border-color: #b51ddb !important;"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control " style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control " style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="PriceUnit" class="control-label">Price Unit (Per)</label>
+                <input asp-for="PriceUnit" class="form-control" style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="PriceUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingB">
+            <div class="form-group">
+                <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
+                <input asp-for="PurchasingGroup" class="form-control" style="border-color: #b51ddb !important;" />
+                <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    @* ================================================END Tooling B========================================================= *@    
+
+
+    @* ================================================Tooling B FG========================================================= *@    
+
+
+     <div class="row g-3 mb-3">
+        <div class="col-md-12" data-types="ToolingBFG">
+            <hr class="my-4" />
+        <div class="d-inline-block px-2 text-white mt-2" style="background-color: #6f42c1;">Marketing</div>
+        </div>
+    </div> 
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingBFG">
+        
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control" style="border-color: #6f42c1;" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+
+         <div class="col-md-6" data-types="ToolingBFG">
+             <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control" style="border-color: #6f42c1;" maxlength="40" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control" style="border-color: #6f42c1;" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control" style="border-color: #6f42c1;" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success" style="border-color: #6f42c1 !important;"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" style="border-color: #6f42c1 !important;" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+        
+    </div>
+    <div class="row g-3 mb-3">
+         <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" style="border-color: #6f42c1 !important;" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBFG">
+             <div class="form-group">
+               <label asp-for="DistributionChannel" class="control-label border-primary">Distribution Channel</label>
+               <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control " style="border-color: #6f42c1;" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
+               <span asp-validation-for="DistributionChannel" class="text-danger"></span>
+           </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBFG">
+
+           <div class="form-group">
+               <label asp-for="BoiCode" class="control-label">BOI CODE</label>
+               <input asp-for="BoiCode" class="form-control " style="border-color: #6f42c1;" />
+               <span asp-validation-for="BoiCode" class="text-danger"></span>
+           </div>
+         </div>
+    </div>
+    <div class="row g-3 mb-3">
+         <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" style="border-color: #6f42c1 !important;" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+            <div class="col-md-6" data-types="ToolingBFG">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" style="border-color: #6f42c1 !important;" />
                 <span asp-validation-for="StorageLocation" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="FG,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="ToolingBFG">
             <div class="form-group">
                 <label asp-for="ValClass" class="control-label">Val Class</label>
-                <input asp-for="ValClass" class="form-control" />
+                <input asp-for="ValClass" class="form-control " style="border-color: #6f42c1;" />
                 <span asp-validation-for="ValClass" class="text-danger"></span>
             </div>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
-       <div class="col-md-4" data-types="FG,SM,ToolingBFG,IPO">
-            <div class="form-group">
-                <label asp-for="ProductionSupervisor" class="control-label"></label>
-                <input asp-for="ProductionSupervisor" class="form-control" />
-                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+            <div class="col-md-6" data-types="ToolingBFG">
+                <div class="form-group">
+                    <label asp-for="ProductionSupervisor" class="control-label"></label>
+                    <input asp-for="ProductionSupervisor" class="form-control border-warning" style="border-color: #6f42c1 !important;" />
+                    <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4" data-types="FG,SM,RM,ToolingBFG,IPO">
-            <div class="form-group">
+           <div class="col-md-6" data-types="ToolingBFG">
+             <div class="form-group">
                 <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
-                <input asp-for="CostingLotSize" class="form-control" />
+                <input asp-for="CostingLotSize" class="form-control border-warning" style="border-color: #6f42c1 !important;" />
                 <span asp-validation-for="CostingLotSize" class="text-danger"></span>
             </div>
         </div>
-    </div>
-    
-    <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG,RM,ToolingBFG,IPO,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="ToolingBFG">
             <div class="form-group">
                 <label asp-for="Price" class="control-label">Price</label>
-                <input asp-for="Price" class="form-control" />
+                <input asp-for="Price" class="form-control border-primary" style="border-color: #6f42c1 !important;" />
                 <span asp-validation-for="Price" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="ToolingB,ToolingBPU">
+    </div>
+
+
+  @* ================================================END ToolingBFG========================================================= *@    
+
+   @* ================================================ToolingBPU========================================================= *@    
+
+
+     <div class="row g-3 mb-3">
+        <div class="col-md-12" data-types="ToolingBPU">
+            <hr class="my-4" />
+        <div class="d-inline-block px-2 bg-primary mt-2" style="background-color: #0772ff;">Marketing</div>
+        </div>
+    </div> 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingBPU">
             <div class="form-group">
-                <label asp-for="Price" class="control-label">Moving Average Price</label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="ToolingB,ToolingBPU">
+         <div class="col-md-6" data-types="ToolingBPU">
+             <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+         <div class="col-md-6" data-types="ToolingBPU">
+             <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-success" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+             </div>
+            </div>
+    </div>
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="ToolingBPU">
+                <div class="form-group">
+                    <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                    <input asp-for="BaseUnit" class="form-control border-success" style="border-color: #0772ff !important;" />
+                    <span asp-validation-for="BaseUnit" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-6" data-types="ToolingBPU">
             <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success" style="border-color: #0772ff !important;"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+        <div class="col-md-6" data-types="ToolingBPU">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingBPU">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+            <div class="col-md-6" data-types="ToolingBPU">
+            <div class="form-group">
+               <label asp-for="DistributionChannel" class="control-label border-primary">Distribution Channel</label>
+               <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control border-primary" style="border-color: #0772ff !important;" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
+               <span asp-validation-for="DistributionChannel" class="text-danger"></span>
+           </div>
+        </div>
+            <div class="col-md-6" data-types="ToolingBPU">
+                <div class="form-group">
+                <label asp-for="BoiCode" class="control-label">BOI CODE</label>
+                <input asp-for="BoiCode" class="form-control border-primary" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="BoiCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="ToolingBPU">
+                <div class="form-group">
+                    <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                    <input asp-for="MrpController" class="form-control border-success" style="border-color: #0772ff !important;" />
+                    <span asp-validation-for="MrpController" class="text-danger"></span>
+        </div>
+        </div>    
+        <div class="col-md-6" data-types="ToolingBPU">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        </div>
+            <div class="col-md-6" data-types="ToolingBPU">
+             <div class="form-group">
                 <label asp-for="PriceUnit" class="control-label">Price Unit (Per)</label>
-                <input asp-for="PriceUnit" class="form-control" />
+                <input asp-for="PriceUnit" class="form-control" style="border-color: #0772ff !important;" />
                 <span asp-validation-for="PriceUnit" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="RM,ToolingB,ToolingBPU,IPO,Passthrough,CrossPlantPurchase">
+    </div>
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="ToolingBPU">
              <div class="form-group">
+                <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
+                <input asp-for="PurchasingGroup" class="form-control" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
+            </div>
+            </div>
+                <div class="col-md-6" data-types="ToolingBPU">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Moving Average Price</label>
+                <input asp-for="Price" class="form-control" style="border-color: #0772ff !important;" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+        
+    </div>
+
+ @* ================================================END ToolingBPU========================================================= *@    
+
+ @* ================================================ Distribution Channel========================================================= *@  
+
+        <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="DistributionChanel">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+    
+            <div class="col-md-6" data-types="DistributionChanel">
+             <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="DistributionChanel">
+             <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="DistributionChanel">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+  
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="DistributionChanel">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="DistributionChanel">
+             <div class="form-group">
+               <label asp-for="DistributionChannel" class="control-label border-primary">Distribution Channel</label>
+               <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control border-primary" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
+               <span asp-validation-for="DistributionChannel" class="text-danger"></span>
+           </div>
+        </div>
+
+    </div>
+    <div class="row g-3 mb-3">
+            <div class="col-md-6" data-types="DistributionChanel">
+            <div class="form-group">
+               <label asp-for="BoiCode" class="control-label">BOI CODE</label>
+               <input asp-for="BoiCode" class="form-control border-primary" />
+               <span asp-validation-for="BoiCode" class="text-danger"></span>
+           </div>
+        </div>
+       <div class="col-md-6" data-types="DistributionChanel">
+             <div class="form-group">
+                <label asp-for="AccountAssignment" class="control-label">Account Assignment</label>
+                <input asp-for="AccountAssignment" class="form-control" />
+                <span asp-validation-for="AccountAssignment" class="text-danger"></span>
+            </div>
+        </div>
+
+    </div>
+
+
+    @* ============================================END Distribution Channel=================================================== *@
+
+    @* ================================================ Add Storage ========================================================= *@  
+
+<div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="AddStorage">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+
+             <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+
+        
+        </div>
+</div>
+
+    @* =================================================End Add Storage ========================================================*@  
+
+    @* ================================================IPO ===================================================================== *@
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" style="border-color: #198754 !important;" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="ModelName" class="control-label"></label>
+                <input asp-for="ModelName" class="form-control border-primary" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ModelName" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       style="border-color: #198754 !important;"
+                       disabled />
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="DistributionChannel" class="control-label border-primary">Distribution Channel</label>
+                <select asp-for="DistributionChannel" id="DistributionChannel" class="form-control border-primary" style="border-color: #198754 !important;" asp-items="Html.GetEnumSelectList<myapp.Models.DistributionChannel>()"><option value="">-- Select Channel --</option></select>
+                <span asp-validation-for="DistributionChannel" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="BoiCode" class="control-label">BOI CODE</label>
+                <input asp-for="BoiCode" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="BoiCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" style="border-color: #198754 !important;" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="ValClass" class="control-label">Val Class</label>
+                <input asp-for="ValClass" class="form-control border-primary" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ValClass" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="ProductionSupervisor" class="control-label"></label>
+                <input asp-for="ProductionSupervisor" class="form-control border-warning" style="border-color: #198754 !important;" />
+                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-warning" style="border-color: #198754 !important;" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Price</label>
+                <input asp-for="Price" class="form-control border-primary" style="border-color: #198754 !important;" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
+                <input asp-for="PurchasingGroup" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="MakerMfrPartNumber" class="control-label">Maker Mfr Part Number</label>
+                <input asp-for="MakerMfrPartNumber" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="MakerMfrPartNumber" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="PriceControl" class="control-label">Price Control</label>
+                <input asp-for="PriceControl" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="PriceControl" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="TariffCode" class="control-label">Tariff Code</label>
+                <input asp-for="TariffCode" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="TariffCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="IPO">
+            <div class="form-group">
+                <label asp-for="Planner" class="control-label">Planner</label>
+                <input asp-for="Planner" class="form-control" style="border-color: #198754 !important;" />
+                <span asp-validation-for="Planner" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    @* ================================================END IPO ===================================================================== *@
+
+    @* ================================================END Passthrough ===================================================================== *@
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="ModelName" class="control-label"></label>
+                <input asp-for="ModelName" class="form-control border-primary" />
+                <span asp-validation-for="ModelName" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control border-success" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-success" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="BoiDescription" class="control-label">BOI Description</label>
+                <input asp-for="BoiDescription" class="form-control" />
+                <span asp-validation-for="BoiDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="ValClass" class="control-label">Val Class</label>
+                <input asp-for="ValClass" class="form-control border-primary" />
+                <span asp-validation-for="ValClass" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="ProductionSupervisor" class="control-label"></label>
+                <input asp-for="ProductionSupervisor" class="form-control border-warning" />
+                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-warning" style="border-color: #ffc107 !important;" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Price</label>
+                <input asp-for="Price" class="form-control border-primary" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
                 <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
                 <input asp-for="PurchasingGroup" class="form-control" />
                 <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
                 <label asp-for="MakerMfrPartNumber" class="control-label">Maker Mfr Part Number</label>
                 <input asp-for="MakerMfrPartNumber" class="form-control" />
                 <span asp-validation-for="MakerMfrPartNumber" class="text-danger"></span>
             </div>
         </div>
-    </div>
-
-    <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
-            <div class="form-group">
-                <label asp-for="CommCodeTariffCode" class="control-label">Comm Code/Tariff Code</label>
-                <input asp-for="CommCodeTariffCode" class="form-control" />
-                <span asp-validation-for="CommCodeTariffCode" class="text-danger"></span>
-            </div>
-        </div>
-        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
-            <div class="form-group">
-                <label asp-for="TraffCodePercentage" class="control-label">% Tariff Code</label>
-                <input asp-for="TraffCodePercentage" class="form-control" />
-                <span asp-validation-for="TraffCodePercentage" class="text-danger"></span>
-            </div>
-        </div>
-        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
                 <label asp-for="PriceControl" class="control-label">Price(Quotation)</label>
                 <input asp-for="PriceControl" class="form-control" />
                 <span asp-validation-for="PriceControl" class="text-danger"></span>
             </div>
         </div>
-        <div class="col-md-4" data-types="IPO">
-            <div class="form-group">
-                <label asp-for="PriceControl" class="control-label">Price Control</label>
-                <input asp-for="PriceControl" class="form-control" />
-                <span asp-validation-for="PriceControl" class="text-danger"></span>
-            </div>
-        </div>
-    </div>
-    <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="RM">
-            <div class="form-group">
-                <label asp-for="Currency" class="control-label">Currency</label>
-                <input asp-for="Currency" class="form-control" />
-                <span asp-validation-for="Currency" class="text-danger"></span>
-            </div>
-        </div>
-        <div class="col-md-4" data-types="RM,Passthrough,CrossPlantPurchase">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
                 <label asp-for="SupplierCode" class="control-label">Supplier Code</label>
                 <input asp-for="SupplierCode" class="form-control" />
@@ -238,53 +1204,201 @@
         </div>
     </div>
 
-    <!-- Fields for specific types -->
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="IPO">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
-                <label asp-for="TariffCode" class="control-label">Tariff Code</label>
-                <input asp-for="TariffCode" class="form-control" />
-                 <span asp-validation-for="TariffCode" class="text-danger"></span>
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
             </div>
         </div>
-         <div class="col-md-4" data-types="IPO">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
-                <label asp-for="Planner" class="control-label">Planner</label>
-                <input asp-for="Planner" class="form-control" />
-                <span asp-validation-for="Planner" class="text-danger"></span>
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="Passthrough">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
             </div>
         </div>
     </div>
 
-    <!-- FG-specific fields at bottom -->
     <div class="row g-3 mb-3">
-        <div class="col-md-4" data-types="FG">
-            <div class="form-group">
-                <label asp-for="MrpController" class="control-label">MRP Controller</label>
-                <input asp-for="MrpController" class="form-control" />
-                <span asp-validation-for="MrpController" class="text-danger"></span>
-            </div>
-        </div>
-        <div class="col-md-4" data-types="FG">
+        <div class="col-md-6" data-types="Passthrough">
             <div class="form-group">
                 <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
-                <input asp-for="StorageLocation" class="form-control" />
+                <input asp-for="StorageLocation" class="form-control border-success" />
                 <span asp-validation-for="StorageLocation" class="text-danger"></span>
             </div>
         </div>
     </div>
 
+    @* =============================================CrossPlantPurchase========================================================= *@
 
-</div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="ItemCode" class="control-label">ICS Code</label>
+                <input asp-for="ItemCode" class="form-control border-success" />
+                <span asp-validation-for="ItemCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="EnglishMatDescription" class="control-label">English Mat/Description (not over than 40 chars)</label>
+                <input asp-for="EnglishMatDescription" class="form-control border-success" maxlength="40" />
+                <span asp-validation-for="EnglishMatDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="ModelName" class="control-label"></label>
+                <input asp-for="ModelName" class="form-control border-primary" />
+                <span asp-validation-for="ModelName" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="BaseUnit" class="control-label">Base Unit</label>
+                <input asp-for="BaseUnit" class="form-control border-success" />
+                <span asp-validation-for="BaseUnit" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="MaterialGroup" class="control-label">Material Group</label>
+                <input asp-for="MaterialGroup" class="form-control border-success" />
+                <span asp-validation-for="MaterialGroup" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="Plant" class="control-label">Plant</label>
+                <input type="text" id="MaterialSectionPlant" class="form-control border-success"
+                       value="@Model.Plant"
+                       placeholder="(Synced from Plant dropdown above)"
+                       disabled />
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="DivisionCode" class="control-label">Division Code</label>
+                <input asp-for="DivisionCode" class="form-control border-success" />
+                <span asp-validation-for="DivisionCode" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="ProfitCenter" class="control-label">Profit Center</label>
+                <input asp-for="ProfitCenter" class="form-control border-success" />
+                <span asp-validation-for="ProfitCenter" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="BoiDescription" class="control-label">BOI Description</label>
+                <input asp-for="BoiDescription" class="form-control" />
+                <span asp-validation-for="BoiDescription" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="MrpController" class="control-label">MRP Controller</label>
+                <input asp-for="MrpController" class="form-control border-success" />
+                <span asp-validation-for="MrpController" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="StorageLocation" class="control-label">Storage Loc.</label>
+                <input asp-for="StorageLocation" class="form-control border-success" />
+                <span asp-validation-for="StorageLocation" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="ValClass" class="control-label">Val Class</label>
+                <input asp-for="ValClass" class="form-control border-primary" />
+                <span asp-validation-for="ValClass" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="ProductionSupervisor" class="control-label"></label>
+                <input asp-for="ProductionSupervisor" class="form-control border-warning" />
+                <span asp-validation-for="ProductionSupervisor" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="CostingLotSize" class="control-label">Costing Lot</label>
+                <input asp-for="CostingLotSize" class="form-control border-warning" />
+                <span asp-validation-for="CostingLotSize" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="Price" class="control-label">Price</label>
+                <input asp-for="Price" class="form-control border-primary" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="PurchasingGroup" class="control-label">Purchasing Group</label>
+                <input asp-for="PurchasingGroup" class="form-control" />
+                <span asp-validation-for="PurchasingGroup" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="MakerMfrPartNumber" class="control-label">Maker Mfr Part Number</label>
+                <input asp-for="MakerMfrPartNumber" class="form-control" />
+                <span asp-validation-for="MakerMfrPartNumber" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="PriceControl" class="control-label">Price(Quotation)</label>
+                <input asp-for="PriceControl" class="form-control" />
+                <span asp-validation-for="PriceControl" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-3 mb-3">
+        <div class="col-md-6" data-types="CrossPlantPurchase">
+            <div class="form-group">
+                <label asp-for="SupplierCode" class="control-label">Supplier Code</label>
+                <input asp-for="SupplierCode" class="form-control" />
+                <span asp-validation-for="SupplierCode" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /material-fields-container -->
 
 @*EditBOM*@
-
 <div id="bom-edit-fields-container" style="display: none;">
     <hr />
     <h4>Material Information (Edit BOM)</h4>

@@ -24,11 +24,44 @@
 <div class="row justify-content-center">
     <div class="col-lg-10 col-xl-9 d-flex flex-column">
 
+        <!-- Excel Import Form -->
+        <div class="main-content-card create-import-card">
+             <div class="text-center mb-4">
+                <h2>Import from Excel</h2>
+                @*<p class="text-light">เพิ่มคำขอหลายรายการอย่างรวดเร็วด้วยการอัปโหลดไฟล์ Excel ที่เตรียมไว้</p>*@
+            </div>
+            <form id="import-form" asp-action="Import" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="ImportRequestType" class="form-label">Request Type (Template)</label>
+                    <select id="ImportRequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
+                        <option value="">-- Select Type --</option>
+                    </select>
+                </div>
+                 <div class="mb-3">
+                    <label for="excelFile" class="form-label">Select Excel File (.xlsx, .xls)</label>
+                    <input class="form-control" type="file" id="excelFile" name="file" accept=".xlsx, .xls" required>
+                </div>
+
+                <input type="hidden" name="NextResponsibleUserId" id="importNextResponsibleUserId" />
+                
+                <div class="d-flex justify-content-center align-items-center mt-4">
+                    <div class="input-group">
+                        <a id="download-template-link" href="#" class="btn btn-outline-secondary disabled">
+                            <i class="fas fa-download me-2"></i>Download Template
+                        </a>
+                        <button type="submit" id="import-submit-button" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i>Import File
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <!-- Manual Creation Form -->
         <div class="main-content-card mb-5 create-manual-card">
             <div class="text-center mb-4">
                 <h2>Create New Service Request</h2>
-               @*<p class="text-light">Please fill in the details of your request below.</p>*@ 
+               @*<p class="text-light">กรุณากรอกรายละเอียดคำขอของคุณด้านล่าง</p>*@ 
             </div>
 
             <form id="create-form" asp-action="Create" method="post" enctype="multipart/form-data">
@@ -102,32 +135,32 @@
                 </div>
 
                 <partial name="_MaterialForms" model="Model" />
+            </form>
 
-                <div id="workflow-section">
-                    <hr class="my-4">
-
-                    <h5>Work Flow</h5>
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
-                                <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
-                                    <option value="">-- Please select a request type first --</option>
-                                </select>
-                            </div>
+            <div id="workflow-section" class="mt-4">
+                <hr class="my-4" />
+                <h5>Work Flow</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
+                            <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select" form="create-form">
+                                <option value="">-- Please select a request type first --</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-                @* ੾�����˹�ҷ�� IT *@
+
+                @* ส่วนนี้แสดงเฉพาะผู้ใช้บทบาท IT *@
                 @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
                 {
                     <hr class="my-4" />
                     <h5>DX Update Status</h5>
-                     <div class="row mb-4">
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label asp-for="Status" class="form-label"></label>
-                                <select asp-for="Status" id="CreateStatus" class="form-select">
+                                <select asp-for="Status" id="CreateStatus" class="form-select" form="create-form">
                                     <option value="Pending">Pending</option>
                                     <option value="Inprocess">Inprocess</option>
                                     <option value="Run Standard Cost">Run Standard Cost</option>
@@ -141,50 +174,18 @@
                         </div>
                     </div>
                 }
-
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
-                    <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
-                        <i class="fas fa-arrow-left me-1"></i> Back to List
-                    </a>
-                    <button type="submit" id="create-submit-button" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>Submit Request
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Excel Import Form -->
-        <div class="main-content-card create-import-card">
-             <div class="text-center mb-4">
-                <h2>Import from Excel</h2>
-                @*<p class="text-light">Quickly add multiple requests by uploading a pre-filled Excel file.</p>*@
             </div>
-            <form id="import-form" asp-action="Import" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="ImportRequestType" class="form-label">Request Type (Template)</label>
-                    <select id="ImportRequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
-                        <option value="">-- Select Type --</option>
-                    </select>
-                </div>
-                 <div class="mb-3">
-                    <label for="excelFile" class="form-label">Select Excel File (.xlsx, .xls)</label>
-                    <input class="form-control" type="file" id="excelFile" name="file" accept=".xlsx, .xls" required>
-                </div>
 
-                <input type="hidden" name="NextResponsibleUserId" id="importNextResponsibleUserId" />
-                
-                <div class="d-flex justify-content-center align-items-center mt-4">
-                    <div class="input-group">
-                        <a id="download-template-link" href="#" class="btn btn-outline-secondary disabled">
-                            <i class="fas fa-download me-2"></i>Download Template
-                        </a>
-                        <button type="submit" id="import-submit-button" class="btn btn-success">
-                            <i class="fas fa-file-excel me-2"></i>Import File
-                        </button>
-                    </div>
-                </div>
-            </form>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 mb-4">
+                <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+                <button type="submit" id="create-submit-button" class="btn btn-primary" form="create-form">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Request
+                </button>
+            </div>
         </div>
+
 
     </div>
 </div>
@@ -193,12 +194,13 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // เตรียมตัวแปรอ้างอิง DOM ที่ใช้งานบ่อยสำหรับควบคุมฟอร์มแบบไดนามิก
             const requestTypeSelect = document.getElementById('RequestType');
             const sapModuleSelect = document.getElementById('SapModule');
             const requestPlantSelect = document.getElementById('RequestPlant');
             const requesterNameInput = document.getElementById('RequesterName');
             const materialFieldsContainer = document.getElementById('material-fields-container');
-            const allMaterialFields = materialFieldsContainer ? materialFieldsContainer.querySelectorAll('[data-types]') : [];
+            const allMaterialFields = document.querySelectorAll('[data-types]');
             const bomContainer = document.getElementById('bom-fields-container');
             const bomEditContainer = document.getElementById('bom-edit-fields-container');
             const routingContainer = document.getElementById('routing-fields-container');
@@ -228,6 +230,7 @@
                 requestTypeSelect.value = '';
             }
 
+            // จับคู่ค่า enum กับชื่อประเภทคำขอที่ใช้ในเงื่อนไขของ UI
             const typeMapping = {
                 '0': 'Request',
                 '1': 'FG',
@@ -253,6 +256,7 @@
 
             const normalizeKey = (value) => (value || '').replace(/[_\s-]/g, '').toLowerCase();
 
+            // กำหนดประเภทคำขอที่อนุญาตตามแต่ละ SAP Module
             const allowedRequestTypeByModule = {
                 MM: new Set(['1', '2', '3', '4', '5', '6', '9', '11', '12', '13', 'fg', 'sm', 'rm', 'toolingb', 'toolingbfg', 'toolingbpu', 'addstorage', 'ipo', 'passthrough', 'crossplantpurchase']),
                 PP: new Set(['7', '8', '14', 'bom', 'routing', 'editbom']),
@@ -271,12 +275,22 @@
                 return '';
             }
 
+            // กรองและเปิดใช้งาน Request Type หลังจากเลือก SAP Module แล้วเท่านั้น
             function applyRequestTypeFilterBySapModule() {
                 if (!requestTypeSelect || !allRequestTypeOptions.length) return;
 
                 const moduleKey = getSapModuleKey();
                 const previousValue = requestTypeSelect.value;
                 const allowedSet = moduleKey ? allowedRequestTypeByModule[moduleKey] : null;
+
+                requestTypeSelect.disabled = !moduleKey;
+
+                if (!moduleKey) {
+                    requestTypeSelect.innerHTML = '';
+                    requestTypeSelect.add(new Option('-- Select SAP Module first --', ''));
+                    requestTypeSelect.value = '';
+                    return;
+                }
 
                 const filteredOptions = allRequestTypeOptions.filter(option => {
                     if (option.value === '') return true;
@@ -296,6 +310,7 @@
                 requestTypeSelect.value = keepSelection ? previousValue : '';
             }
 
+            // แสดงหรือซ่อนช่อง BOI Code ตามประเภทคำขอที่กำหนด
             function toggleBoiCode() {
                 if (!boiCodeContainer) return;
 
@@ -307,6 +322,7 @@
                 boiCodeContainer.style.display = shouldShowBoiCode ? 'block' : 'none';
             }
 
+            // ปิดการกรอก FG เมื่อเลือกตัวเลือก "All FG" ใน Edit BOM
             function toggleEditBomFgInput() {
                 if (!editBomFgInput || !editBomAllFgCheckbox) return;
                 const isAllFgChecked = editBomAllFgCheckbox.checked;
@@ -316,15 +332,16 @@
                 }
             }
 
+            // สลับการแสดงส่วนหลักของฟอร์ม (material, BOM, routing, upload, workflow) ตามประเภทคำขอ
             function toggleMaterialFields() {
                 if (!requestTypeSelect) return;
                 const selectedValue = requestTypeSelect.value;
-                // support enum value as numeric string or as name (e.g. "6" or "BOM")
+                // รองรับค่าประเภทคำขอทั้งแบบตัวเลข enum และชื่อ เช่น "6" หรือ "BOM"
                 let selectedTypeName = '';
                 if (selectedValue) {
                     selectedTypeName = typeMapping[selectedValue] || selectedValue;
                 }
-                //Treat EditBOM like BOM for field visibility
+                // ให้ EditBOM ใช้เงื่อนไขการแสดงผลฟิลด์แยกตามประเภทของตัวเอง
                 if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
                     selectedTypeName = 'EditBOM';
                 }
@@ -363,17 +380,14 @@
                     }
                 }
 
-                if (showMaterialFields && allMaterialFields.length) {
+                if (allMaterialFields.length) {
                     allMaterialFields.forEach(field => {
                         const parentCol = field.closest('.col-md-4, .col-md-6, .col-md-8, .col-md-12');
-                        if (parentCol) {
-                            const types = parentCol.dataset.types ? parentCol.dataset.types.split(',') : [];
-                            if (selectedTypeName && types.includes(selectedTypeName)) {
-                                parentCol.style.display = 'block';
-                            } else {
-                                parentCol.style.display = 'none';
-                            }
-                        }
+                        if (!parentCol) return;
+
+                        const types = parentCol.dataset.types ? parentCol.dataset.types.split(',').map(type => type.trim()) : [];
+                        const shouldShowField = showMaterialFields && selectedTypeName && types.includes(selectedTypeName);
+                        parentCol.style.display = shouldShowField ? '' : 'none';
                     });
                 }
 
@@ -381,21 +395,21 @@
                     const isEditBom = selectedTypeName === 'EditBOM';
                     const isLicensePermission = selectedTypeName === 'LicensePermission';
 
-                //��� block �����ʴ� UI �ͧ BOM EditBom Routing
+                // แสดงหรือซ่อนบล็อก UI ของ BOM, EditBOM และ Routing
 
                 if (bomEditContainer) bomEditContainer.style.display = (isEditBom) ? 'block' : 'none';
                 if (routingContainer) routingContainer.style.display = selectedTypeName === 'Routing' ? 'block' : 'none';
                 if (bomContainer) bomContainer.style.display = (isBom) ? 'block' : 'none';
                 if (licensePermissionContainer) licensePermissionContainer.style.display = isLicensePermission ? 'block' : 'none';
 
-                // After toggling all fields, specifically check for BOI code visibility
+                // หลังสลับฟิลด์ทั้งหมดแล้ว ให้ตรวจการแสดงผล BOI Code อีกครั้ง
                 toggleBoiCode();
             }
 
             const getNextApproversUrl = '@Url.Action("GetNextApprovers", "Requests")';
             const downloadTemplateUrl = '@Url.Action("DownloadTemplate", "Requests")';
 
-            @* Check next Approve *@
+            // โหลดรายชื่อผู้รับผิดชอบลำดับถัดไปจาก backend ตามประเภทคำขอ, plant และผู้ร้องขอ
             function fetchNextApprovers() {
                 const requestTypeValue = requestTypeSelect.value;
                 const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
@@ -436,7 +450,7 @@
                             if (data && data.length > 0) {
                                 renderApproverOptions(data);
                             } else {
-                                // Fallback: retry without plant filter in case route config uses different plant labels.
+                                // กรณีสำรอง: ลองใหม่โดยไม่ส่ง plant เผื่อการตั้งค่าเส้นทางใช้ป้ายชื่อ plant ไม่ตรงกัน
                                 fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
                                     .then(r => r.json())
                                     .then(fallbackData => {
@@ -474,6 +488,7 @@
                 }
             }
             
+            // อัปเดตลิงก์ดาวน์โหลดเทมเพลต Excel เมื่อเปลี่ยนประเภทคำขอสำหรับนำเข้า
             function updateDownloadLink() {
                 const selectedValue = importRequestTypeSelect ? importRequestTypeSelect.value : '';
                 if (selectedValue) {
@@ -485,22 +500,23 @@
                 }
             }
 
+            // กันการ submit import เมื่อจำเป็นต้องเลือกผู้รับผิดชอบแต่ยังไม่ได้เลือก
             function checkResponsibleUser(event) {
                 const hasApproverOptions = Array.from(nextResponsibleUserSelect.options || [])
                     .some(option => option.value && option.value.trim() !== '');
 
                 if (hasApproverOptions && nextResponsibleUserSelect.value === '') {
-                    event.preventDefault(); // Stop form submission
+                    event.preventDefault(); // หยุดการส่งฟอร์ม
                     Swal.fire({
                         title: 'Incomplete Information',
                         text: "Please select a 'Next Responsible User' before submitting.",
                         icon: 'warning',
-                        confirmButtonColor: '#F97316' // Primary Orange
+                        confirmButtonColor: '#F97316' // สีส้มหลักของปุ่มยืนยัน
                     });
                 }
             }
 
-            // --- BOM & Routing Logic from Edit.cshtml ---
+            // เพิ่มแถว BOM (Parent/Child) แบบไดนามิกในฟอร์มสร้างคำขอ
             function addBomItem(level) {
                 const tbody = document.getElementById('bom-items-body');
                 if (!tbody) return;
@@ -539,7 +555,7 @@
             }
 
 
-            @*------------------------------Edit BOM--------------------------------------*@
+            // เพิ่มแถวเปรียบเทียบ Edit BOM (ค่าเดิม/ค่าใหม่)
 
              function addBomEditItem(level) {
                 const tbody = document.getElementById('bom-edit-items-body');
@@ -583,7 +599,7 @@
                     }
 
 
-            @*---------------------------------Routing------------------------------------*@ 
+                    // เพิ่มแถวรายละเอียด Routing และซิงก์ค่า Unit ที่ต้องสะท้อนกัน
 
             const addRoutingBtn = document.getElementById('add-routing-item');
             if (addRoutingBtn) addRoutingBtn.addEventListener('click', function() {
@@ -666,6 +682,7 @@
                 });
             }
 
+            // ตรรกะส่วน License Permission: สลับโหมด New Username และ Add Permission
             const addLicensePermissionBtn = document.getElementById('add-license-permission-item');
             const licenseRequestOptionSelect = document.getElementById('LicenseRequestOption');
             const licenseNewUsernameFields = document.getElementById('license-new-username-fields');
@@ -713,6 +730,7 @@
                 syncLicensePermissionUsernames();
             }
 
+            // รวมค่า username เพื่อนำไปกระจายลงในแต่ละแถวของ License Permission
             function getLicenseUsernames() {
                 const usernames = [];
                 const primary = licensePrimaryUsernameInput ? licensePrimaryUsernameInput.value.trim() : '';
@@ -787,15 +805,15 @@
                 });
             }
 
-            // Initial setup
+            // ตั้งค่าเริ่มต้นของหน้าในครั้งแรกและกรณี postback
             applyRequestTypeFilterBySapModule();
             toggleMaterialFields();
             updateDownloadLink();
-            fetchNextApprovers(); // Fetch approvers on page load if a type is already selected
+            fetchNextApprovers(); // โหลดผู้รับผิดชอบตอนเปิดหน้า หากมีประเภทคำขอถูกเลือกอยู่แล้ว
             hydrateLicenseUsernameInputsFromRows();
             toggleLicenseRequestOptionFields();
 
-            // Event Listeners
+            // กลุ่ม event handler หลักสำหรับพฤติกรรมฟอร์มแบบไดนามิก
             requestTypeSelect.addEventListener('change', () => {
                 toggleMaterialFields();
                 fetchNextApprovers();
@@ -812,7 +830,7 @@
             if (requestPlantSelect) {
                 requestPlantSelect.addEventListener('change', fetchNextApprovers);
 
-                        // Sync header Plant dropdown → Material section Plant display field
+                        // ซิงก์ค่า Plant จากส่วนหัวฟอร์มไปยังช่อง Plant ในส่วน Material
                         const materialSectionPlant = document.getElementById('MaterialSectionPlant');
                         function syncMaterialPlant() {
                             if (materialSectionPlant && requestPlantSelect) {
@@ -821,7 +839,7 @@
                         }
                         if (requestPlantSelect) {
                             requestPlantSelect.addEventListener('change', syncMaterialPlant);
-                            syncMaterialPlant(); // initial sync on page load
+                            syncMaterialPlant(); // ซิงก์ค่าเริ่มต้นเมื่อเปิดหน้า
                         }
 
             }
@@ -852,6 +870,7 @@
                 licenseRequestOptionSelect.addEventListener('change', toggleLicenseRequestOptionFields);
             }
 
+            // ตรวจสอบก่อนส่งฟอร์มขั้นสุดท้ายว่าฟิลด์บังคับกรอกครบ
             function hasBlankRequiredRequestFields() {
                 const names = ['RequesterName', 'RequestType', 'Description'];
                 return names.some(name => {
