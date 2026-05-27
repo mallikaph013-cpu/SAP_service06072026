@@ -39,7 +39,7 @@ body {
 
 /* Button styling */
 .btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #667eea;
     border: none;
     border-radius: 8px;
     padding: 0.75rem 1.5rem;

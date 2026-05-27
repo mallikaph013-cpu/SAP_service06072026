@@ -10,7 +10,7 @@
     <title>SAP Required</title>
     <style>
         body {
-            background: linear-gradient(135deg, #fffaf5 0%, #ffffff 100%);
+            background: #fffaf5;
             color: #4a2c12;
         }
 
@@ -85,6 +85,18 @@
             border-color: #e67600;
             color: #ffffff;
         }
+
+        .report-container .btn.btn-sm {
+            padding: 0.38rem 0.72rem !important;
+            font-size: 0.82rem !important;
+            line-height: 1.2 !important;
+            border-radius: 0.55rem !important;
+            box-shadow: none !important;
+        }
+
+        .report-container .btn.btn-sm i {
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -92,7 +104,7 @@
         <h1 class="page-title">SAP Required</h1>
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="section-title mb-0">SAP Service Report</div>
-            <a href="@Url.Action("ExportToExcel", "Report")" class="btn btn-success">
+            <a href="@Url.Action("ExportToExcel", "Report")" class="btn btn-success btn-sm">
                 <i class="fas fa-file-excel"></i> Export Excel
             </a>
         </div>
@@ -124,7 +136,7 @@
                     <td class="desc-cell" title="@item.Description">@item.Description</td>
                     <td>@item.RequestDate.ToString("dd/MM/yy")</td>
                     <td>
-                        <a href="@Url.Action("ExportToPdf", "Report", new { id = item.Id })" target="_blank" class="btn btn-orange">
+                        <a href="@Url.Action("ExportToPdf", "Report", new { id = item.Id })" target="_blank" class="btn btn-orange btn-sm">
                             <i class="fas fa-file-pdf"></i> PDF
                         </a>
                     </td>

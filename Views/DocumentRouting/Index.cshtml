@@ -5,170 +5,9 @@
 }
 
 @*<h1 class="mb-4">Document Routing Management</h1>*@
-
-<style>
-    body {
-        background:
-            radial-gradient(circle at top left, rgba(251, 146, 60, 0.12), transparent 28%),
-            radial-gradient(circle at top right, rgba(253, 186, 116, 0.12), transparent 24%),
-            linear-gradient(180deg, #fffdfb 0%, #fff7ed 54%, #ffffff 100%);
-    }
-    .dr-card {
-        background: rgba(255, 255, 255, 0.97);
-        border: 1px solid rgba(251, 146, 60, 0.28);
-        border-radius: 24px;
-        box-shadow: 0 16px 38px rgba(251, 146, 60, 0.12);
-        margin-bottom: 2rem;
-        padding: 1rem 1.25rem 1.25rem;
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
-    }
-    .dr-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 42px rgba(251, 146, 60, 0.14);
-    }
-    .dr-card-header {
-        background: linear-gradient(135deg, #fff7ed 0%, #ffffff 72%);
-        border-radius: 18px 18px 0 0;
-        padding: 1.15rem 1.5rem 1rem;
-        border-bottom: 1px solid rgba(251, 146, 60, 0.18);
-    }
-    .dr-card-title {
-        color: #ea580c;
-        font-size: 1.45rem;
-        font-weight: 800;
-        margin: 0;
-        letter-spacing: -0.3px;
-    }
-    .dr-btn-primary,
-    .dr-btn-outline,
-    .dr-btn-edit,
-    .dr-btn-delete {
-        border-radius: 999px;
-        font-weight: 700;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.18s ease;
-    }
-    .dr-btn-primary {
-        background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-        color: #fff;
-        box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
-        border: 1px solid #fb923c;
-        padding: 0.72rem 1.5rem;
-        font-size: 1.02rem;
-    }
-    .dr-btn-primary:hover {
-        background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-    .dr-btn-outline {
-        border: 1px solid rgba(249, 115, 22, 0.35);
-        background: #fff7ed;
-        color: #ea580c;
-        padding: 0.7rem 1.15rem;
-    }
-    .dr-btn-outline:hover {
-        background: #fed7aa;
-        color: #9a3412;
-    }
-    .dr-btn-edit {
-        background: #fff7ed;
-        color: #ea580c;
-        border: 1px solid #fdba74;
-    }
-    .dr-btn-edit:hover {
-        background: #fdba74;
-        color: #fff;
-    }
-    .dr-btn-delete {
-        background: #fff;
-        color: #dc2626;
-        border: 1px solid #fecaca;
-    }
-    .dr-btn-delete:hover {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-    .form-control {
-        min-height: 48px;
-        font-size: 1rem;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        border-radius: 14px;
-        border: 1px solid rgba(251, 146, 60, 0.35);
-        background: #fff;
-        box-shadow: 0 2px 6px rgba(251, 146, 60, 0.05);
-        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    }
-    .form-control:focus {
-        border-color: #f97316;
-        box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.12);
-        background: #fffaf5;
-    }
-    .form-group label.control-label,
-    .form-label {
-        font-weight: 700;
-        color: #9a3412;
-        margin-bottom: 0.35rem;
-        display: block;
-    }
-    .form-group {
-        margin-bottom: 0.7rem;
-    }
-    .row.g-3.align-items-end > [class^="col-"] {
-        margin-bottom: 0.35rem;
-    }
-    ::placeholder {
-        color: #fdba74;
-        opacity: 1;
-    }
-    .alert-warning {
-        background: #fffaf5;
-        border: 1px solid #fdba74;
-        color: #9a3412;
-        border-radius: 18px;
-        box-shadow: 0 8px 18px rgba(251, 146, 60, 0.08);
-    }
-    .text-orange {
-        color: #ea580c !important;
-    }
-    .dr-table thead {
-        background: #fff7ed;
-    }
-    .dr-table th,
-    .dr-table td {
-        border: none !important;
-    }
-    .dr-table th {
-        color: #c2410c;
-        font-weight: 700;
-        font-size: 1rem;
-        background: #fff7ed;
-    }
-    .dr-table td {
-        color: #7c2d12;
-        font-size: 0.97rem;
-        background: #fff;
-        vertical-align: middle;
-        border-top: 1px solid #ffedd5 !important;
-    }
-    .dr-table tbody tr:hover td {
-        background: #fffaf5;
-    }
-    .btn-icon {
-        border-radius: 999px !important;
-        padding: 0.45rem 0.7rem !important;
-        font-size: 1rem !important;
-    }
-</style>
-<div class="dr-card mb-4">
-    <div class="dr-card-header">
-        <h2 class="dr-card-title mb-0">Create New Document Routing</h2>
-    </div>
+<div class="dr-card mb-4 mt-2">
     <div class="card-body">
+        <h2 class="dr-card-title mb-3">Create New Document Routing</h2>
         <form asp-action="Create" method="post">
             <div asp-validation-summary="All" class="text-danger"></div>
             <div class="row g-3 align-items-end">
@@ -239,10 +78,8 @@
 }
 
 <div class="dr-card mb-4">
-    <div class="dr-card-header">
-        <h2 class="dr-card-title mb-0">Import Document Routing</h2>
-    </div>
     <div class="card-body">
+        <h2 class="dr-card-title mb-3">Import Document Routing</h2>
         <form asp-action="Import" method="post" enctype="multipart/form-data">
             <div class="row g-3 align-items-end">
                 <div class="col-md-9">
@@ -294,10 +131,10 @@
                                 <td><span class="fs-6">@item.Plant.PlantName</span></td>
                                 <td class="fw-bold">@item.Step</td>
                                 <td class="text-center">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon dr-btn-edit me-2" data-bs-toggle="tooltip" title="Edit">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon dr-btn-delete" data-bs-toggle="tooltip" title="Delete">
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
                                         <i class="fas fa-trash-alt"></i>
                                     </a>
                                 </td>

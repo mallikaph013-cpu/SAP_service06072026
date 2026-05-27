@@ -36,6 +36,7 @@ namespace myapp.Controllers
             _environment = environment;
         }
 
+        // Import helpers map Excel headers to entity properties so one template engine can serve multiple request shapes.
         private void SetBomComponentProperty(BomComponent component, string propertyName, string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return;
@@ -119,6 +120,7 @@ namespace myapp.Controllers
             }
         }
 
+        // Index shows either the full queue for IT or the requester's own items plus items waiting for their approval.
         public async Task<IActionResult> Index(string? searchTerm)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -174,6 +176,7 @@ namespace myapp.Controllers
 
             requests = requests.OrderByDescending(r => r.RequestDate).ToList();
 
+            // Audit and routing metadata are loaded separately so the list can show current responsibility and workflow state.
             var requestIds = requests.Select(r => r.Id.ToString()).ToList();
             var updateAuditLogs = await _context.AuditLogs
                 .Where(a => a.EntityName == nameof(RequestItem)
@@ -624,6 +627,7 @@ namespace myapp.Controllers
             return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
+        // Create GET preloads requester profile fields from the signed-in user to reduce manual data entry.
         public async Task<IActionResult> Create()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -644,6 +648,7 @@ namespace myapp.Controllers
             return View(viewModel);
         }
 
+        // This centralizes request-type-specific validation rules that are more dynamic than data annotations.
         private void ValidateRequest(CreateRequestViewModel viewModel)
         {
             if (viewModel.RequestType == RequestType.LicensePermission ||
@@ -705,6 +710,7 @@ namespace myapp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Create POST validates, stores optional attachments, resolves the next approver, and persists child collections in one request item.
         public async Task<IActionResult> Create(CreateRequestViewModel viewModel, IFormFile? requestAttachment)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -789,6 +795,7 @@ namespace myapp.Controllers
                         uploadedFile.Length);
                 }
 
+                // The approver value keeps both the user id and routing rule id in the format userId|routingId.
                 string? nextApproverId = null;
                 if (viewModel != null && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
                 {
@@ -859,7 +866,7 @@ namespace myapp.Controllers
                     PriceControl = viewModel?.PriceControl,
                     Currency = viewModel?.Currency,
                     SupplierCode = viewModel?.SupplierCode,
-                    MatType = viewModel?.MatType,
+                    MaterialType = viewModel?.MaterialType ?? viewModel?.MatType,
                     Check = viewModel?.Check ?? false,
                     DevicePlant = viewModel?.DevicePlant,
                     AssemblyPlant = viewModel?.AssemblyPlant,
@@ -869,6 +876,7 @@ namespace myapp.Controllers
                     StorageLocationEP = viewModel?.StorageLocationEP,
                     ToolingBSection = viewModel?.ToolingBSection,
                     PoNumber = viewModel?.PoNumber,
+                    StatusInA = viewModel?.StatusInA,
                     DateIn = DateTime.TryParse(viewModel?.DateIn, out var dateIn) ? dateIn : null,
                     QuotationNumber = viewModel?.QuotationNumber,
                     ToolingBModel = viewModel?.ToolingBModel,
@@ -961,6 +969,7 @@ namespace myapp.Controllers
             return View(viewModel);
         }
 
+        // Edit GET rebuilds the form from the stored entity and recalculates the next approver candidates from routing rules.
         public async Task<IActionResult> Edit(int? id, bool fromImport = false)
         {
             if (id == null)
@@ -1064,6 +1073,7 @@ namespace myapp.Controllers
             var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
             var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
 
+            // Build approver candidates per workflow step so the UI can move the request forward one configured step at a time.
             foreach (var stepRouting in routings)
             {
                 var departmentName = stepRouting.Department?.DepartmentName;
@@ -1185,7 +1195,7 @@ namespace myapp.Controllers
                 PriceControl = requestItem.PriceControl,
                 Currency = requestItem.Currency,
                 SupplierCode = requestItem.SupplierCode,
-                MatType = requestItem.MatType,
+                MaterialType = requestItem.MaterialType ?? requestItem.MatType,
                 Check = requestItem.Check,
                 DevicePlant = requestItem.DevicePlant,
                 AssemblyPlant = requestItem.AssemblyPlant,
@@ -1195,6 +1205,7 @@ namespace myapp.Controllers
                 StorageLocationEP = requestItem.StorageLocationEP,
                 ToolingBSection = requestItem.ToolingBSection,
                 PoNumber = requestItem.PoNumber,
+                StatusInA = requestItem.StatusInA,
                 DateIn = requestItem.DateIn?.ToString("yyyy-MM-dd"),
                 QuotationNumber = requestItem.QuotationNumber,
                 ToolingBModel = requestItem.ToolingBModel,
@@ -1276,6 +1287,7 @@ namespace myapp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Edit POST updates the parent request and fully replaces child collections to keep imported/manual edits consistent.
         public async Task<IActionResult> Edit(int id, CreateRequestViewModel viewModel, IFormFile? requestAttachment)
         {
             if (viewModel == null)
@@ -1331,6 +1343,7 @@ namespace myapp.Controllers
                 ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
             }
 
+            // Imported records are allowed to save with a lighter validation pass so users can correct data incrementally.
             if (viewModel?.FromImport == true)
             {
                 // Clear ModelState errors that commonly come from imported data so user can save and then update later.
@@ -1530,7 +1543,7 @@ namespace myapp.Controllers
                     requestItemToUpdate.PriceControl = viewModel.PriceControl;
                     requestItemToUpdate.Currency = viewModel.Currency;
                     requestItemToUpdate.SupplierCode = viewModel.SupplierCode;
-                    requestItemToUpdate.MatType = viewModel.MatType;
+                    requestItemToUpdate.MaterialType = viewModel.MaterialType ?? viewModel.MatType;
                     requestItemToUpdate.Check = viewModel.Check;
                     requestItemToUpdate.DevicePlant = viewModel.DevicePlant;
                     requestItemToUpdate.AssemblyPlant = viewModel.AssemblyPlant;
@@ -1540,6 +1553,7 @@ namespace myapp.Controllers
                     requestItemToUpdate.StorageLocationEP = viewModel.StorageLocationEP;
                     requestItemToUpdate.ToolingBSection = viewModel.ToolingBSection;
                     requestItemToUpdate.PoNumber = viewModel.PoNumber;
+                    requestItemToUpdate.StatusInA = viewModel.StatusInA;
                     requestItemToUpdate.DateIn = DateTime.TryParse(viewModel.DateIn, out var dateIn) ? dateIn : null;
                     requestItemToUpdate.QuotationNumber = viewModel.QuotationNumber;
                     requestItemToUpdate.ToolingBModel = viewModel.ToolingBModel;
@@ -1552,7 +1566,8 @@ namespace myapp.Controllers
                     requestItemToUpdate.EditBomAllFg = viewModel.EditBomAllFg;
                     requestItemToUpdate.Price = decimal.TryParse(viewModel.Price, out var price) ? price : null;
 
-                    // Remove existing related entities and add updated ones
+                    // Child rows are replaced as a full snapshot from the posted form to avoid partial stale data.
+                    // This keeps BOM, routing, and license permission collections aligned with what the user sees.
                     _context.BomComponents.RemoveRange(requestItemToUpdate.BomComponents);
                     _context.Routings.RemoveRange(requestItemToUpdate.Routings);
                     _context.LicensePermissionItems.RemoveRange(requestItemToUpdate.LicensePermissions);
@@ -1655,6 +1670,7 @@ namespace myapp.Controllers
         }
    }
 
+        // Delete is implemented as a soft delete so request history and audit trails remain available.
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -1741,6 +1757,7 @@ namespace myapp.Controllers
             return _context.RequestItems.Any(e => e.Id == id);
         }
 
+        // Shared audit logging is best-effort and must never block the main request operation.
         private async Task AddAuditLogAsync(string entityName, string? entityId, string action, string? details)
         {
             try
@@ -1765,6 +1782,7 @@ namespace myapp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // SaveImported persists the previewed import payload and redirects to Edit so users can verify imported data immediately.
         public async Task<IActionResult> SaveImported(List<RequestItem> requests, string? serializedRequests)
         {
             if ((requests == null || !requests.Any()) && !string.IsNullOrWhiteSpace(serializedRequests))
@@ -1916,6 +1934,7 @@ namespace myapp.Controllers
         }
 
         [HttpPost]
+        // Import reads the uploaded template, infers request type from the file name, and converts each row into the correct entity shape.
         public async Task<IActionResult> Import(IFormFile file, string NextResponsibleUserId)
         {
             if (file == null || file.Length == 0)
@@ -2021,6 +2040,7 @@ namespace myapp.Controllers
                             _logger.LogWarning(ex, "Failed to build import preview rows");
                         }
 
+                        // BOM, EditBOM, and Routing need dedicated row parsers because their child tables do not map 1:1 to RequestItem.
                         if (requestType == RequestType.BOM)
                         {
                             var components = new List<BomComponent>();
@@ -2255,6 +2275,7 @@ namespace myapp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // Generic reflection-based setter used by flat request imports.
         private void SetProperty(RequestItem item, string propertyName, string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -2289,6 +2310,7 @@ namespace myapp.Controllers
             }
         }
 
+        // Header normalization allows Excel columns like "Material Type" to bind to entity properties like MaterialType.
         private System.Reflection.PropertyInfo? GetPropertyByHeader(Type targetType, string header)
         {
             if (string.IsNullOrWhiteSpace(header)) return null;
@@ -2310,6 +2332,7 @@ namespace myapp.Controllers
         }
         
         [HttpGet]
+        // Returns the next workflow candidates for the selected request type and plant without forcing the page to reload.
         public async Task<IActionResult> GetNextApprovers(RequestType requestType, string? plant, string? requesterName, string? currentApproverId)
         {
             try
@@ -2471,6 +2494,7 @@ namespace myapp.Controllers
             }
         }
 
+        // Import/export inputs are normalized so display names and compact template names still resolve to a valid enum value.
         private bool TryResolveRequestType(string? requestTypeValue, out RequestType requestType)
         {
             requestType = default;
@@ -2526,6 +2550,7 @@ namespace myapp.Controllers
         }
 
         [HttpGet]
+        // Generates an Excel template whose headers match the fields expected by the import pipeline for each request type.
         public IActionResult DownloadTemplate(RequestType requestType)
         {
             using (var workbook = new XLWorkbook())
@@ -2615,7 +2640,8 @@ namespace myapp.Controllers
                     headers.AddRange(new[]
                     {
                         "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant",
-                        "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup"
+                        "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup",
+                        "QuotationNumber", "PoNumber", "StatusInA", "ToolingBSection"
                     });
                     break;
                 case RequestType.ToolingB_FG:

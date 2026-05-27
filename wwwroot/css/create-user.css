@@ -4,7 +4,7 @@ body {
 }
 
 .form-container {
-    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    background: #ffffff;
     padding: 40px;
     border-radius: 20px;
     box-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff;
@@ -26,7 +26,7 @@ body {
 
 h1 {
     font-weight: 700;
-    color: #ff6f61;
+    color: #475569;
     margin-bottom: 10px;
 }
 
@@ -57,8 +57,8 @@ h1 {
 }
 
 .form-control:focus {
-    border-color: #ff6f61;
-    box-shadow: 0 0 0 4px rgba(255, 111, 97, 0.2), inset 2px 2px 5px #d9d9d9, inset -2px -2px 5px #ffffff;
+    border-color: #64748b;
+    box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.2), inset 2px 2px 5px #d9d9d9, inset -2px -2px 5px #ffffff;
     outline: none;
     background-color: #fff;
 }
@@ -78,11 +78,11 @@ h1 {
 }
 
 .form-control:focus + .form-icon {
-    color: #ff6f61;
+    color: #64748b;
 }
 
 .btn-primary {
-    background: #ff6f61;
+    background: #64748b;
     border: none;
     padding: 12px 30px;
     font-size: 1.1rem;
@@ -95,7 +95,7 @@ h1 {
 }
 
 .btn-primary:hover {
-    background: #e65a50;
+    background: #475569;
     transform: translateY(-3px);
     box-shadow: 8px 8px 20px #c7c7c7, -8px -8px 20px #ffffff;
 }
@@ -103,7 +103,7 @@ h1 {
 .back-to-list {
     display: inline-block;
     margin-top: 25px;
-    color: #ff6f61;
+    color: #475569;
     text-decoration: none;
     font-weight: 500;
 }
@@ -126,8 +126,8 @@ h1 {
 }
 
 .form-check-input:checked {
-    background-color: #ff6f61;
-    border-color: #ff6f61;
+    background-color: #64748b;
+    border-color: #64748b;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
     box-shadow: 3px 3px 8px #c7c7c7, -3px -3px 8px #ffffff;
 }

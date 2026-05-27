@@ -7,6 +7,16 @@
 }
 
 <style>
+    .create-request-page {
+        width: 100%;
+        background: #ffffff;
+        padding: 0.75rem 0.5rem 1.5rem;
+    }
+
+    .create-request-shell {
+        width: 100%;
+    }
+
     #create-form .form-control[readonly] {
         background-color: var(--bs-secondary-bg);
     }
@@ -19,10 +29,16 @@
     .create-manual-card {
         order: 2;
     }
+
+    @@media (max-width: 767.98px) {
+        .create-request-page {
+            padding: 0.5rem 0.2rem 1rem;
+        }
+    }
 </style>
 
-<div class="row justify-content-center">
-    <div class="col-lg-10 col-xl-9 d-flex flex-column">
+<div class="create-request-page">
+    <div class="create-request-shell d-flex flex-column">
 
         <!-- Excel Import Form -->
         <div class="main-content-card create-import-card">
@@ -332,6 +348,25 @@
                 }
             }
 
+            function collapseEmptyMaterialRows() {
+                if (!materialFieldsContainer) return;
+
+                const rows = materialFieldsContainer.querySelectorAll('.row');
+                rows.forEach(row => {
+                    const typedColumns = row.querySelectorAll('[data-types]');
+                    if (!typedColumns.length) {
+                        row.style.display = '';
+                        return;
+                    }
+
+                    const hasVisibleTypedColumn = Array.from(typedColumns).some(col => {
+                        return col instanceof HTMLElement && col.style.display !== 'none';
+                    });
+
+                    row.style.display = hasVisibleTypedColumn ? '' : 'none';
+                });
+            }
+
             // สลับการแสดงส่วนหลักของฟอร์ม (material, BOM, routing, upload, workflow) ตามประเภทคำขอ
             function toggleMaterialFields() {
                 if (!requestTypeSelect) return;
@@ -390,6 +425,8 @@
                         parentCol.style.display = shouldShowField ? '' : 'none';
                     });
                 }
+
+                collapseEmptyMaterialRows();
 
                     const isBom = selectedTypeName === 'BOM';
                     const isEditBom = selectedTypeName === 'EditBOM';

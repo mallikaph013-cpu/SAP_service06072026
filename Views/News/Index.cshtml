@@ -4,258 +4,20 @@
     ViewData["Title"] = "News Management";
 }
 
-<style>
-        /* Ensure News content stays behind navbar dropdown */
-        .news-admin-shell {
-            position: relative;
-            z-index: 1;
-        }
-        .news-table-card {
-            position: relative;
-            z-index: 1;
-        }
-    body {
-        background:
-            radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 26%),
-            radial-gradient(circle at top right, rgba(251, 191, 36, 0.14), transparent 20%),
-            linear-gradient(180deg, #fff7ed 0%, #fffaf5 46%, #ffffff 100%);
-    }
-
-    .news-admin-shell {
-        max-width: 1120px;
-        margin: 2.5rem auto 3rem;
-        padding: 0 1rem;
-    }
-
-    .news-admin-hero {
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-        background: rgba(255,255,255,0.15); /* transparent white */
-        color: #c2410c;
-        border-radius: 30px;
-        padding: 1.1rem 1.2rem;
-        box-shadow: 0 28px 65px rgba(234, 88, 12, 0.08);
-        margin-bottom: 1.5rem;
-    }
-
-    .news-admin-hero::after {
-        content: "";
-        position: absolute;
-        right: -70px;
-        top: -100px;
-        width: 260px;
-        height: 260px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .news-admin-title {
-        font-size: clamp(2.1rem, 4vw, 3.2rem);
-        font-weight: 800;
-        margin: 0 0 0.55rem;
-        color: #fff;
-    }
-
-    .news-admin-copy {
-        margin: 0;
-        max-width: 620px;
-        color: rgba(255, 247, 237, 0.92);
-        line-height: 1.7;
-    }
-
-    .news-admin-create {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        min-height: 44px;
-        padding: 0.8rem 1.2rem;
-        border-radius: 999px;
-        background: #fff;
-        color: #c2410c;
-        text-decoration: none;
-        font-weight: 800;
-        box-shadow: 0 10px 24px rgba(194, 65, 12, 0.12);
-        z-index: 1;
-    }
-
-    .news-admin-create:hover {
-        color: #9a3412;
-        text-decoration: none;
-    }
-
-    .news-success {
-        border: none;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #9a3412;
-        box-shadow: 0 18px 42px rgba(194, 65, 12, 0.08);
-    }
-
-    .news-table-card {
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(251, 146, 60, 0.16);
-        border-radius: 28px;
-        padding: 1rem;
-        box-shadow: 0 20px 48px rgba(194, 65, 12, 0.08);
-        backdrop-filter: blur(10px);
-    }
-
-    .news-table {
-        margin-bottom: 0;
-    }
-
-    .news-table thead th {
-        border-bottom: none;
-        background: rgba(255, 237, 213, 0.7);
-        color: #9a3412;
-        font-weight: 800;
-        padding: 1rem;
-    }
-
-    .news-table thead th:first-child {
-        border-top-left-radius: 18px;
-        border-bottom-left-radius: 18px;
-    }
-
-    .news-table thead th:last-child {
-        border-top-right-radius: 18px;
-        border-bottom-right-radius: 18px;
-    }
-
-    .news-table tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-        border-color: rgba(249, 115, 22, 0.08);
-        color: #6b4f3a;
-    }
-
-    .news-table tbody tr:hover {
-        background: rgba(255, 247, 237, 0.82);
-    }
-
-    .news-title-cell {
-        font-weight: 700;
-        color: #9a3412;
-    }
-
-    .news-featured-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.42rem 0.72rem;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 800;
-    }
-
-    .news-featured-yes {
-        background: rgba(249, 115, 22, 0.14);
-        color: #c2410c;
-    }
-
-    .news-featured-no {
-        background: rgba(255, 237, 213, 0.9);
-        color: #9a6b47;
-    }
-
-    .news-actions {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-    }
-
-    .news-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        min-height: 36px;
-        padding: 0.55rem 0.85rem;
-        border-radius: 999px;
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 0.85rem;
-    }
-
-    .news-action-edit {
-        background: rgba(255, 237, 213, 0.9);
-        color: #c2410c;
-    }
-
-    .news-action-delete {
-        background: rgba(254, 226, 226, 0.9);
-        color: #b91c1c;
-    }
-
-    .news-empty {
-        padding: 3rem 1.5rem;
-        text-align: center;
-        color: #9a6b47;
-    }
-
-    @@media (max-width: 767.98px) {
-        .news-admin-hero {
-            padding: 1.8rem 1.4rem;
-            border-radius: 24px;
-        }
-
-        .news-table-card {
-            padding: 0.8rem;
-            border-radius: 22px;
-        }
-
-        .news-table thead {
-            display: none;
-        }
-
-        .news-table,
-        .news-table tbody,
-        .news-table tr,
-        .news-table td {
-            display: block;
-            width: 100%;
-        }
-
-        .news-table tr {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(249, 115, 22, 0.08);
-        }
-
-        .news-table tr:last-child {
-            border-bottom: none;
-        }
-
-        .news-table tbody td {
-            padding: 0.45rem 0;
-            border: none;
-        }
-
-        .news-actions {
-            justify-content: flex-start;
-        }
-    }
-</style>
-
 <div class="news-admin-shell">
-    <div class="news-admin-hero" style="background: linear-gradient(90deg, #fff7ed 60%, #fef3c7 100%); box-shadow: 0 8px 32px rgba(251, 146, 60, 0.10); border-radius: 36px; padding: 2.2rem 2.2rem 2.2rem 1.6rem; align-items: flex-end;">
-        <div style="display: flex; align-items: center; gap: 1.2rem;">
-            <div style="background: linear-gradient(135deg, #fb923c 60%, #fbbf24 100%); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(251, 146, 60, 0.13);">
-                <i class="fas fa-newspaper" style="font-size: 2.2rem; color: #fff; filter: drop-shadow(0 2px 8px #fb923c44);"></i>
+    <div class="news-admin-hero">
+        <div class="news-hero-content">
+            <div class="news-hero-icon">
+                <i class="fas fa-newspaper"></i>
             </div>
             <div>
-                <h1 class="news-admin-title" style="color: #c2410c; font-size: clamp(2.2rem, 4vw, 3.3rem); font-weight: 900; margin: 0 0 0.4rem; letter-spacing: -1px;">
+                <h1 class="news-admin-title">
                     @ViewData["Title"]
                 </h1>
-                <p class="news-admin-copy" style="color: #b45309; font-size: 1.13rem; margin: 0; font-weight: 500;">Manage your news articles. Create, edit, and highlight important updates for your organization.</p>
+                <p class="news-admin-copy">Manage your news articles. Create, edit, and highlight important updates for your organization.</p>
             </div>
         </div>
-        <a asp-action="Create" class="news-admin-create" style="background: linear-gradient(90deg, #fb923c 60%, #fbbf24 100%); color: #fff; font-weight: 900; font-size: 1.13rem; box-shadow: 0 6px 18px rgba(251, 146, 60, 0.13); border: none; min-width: 160px; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 0.7rem; transition: background 0.2s;">
+        <a asp-action="Create" class="news-admin-create">
             <i class="fas fa-plus"></i> Create New
         </a>
     </div>
@@ -278,36 +40,36 @@
                 <tbody>
             @foreach (var item in Model)
             {
-                    <tr style="box-shadow: 0 2px 12px rgba(249,115,22,0.04); border-radius: 18px;">
-                        <td class="news-title-cell" style="font-size: 1.08rem;">
+                    <tr class="news-row">
+                        <td class="news-title-cell">
                            @Html.DisplayFor(modelItem => item.Title)
                         </td>
-                        <td style="font-size: 1.02rem; color: #b45309;">
+                        <td class="news-author-cell">
                            @Html.DisplayFor(modelItem => item.Author)
                         </td>
-                        <td style="font-size: 0.98rem; color: #a16207;">
+                        <td class="news-date-cell">
                             @item.PublishedDate.ToString("d MMMM yyyy")
                         </td>
                         <td>
                             <span class="news-featured-badge @(item.IsFeatured ? "news-featured-yes" : "news-featured-no")">
-                                <i class="fas @(item.IsFeatured ? "fa-star" : "fa-circle")"></i> <span style="margin-left:2px;">@(item.IsFeatured ? "Yes" : "No")</span>
+                                <i class="fas @(item.IsFeatured ? "fa-star" : "fa-circle")"></i> <span class="news-featured-text">@(item.IsFeatured ? "Yes" : "No")</span>
                             </span>
                         </td>
                         <td>
                             @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                             {
-                                <a href="@item.ImageUrl" target="_blank" class="current-attachment-link" style="color: #fb923c; font-weight: 700;">
+                                <a href="@item.ImageUrl" target="_blank" class="current-attachment-link news-attachment-link">
                                     <i class="fas fa-paperclip"></i> View
                                 </a>
                             }
                         </td>
                         <td class="text-end">
                             <span class="news-actions">
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="news-action-btn news-action-edit">
-                                    <i class="fas fa-edit"></i> Edit
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
+                                    <i class="fas fa-pencil-alt"></i>
                                 </a>
-                                <a asp-action="Delete" asp-route-id="@item.Id" class="news-action-btn news-action-delete">
-                                    <i class="fas fa-trash"></i> Delete
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
                                 </a>
                             </span>
                         </td>

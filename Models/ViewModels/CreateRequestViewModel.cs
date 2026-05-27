@@ -4,34 +4,37 @@ using System.ComponentModel.DataAnnotations;
 
 namespace myapp.Models.ViewModels
 {
+    // ViewModel สำหรับหน้า Create/Edit คำร้อง ทำหน้าที่รับค่าจากฟอร์มและแปลงชนิดข้อมูลก่อน map เข้า entity
     public class CreateRequestViewModel
     {
         public int Id { get; set; }
 
+        // ข้อมูลส่วนหัวของคำร้องจากหน้าจอ
         [Required]
         public RequestType RequestType { get; set; }
 
         [Required]
         public string Description { get; set; } = string.Empty;
 
-        // User Details (Assuming these are pre-filled or from a user session)
+        // ข้อมูลผู้ยื่นคำร้อง ใช้เติมค่าเริ่มต้นจากผู้ใช้ที่ login และแสดงกลับบนหน้าฟอร์ม
         public string RequesterName { get; set; } = string.Empty;
         public string Department { get; set; } = string.Empty;
         public string Section { get; set; } = string.Empty;
         public string RequesterPlant { get; set; } = string.Empty; // Renamed from 'Plant'
 
-        // To capture the selected next approver from the dropdown
+        // เก็บค่าผู้รับผิดชอบถัดไปจาก dropdown ในรูปแบบ userId|routingId
         public string? NextResponsibleUserId { get; set; }
 
+        // สถานะและเหตุผลการ reject ใช้ในหน้าแก้ไขหรือการอนุมัติ
         public string Status { get; set; } = "Pending";
         public string? RejectionRemark { get; set; }
 
-        // --- Main Material Fields ---
+        // กลุ่ม field หลักของ material ที่แสดง/ซ่อนตามประเภทคำร้อง
 
         public string? Plant { get; set; } // Renamed from PlantFG
 
         public string? ItemCode { get; set; }
-        // Top-level quantity field for BOM requests (optional)
+        // ปริมาณระดับบน ใช้กับคำร้องที่มีข้อมูล BOM หรือข้อมูลเชิงโครงสร้าง
         public decimal? Quantity { get; set; }
         public string? EnglishMatDescription { get; set; }
         public string? ModelName { get; set; }
@@ -56,7 +59,16 @@ namespace myapp.Models.ViewModels
         public string? PriceControl { get; set; }
         public string? Currency { get; set; }
         public string? SupplierCode { get; set; }
-        public string? MatType { get; set; }
+        public string? MaterialType { get; set; }
+
+        // Alias เพื่อรองรับ view/logic เดิมที่ยังอ้าง MatType ระหว่างช่วงเปลี่ยนชื่อ field
+        public string? MatType
+        {
+            get => MaterialType;
+            set => MaterialType = value;
+        }
+
+        // กลุ่ม field เสริมที่ใช้เฉพาะบาง request type เช่น Tooling, IPO, Routing support และ purchase flow
         public bool Check { get; set; }
         public string? DevicePlant { get; set; }
         public string? AssemblyPlant { get; set; }
@@ -98,20 +110,18 @@ namespace myapp.Models.ViewModels
         public string? SapModule { get; set; }
         public string? Price { get; set; }
 
+        // ใช้ควบคุมข้อมูลหน้าจอกรณี Edit BOM
         public string? EditBomFg { get; set; }
         public bool EditBomAllFg { get; set; }
 
-
-       
-
-        // For BOM and Routing
+        // ตารางลูกที่ bind จาก form แบบหลายแถว เช่น BOM, Routing, Edit BOM และสิทธิ์ SAP
         public List<BomComponentViewModel> Components { get; set; } = new List<BomComponentViewModel>();
         public List<RoutingViewModel> Routings { get; set; } = new List<RoutingViewModel>();
-        // Flag to indicate this view was opened for an imported record
 
         public List<BomEditComponentViewModel> EditBOM { get; set; } = new List<BomEditComponentViewModel>();
         public List<LicensePermissionViewModel> LicensePermissions { get; set; } = new List<LicensePermissionViewModel>();
 
+        // ใช้บอกหน้าฟอร์มว่าเปิดมาจาก import เพื่อผ่อน validation บางส่วนชั่วคราว
         public bool FromImport { get; set; }
     }
 }

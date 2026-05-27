@@ -1,8 +1,11 @@
 namespace myapp.Models.ViewModels
 {
+    // ViewModel ของ BOM หนึ่งแถว ใช้ bind ตาราง BOM ในหน้า Create/Edit
     public class BomComponentViewModel
     {
         public int Id { get; set; }
+
+        // โครงสร้างข้อมูลต้องสอดคล้องกับ BomComponent เพื่อ map ไปกลับได้ตรงกัน
         public int Level { get; set; }
         public string? Item { get; set; }
         public string? ItemCat { get; set; } 

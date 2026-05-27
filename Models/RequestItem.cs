@@ -6,10 +6,12 @@ using myapp.Models.ViewModels;
 
 namespace myapp.Models
 {
+    // Entity หลักของคำร้อง SAP หนึ่งรายการ ใช้เก็บทั้งข้อมูลส่วนหัวและรายละเอียดตามประเภทคำร้อง
     public class RequestItem
     {
         public int Id { get; set; }
 
+        // ข้อมูลส่วนหัวของคำร้อง ใช้ระบุประเภทคำร้อง เนื้อหา และผู้ยื่นคำร้อง
         [Required]
         public string RequestType { get; set; } = string.Empty;
 
@@ -28,6 +30,7 @@ namespace myapp.Models
         [NotMapped]
         public string? UpdatedByDisplayName { get; set; }
 
+        // สถานะและข้อมูลการติดตาม lifecycle ของคำร้อง
         public string Status { get; set; } = "Pending";
 
         // 1 = Active, 9 = Soft deleted
@@ -41,9 +44,10 @@ namespace myapp.Models
         [StringLength(256)]
         public string? UpdatedBy { get; set; }
 
-        // ID of the next person responsible for approval
+        // เก็บผู้อนุมัติ/ผู้รับผิดชอบถัดไปในรูปแบบ userId|routingId
         public string? NextApproverId { get; set; }
 
+        // ข้อมูลเอกสารแนบและเลขเอกสารที่ระบบสร้างให้บางประเภทคำร้อง
         [StringLength(260)]
         public string? AttachmentFileName { get; set; }
 
@@ -53,7 +57,7 @@ namespace myapp.Models
         [StringLength(20)]
         public string? DocumentNumber { get; set; }
 
-        // All fields from CreateRequestViewModel
+        // กลุ่มข้อมูล material หลักที่มาจากฟอร์ม Create/Edit และใช้ร่วมกันหลาย request type
         public string? Plant { get; set; } // Renamed from PlantFG
         public string? ItemCode { get; set; }
         public string? EnglishMatDescription { get; set; }
@@ -81,7 +85,17 @@ namespace myapp.Models
         public string? PriceControl { get; set; }
         public string? Currency { get; set; }
         public string? SupplierCode { get; set; }
-        public string? MatType { get; set; }
+        public string? MaterialType { get; set; }
+
+        // Alias ชั่วคราวเพื่อรองรับโค้ดเดิม/ข้อมูลเดิมที่ยังอ้างชื่อ MatType
+        [NotMapped]
+        public string? MatType
+        {
+            get => MaterialType;
+            set => MaterialType = value;
+        }
+
+        // กลุ่ม field เฉพาะทางที่ใช้เฉพาะบางประเภทคำร้อง เช่น Tooling, IPO, Distribution และ Purchase flow
         public bool Check { get; set; }
         public string? DevicePlant { get; set; }
         public string? AssemblyPlant { get; set; }
@@ -125,12 +139,11 @@ namespace myapp.Models
         public string? EditBomFg { get; set; }
         public bool EditBomAllFg { get; set; }
 
+        // ราคาเก็บเป็น decimal ในฐานข้อมูลเพื่อใช้คำนวณ/ส่งออกได้ตรงชนิดข้อมูล
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? Price { get; set; }
 
-       
-
-        // Navigation properties
+        // ความสัมพันธ์กับตารางลูกของคำร้อง เช่น BOM, Routing และสิทธิ์ SAP
         public ICollection<BomComponent> BomComponents { get; set; } = new List<BomComponent>();
         public ICollection<Routing> Routings { get; set; } = new List<Routing>();
         public ICollection<LicensePermissionItem> LicensePermissions { get; set; } = new List<LicensePermissionItem>();

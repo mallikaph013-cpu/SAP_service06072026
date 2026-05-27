@@ -2,9 +2,12 @@ using System;
 
 namespace myapp.Models.ViewModels
 {
+    // ViewModel ของ routing หนึ่งแถว ใช้รับข้อมูลจากตาราง routing บนหน้าฟอร์ม
     public class RoutingViewModel
     {
         public int Id { get; set; }
+
+        // โครงสร้างตั้งใจให้ใกล้กับ entity Routing เพื่อให้ map ตอนบันทึกและโหลดกลับได้ง่าย
         public string? Material { get; set; }
         public string? Description { get; set; }
         public string? Counter { get; set; }

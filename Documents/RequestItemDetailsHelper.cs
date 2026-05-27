@@ -29,7 +29,7 @@ namespace myapp.Documents
                     headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "BoiDescription", "MrpController", "StorageLocation", "ValClass", "Price", "PurchasingGroup", "MakerMfrPartNumber", "CommCodeTariffCode", "TraffCodePercentage", "PriceControl", "SupplierCode" });
                     break;
                 case RequestType.ToolingB:
-                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup" });
+                    headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "MaterialType", "ModelName", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "Price", "PriceUnit", "PurchasingGroup", "QuotationNumber", "PoNumber", "StatusInA", "ToolingBSection" });
                     break;
                 case RequestType.ToolingB_FG:
                     headers.AddRange(new[] { "ItemCode", "EnglishMatDescription", "BaseUnit", "MaterialGroup", "Plant", "DivisionCode", "ProfitCenter", "DistributionChannel", "BoiCode", "MrpController", "StorageLocation", "ValClass", "ProductionSupervisor", "CostingLotSize", "Price" });

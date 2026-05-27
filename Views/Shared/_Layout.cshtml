@@ -20,59 +20,16 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="~/lib/sweetalert2/dist/sweetalert2.min.css" />
-    <link rel="stylesheet" href="~/css/orange-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/myapp.styles.css" asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <nav class="navbar navbar-expand-lg navbar-light app-navbar">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="fas fa-cogs text-primary"></i> 
+                    <i class="fas fa-cogs text-primary me-1"></i>
                     SAP Service
-        <style>
-            /* --- Prevent dropdown clipping globally --- */
-            .container,
-            .container-fluid,
-            .news-container,
-            .news-admin-shell,
-            .news-hero,
-            .news-table-card {
-                overflow: visible !important;
-            }
-            .navbar {
-                z-index: 1050;
-                position: relative;
-            }
-            .dropdown-menu {
-                z-index: 9999 !important;
-                position: absolute !important;
-                left: unset !important;
-                top: unset !important;
-                min-width: 220px;
-                background: #fff;
-                box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.25);
-                border-radius: 1rem;
-                padding: 0.5rem 0;
-            }
-            .navbar-nav .dropdown-menu {
-                margin-top: 0.5rem;
-            }
-            .dropdown:hover>.dropdown-menu, .dropdown-menu.show {
-                display: block;
-            }
-            .dropdown-menu .dropdown-item {
-                color: #333;
-            }
-            .dropdown-menu .dropdown-item:hover {
-                background: #f8f9fa;
-            }
-            /* Remove stacking context from hero/cards/shell to fix dropdown overlap */
-            .news-admin-hero, .news-table-card, .news-admin-shell {
-                /* z-index and position removed to prevent stacking context */
-            }
-        </style>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -97,15 +54,15 @@
 
                             @if (User.IsInRole("IT"))
                             {
-                                <li class="nav-item dropdown position-static">
-                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="z-index: 1055; position: relative;">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle app-dropdown-toggle" href="javascript:void(0);" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <i class="fas fa-cogs me-1"></i><span class="d-none d-lg-inline">Management</span>
                                     </a>
-                                    <div class="dropdown-menu shadow-lg border-0 rounded-4 mt-2" aria-labelledby="navbarDropdownAdmin" style="z-index: 2000; min-width: 240px; background: #fffdfa; box-shadow: 0 8px 32px rgba(251, 146, 60, 0.13); border-radius: 1.2rem; padding: 0.7rem 0;">
-                                        <a class="dropdown-item py-2 px-4" asp-controller="News" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-newspaper me-2 text-warning"></i>Manage News</a>
-                                        <a class="dropdown-item py-2 px-4" asp-controller="Users" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-users-cog me-2 text-primary"></i>Manage Users</a>
-                                        <a class="dropdown-item py-2 px-4" asp-controller="Departments" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-building me-2 text-success"></i>Manage Departments</a>
-                                        <a class="dropdown-item py-2 px-4" asp-controller="Sections" asp-action="Index" style="font-weight: 600; border-radius: 0.7rem;"> <i class="fas fa-layer-group me-2 text-info"></i>Manage Sections</a>
+                                    <div class="dropdown-menu app-dropdown-menu shadow-lg border-0 rounded-4 mt-2" aria-labelledby="navbarDropdownAdmin">
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="News" asp-action="Index"> <i class="fas fa-newspaper me-2 text-primary"></i>Manage News</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Users" asp-action="Index"> <i class="fas fa-users-cog me-2 text-primary"></i>Manage Users</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Departments" asp-action="Index"> <i class="fas fa-building me-2 text-primary"></i>Manage Departments</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Sections" asp-action="Index"> <i class="fas fa-layer-group me-2 text-primary"></i>Manage Sections</a>
                                         <div class="dropdown-divider"></div>
                                         <!-- <a class="dropdown-item" asp-controller="Departments" asp-action="Import">Import Departments</a> -->
                                         <!-- <a class="dropdown-item" asp-controller="DocumentRouting" asp-action="Import">Import Document Routing</a> -->
@@ -119,11 +76,11 @@
 
                                    <!-- เมนู Report -->
                                     <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <a class="nav-link dropdown-toggle" href="javascript:void(0);" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                             <i class="fas fa-chart-bar me-1"></i><span class="d-none d-lg-inline">Report</span>
                                         </a>
-                                        <div class="dropdown-menu" aria-labelledby="navbarDropdownReport">
-                                            <a class="dropdown-item" asp-controller="Report" asp-action="SAPService">SAP Service Report</a>
+                                        <div class="dropdown-menu app-dropdown-menu" aria-labelledby="navbarDropdownReport">
+                                            <a class="dropdown-item app-dropdown-item" asp-controller="Report" asp-action="SAPService">SAP Service Report</a>
                                         </div>
                                     </li>
                             }
@@ -137,14 +94,14 @@
         </nav>
     </header>
 
-    <div class="container-fluid">
+    <div class="container-fluid page-shell">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
     <footer class="footer text-muted text-center py-3">
-        <div class="container">
+        <div class="container page-shell">
             &copy; 2026 - SAP Service By Dx Technology - All Rights Reserved
         </div>
     </footer>
@@ -153,67 +110,6 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
-    <style>
-        .swal2-popup.app-alert-popup {
-            border-radius: 24px;
-            padding: 1.25rem 1.25rem 1rem;
-            border: 1px solid rgba(251, 146, 60, 0.18);
-            box-shadow: 0 28px 60px rgba(15, 23, 42, 0.20);
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .swal2-title.app-alert-title {
-            color: #9a3412;
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: -0.2px;
-        }
-
-        .swal2-html-container.app-alert-html {
-            color: #7c2d12;
-            font-size: 0.98rem;
-            line-height: 1.65;
-            margin-top: 0.25rem;
-        }
-
-        .swal2-confirm.app-alert-confirm,
-        .swal2-cancel.app-alert-cancel {
-            border: none !important;
-            border-radius: 999px !important;
-            padding: 0.7rem 1.5rem !important;
-            font-weight: 700 !important;
-            box-shadow: none !important;
-        }
-
-        .swal2-confirm.app-alert-confirm {
-            color: #fff !important;
-            background: linear-gradient(135deg, #f97316, #fb923c) !important;
-            box-shadow: 0 12px 26px rgba(249, 115, 22, 0.28) !important;
-        }
-
-        .swal2-confirm.app-alert-confirm:hover {
-            transform: translateY(-1px);
-        }
-
-        .swal2-cancel.app-alert-cancel {
-            background: #fff7ed !important;
-            color: #9a3412 !important;
-            border: 1px solid #fdba74 !important;
-        }
-
-        .swal2-popup.app-toast-popup {
-            border-radius: 18px;
-            padding: 0.85rem 1rem;
-            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .swal2-title.app-toast-title {
-            font-size: 0.98rem !important;
-            font-weight: 600 !important;
-        }
-    </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

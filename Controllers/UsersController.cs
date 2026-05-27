@@ -21,12 +21,18 @@ namespace myapp.Controllers
     public class UsersController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
         private readonly ILogger<UsersController> _logger;
 
-        public UsersController(UserManager<ApplicationUser> userManager, ApplicationDbContext context, ILogger<UsersController> logger)
+        public UsersController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext context,
+            ILogger<UsersController> logger)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _context = context;
             _logger = logger;
         }
@@ -90,6 +96,64 @@ namespace myapp.Controllers
                     var result = await _userManager.CreateAsync(user, model.Password);
                     if (result.Succeeded)
                     {
+                        var selectedRoles = new List<string>();
+
+                        if (model.IsApprove)
+                        {
+                            selectedRoles.Add("Approve");
+                        }
+
+                        if (model.IsAdmin)
+                        {
+                            selectedRoles.Add("Admin");
+                        }
+
+                        if (model.IsUser)
+                        {
+                            selectedRoles.Add("User");
+                        }
+
+                        if (selectedRoles.Count == 0)
+                        {
+                            selectedRoles.Add("User");
+                        }
+
+                        foreach (var roleName in selectedRoles)
+                        {
+                            if (!await _roleManager.RoleExistsAsync(roleName))
+                            {
+                                var roleCreateResult = await _roleManager.CreateAsync(new IdentityRole(roleName));
+                                if (!roleCreateResult.Succeeded)
+                                {
+                                    foreach (var roleError in roleCreateResult.Errors)
+                                    {
+                                        ModelState.AddModelError(string.Empty, roleError.Description);
+                                    }
+
+                                    await _userManager.DeleteAsync(user);
+                                    ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
+                                    ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
+                                    ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
+                                    return View(model);
+                                }
+                            }
+
+                            var addToRoleResult = await _userManager.AddToRoleAsync(user, roleName);
+                            if (!addToRoleResult.Succeeded)
+                            {
+                                foreach (var roleError in addToRoleResult.Errors)
+                                {
+                                    ModelState.AddModelError(string.Empty, roleError.Description);
+                                }
+
+                                await _userManager.DeleteAsync(user);
+                                ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
+                                ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
+                                ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
+                                return View(model);
+                            }
+                        }
+
                         TempData["SaveSuccessMessage"] = "User created successfully!";
                         return RedirectToAction(nameof(Index));
                     }

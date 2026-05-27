@@ -40,6 +40,12 @@ namespace myapp.Models
         [Required]
         [Display(Name = "Plant")]
         public string Plant { get; set; } = string.Empty;
+
+        public bool IsApprove { get; set; }
+
+        public bool IsAdmin { get; set; }
+
+        public bool IsUser { get; set; }
         
         public bool IsIT { get; set; }
     }
