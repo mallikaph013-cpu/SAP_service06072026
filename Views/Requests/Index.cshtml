@@ -9,13 +9,21 @@
 
     // Helper to get Bootstrap badge color class
     Func<string, string> GetBadgeClass = (status) => {
-        switch (status?.ToLower()) {
+        var normalizedStatus = System.Text.RegularExpressions.Regex.Replace(
+            (status ?? string.Empty).Trim().ToLowerInvariant(),
+            "\\s+",
+            " ");
+
+        switch (normalizedStatus) {
             case "approved": return "status-pill status-approved";
             case "rejected": return "status-pill status-rejected";
             case "pending": return "status-pill status-pending";
             case "processing": return "status-pill status-processing";
             case "inprocess": return "status-pill status-inprocess";
             case "complete": return "status-pill status-complete";
+            case "run std cost": return "status-pill status-run-std-cost";
+            case "check and confirm" : return "status-pill status-checked";
+            case "release" : return "status-pill status-released";
             default: return "status-pill status-default";
         }
     };

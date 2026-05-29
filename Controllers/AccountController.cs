@@ -35,7 +35,19 @@ namespace myapp.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await _userManager.FindByNameAsync(model.UserName);
+                var loginId = (model.UserName ?? string.Empty).Trim();
+                if (!string.Equals(model.UserName, loginId, StringComparison.Ordinal))
+                {
+                    model.UserName = loginId;
+                }
+
+                ApplicationUser? user = null;
+                if (!string.IsNullOrWhiteSpace(loginId))
+                {
+                    user = await _userManager.FindByNameAsync(loginId)
+                        ?? await _userManager.FindByEmailAsync(loginId);
+                }
+
                 if (user != null)
                 {
                     if (!user.IsActive)
@@ -69,6 +81,28 @@ namespace myapp.Controllers
                             details: $"RememberMe={model.RememberMe}");
 
                         return RedirectToAction("Index", "Home");
+                    }
+
+                    if (result.IsLockedOut)
+                    {
+                        await AddAuditLogAsync(
+                            action: "LoginLockedOut",
+                            performedBy: user.UserName,
+                            details: "Login blocked because account is locked out.");
+
+                        ModelState.AddModelError(string.Empty, "Your account is locked. Please contact administrator.");
+                        return View(model);
+                    }
+
+                    if (result.IsNotAllowed)
+                    {
+                        await AddAuditLogAsync(
+                            action: "LoginNotAllowed",
+                            performedBy: user.UserName,
+                            details: "Login is not allowed for this account.");
+
+                        ModelState.AddModelError(string.Empty, "Login is not allowed for this account.");
+                        return View(model);
                     }
                 }
 

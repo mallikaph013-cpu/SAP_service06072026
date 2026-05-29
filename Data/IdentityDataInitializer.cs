@@ -36,23 +36,54 @@ namespace myapp.Data
 
         private static async Task SeedUsers(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
         {
-            // Always remove existing admin user (if any)
-            var existingAdmin = await userManager.FindByNameAsync("ituser@example.com");
+            const string adminUserName = "ituser@example.com";
+            const string adminPassword = "Abcd12345@";
+
+            // Keep existing admin account intact to avoid changing credentials on every startup.
+            var existingAdmin = await userManager.FindByNameAsync(adminUserName);
             if (existingAdmin != null)
             {
-                await userManager.DeleteAsync(existingAdmin);
-            }
+                if (!existingAdmin.IsActive)
+                {
+                    existingAdmin.IsActive = true;
+                    existingAdmin.UpdatedAt = DateTime.UtcNow;
+                    existingAdmin.UpdatedBy = adminUserName;
+                    await userManager.UpdateAsync(existingAdmin);
+                }
 
-            // Generate a random password
-            var random = new Random();
-            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
-            string password = new string(Enumerable.Repeat(chars, 16).Select(s => s[random.Next(s.Length)]).ToArray());
+                existingAdmin.MustChangePasswordOnFirstLogin = false;
+                existingAdmin.LockoutEnabled = false;
+                existingAdmin.LockoutEnd = null;
+                existingAdmin.AccessFailedCount = 0;
+                existingAdmin.UpdatedAt = DateTime.UtcNow;
+                existingAdmin.UpdatedBy = adminUserName;
+                await userManager.UpdateAsync(existingAdmin);
+
+                // Keep a deterministic admin password for recovery when login credentials drift.
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(existingAdmin);
+                var resetResult = await userManager.ResetPasswordAsync(existingAdmin, resetToken, adminPassword);
+                if (!resetResult.Succeeded)
+                {
+                    var removeResult = await userManager.RemovePasswordAsync(existingAdmin);
+                    if (removeResult.Succeeded)
+                    {
+                        await userManager.AddPasswordAsync(existingAdmin, adminPassword);
+                    }
+                }
+
+                if (!await userManager.IsInRoleAsync(existingAdmin, "Admin"))
+                {
+                    await userManager.AddToRoleAsync(existingAdmin, "Admin");
+                }
+
+                return;
+            }
 
             // Create the Admin User
             var adminUser = new ApplicationUser
             {
-                UserName = "ituser@example.com",
-                Email = "ituser@example.com",
+                UserName = adminUserName,
+                Email = adminUserName,
                 FirstName = "Admin",
                 LastName = "User",
                 Department = "IT",
@@ -63,30 +94,11 @@ namespace myapp.Data
                 EmailConfirmed = true // Bypassing email confirmation for the seed user
             };
 
-            var result = await userManager.CreateAsync(adminUser, password);
+            var result = await userManager.CreateAsync(adminUser, adminPassword);
 
             if (result.Succeeded)
             {
-                // Log the password to the console, DEBUG output, and database (AdminPasswordLog table if exists)
-                Console.WriteLine($"[ADMIN SEED] Username: ituser@example.com Password: {password}");
-                System.Diagnostics.Debug.WriteLine($"[ADMIN SEED] Username: ituser@example.com Password: {password}");
-                try
-                {
-                    if (context.Database.CanConnect())
-                    {
-                        // Commented out CREATE TABLE for cross-db compatibility
-                        // context.Database.ExecuteSqlRaw($"IF OBJECT_ID('AdminPasswordLog', 'U') IS NULL CREATE TABLE AdminPasswordLog (Id INT IDENTITY(1,1) PRIMARY KEY, Username NVARCHAR(256), Password NVARCHAR(256), CreatedAt DATETIME)");
-                        try {
-                            context.Database.ExecuteSqlRaw(
-                                "INSERT INTO AdminPasswordLog (Username, Password, CreatedAt) VALUES (@username, @password, GETDATE())",
-                                new[] {
-                                    new Microsoft.Data.SqlClient.SqlParameter("@username", "ituser@example.com"),
-                                    new Microsoft.Data.SqlClient.SqlParameter("@password", password ?? string.Empty)
-                                });
-                        } catch { /* ignore errors for log table */ }
-                    }
-                }
-                catch { /* ignore errors for log table */ }
+                Console.WriteLine($"[ADMIN SEED] Username: {adminUserName} Password: {adminPassword}");
                 // Assign the 'Admin' role
                 await userManager.AddToRoleAsync(adminUser, "Admin");
             }

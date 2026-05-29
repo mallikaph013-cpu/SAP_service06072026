@@ -5,7 +5,16 @@
 }
 
 @*<h1 class="mb-4">Document Routing Management</h1>*@
-<div class="dr-card mb-4 mt-2">
+<div class="main-content-card mb-3 mt-2">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="mb-0"><i class="fas fa-project-diagram me-2"></i>@ViewData["Title"]</h1>
+        <a href="#create-document-routing" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create New Document Routing
+        </a>
+    </div>
+</div>
+
+<div id="create-document-routing" class="dr-card mb-4 mt-2">
     <div class="card-body">
         <h2 class="dr-card-title mb-3">Create New Document Routing</h2>
         <form asp-action="Create" method="post">
@@ -85,11 +94,11 @@
                 <div class="col-md-9">
                     <label for="documentRoutingImportFile" class="form-label">CSV/XLSX File</label>
                     <input type="file" id="documentRoutingImportFile" name="importFile" class="form-control" accept=".csv,.xlsx" required />
-                    <small class="text-muted">Columns: DocumentType,DepartmentName,SectionName,PlantName,Step</small>
+                   
                 </div>
                 <div class="col-md-3">
                     <div class="d-grid gap-2">
-                        <a asp-action="DownloadImportTemplate" class="dr-btn-outline"><i class="fas fa-download me-1"></i> Download Template</a>
+                        <a asp-action="DownloadImportTemplate" class="btn btn-outline-secondary btn-sm w-auto align-self-start"><i class="fas fa-download me-2"></i>Download Template</a>
                         <button type="submit" class="dr-btn-primary"><i class="fas fa-upload me-1"></i> Import</button>
                     </div>
                 </div>
