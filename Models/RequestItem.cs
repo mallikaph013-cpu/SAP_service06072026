@@ -1,0 +1,156 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using myapp.Models.ViewModels;
+
+namespace myapp.Models
+{
+    // Entity หลักของคำร้อง SAP หนึ่งรายการ ใช้เก็บทั้งข้อมูลส่วนหัวและรายละเอียดตามประเภทคำร้อง
+    public class RequestItem
+    {
+        public int Id { get; set; }
+
+        // ข้อมูลส่วนหัวของคำร้อง ใช้ระบุประเภทคำร้อง เนื้อหา และผู้ยื่นคำร้อง
+        [Required]
+        public string RequestType { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        public string Requester { get; set; } = string.Empty;
+
+        [NotMapped]
+        public string? RequesterEmail { get; set; }
+
+        [NotMapped]
+        public string? RequesterDepartment { get; set; }
+
+        [NotMapped]
+        public string? UpdatedByDisplayName { get; set; }
+
+        // สถานะและข้อมูลการติดตาม lifecycle ของคำร้อง
+        public string Status { get; set; } = "Pending";
+
+        // 1 = Active, 9 = Soft deleted
+        public int UsageStatus { get; set; } = 1;
+
+        [DataType(DataType.Date)]
+        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; }
+
+        [StringLength(256)]
+        public string? UpdatedBy { get; set; }
+
+        // เก็บผู้อนุมัติ/ผู้รับผิดชอบถัดไปในรูปแบบ userId|routingId
+        public string? NextApproverId { get; set; }
+
+        // ข้อมูลเอกสารแนบและเลขเอกสารที่ระบบสร้างให้บางประเภทคำร้อง
+        [StringLength(260)]
+        public string? AttachmentFileName { get; set; }
+
+        [StringLength(500)]
+        public string? AttachmentPath { get; set; }
+
+        [StringLength(20)]
+        public string? DocumentNumber { get; set; }
+
+        // กลุ่มข้อมูล material หลักที่มาจากฟอร์ม Create/Edit และใช้ร่วมกันหลาย request type
+        public string? Plant { get; set; } // Renamed from PlantFG
+        public string? ItemCode { get; set; }
+        public string? EnglishMatDescription { get; set; }
+        public string? ModelName { get; set; }
+        public string? BaseUnit { get; set; }
+        public string? MaterialGroup { get; set; }
+        public string? ExternalMaterialGroup { get; set; }
+        public string? DivisionCode { get; set; }
+        public string? ProfitCenter { get; set; }
+        public string? DistributionChannel { get; set; }
+        public string? BoiCode { get; set; }
+        public string? MrpController { get; set; }
+        public string? StorageLocation { get; set; }
+        public string? ProductionSupervisor { get; set; }
+        public int? CostingLotSize { get; set; }
+        public string? ValClass { get; set; }
+        public string? StandardPack { get; set; }
+        public string? BoiDescription { get; set; }
+        public string? MakerMfrPartNumber { get; set; }
+        public string? CommCodeTariffCode { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? TraffCodePercentage { get; set; }
+        public string? StorageLocationB1 { get; set; }
+        public string? PriceControl { get; set; }
+        public string? Currency { get; set; }
+        public string? SupplierCode { get; set; }
+        public string? MaterialType { get; set; }
+
+        public string? ChangeRequestG2U { get; set; }
+
+        // Alias ชั่วคราวเพื่อรองรับโค้ดเดิม/ข้อมูลเดิมที่ยังอ้างชื่อ MatType
+        [NotMapped]
+        public string? MatType
+        {
+            get => MaterialType;
+            set => MaterialType = value;
+        }
+
+        // กลุ่ม field เฉพาะทางที่ใช้เฉพาะบางประเภทคำร้อง เช่น Tooling, IPO, Distribution และ Purchase flow
+        public bool Check { get; set; }
+        public string? DevicePlant { get; set; }
+        public string? AssemblyPlant { get; set; }
+        public string? IpoPlant { get; set; }
+        public string? AsiOfPlant { get; set; }
+        public int? PriceUnit { get; set; }
+        public string? StorageLocationEP { get; set; }
+        public string? ToolingBSection { get; set; }
+        public string? PoNumber { get; set; }
+        public string? StatusInA { get; set; }
+        public DateTime? DateIn { get; set; }
+        public string? QuotationNumber { get; set; }
+        public string? ToolingBModel { get; set; }
+        public string? TariffCode { get; set; }
+        public string? Planner { get; set; }
+        public string? CurrentICS { get; set; }
+        public string? Level { get; set; }
+        public string? Rohs { get; set; }
+        public string? CodenMid { get; set; }
+        public string? SalesOrg { get; set; }
+        public string? TaxTh { get; set; }
+        public string? MaterialStatisticsGroup { get; set; }
+        public string? AccountAssignment { get; set; }
+        public string? GeneralItemCategory { get; set; }
+        public string? Availability { get; set; } 
+        public string? Transportation { get; set; }
+        public string? LoadingGroup { get; set; }
+        public string? PlanDelTime { get; set; }
+        public string? SchedMargin { get; set; }
+        public string? MinLot { get; set; }
+        public string? MaxLot { get; set; }
+        public string? FixedLot { get; set; }
+        public string? Rounding { get; set; }
+        public string? Mtlsm { get; set; }
+        public DateTime? Effective { get; set; }
+        public string? StorageLoc { get; set; }
+        public string? ReceiveStorage { get; set; }
+        public string? PurchasingGroup { get; set; }
+        public string? SapModule { get; set; }
+
+        public string? EditBomFg { get; set; }
+        public bool EditBomAllFg { get; set; }
+
+        // ราคาเก็บเป็น decimal ในฐานข้อมูลเพื่อใช้คำนวณ/ส่งออกได้ตรงชนิดข้อมูล
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? Price { get; set; }
+
+        // ความสัมพันธ์กับตารางลูกของคำร้อง เช่น BOM, Routing และสิทธิ์ SAP
+        public ICollection<BomComponent> BomComponents { get; set; } = new List<BomComponent>();
+        public ICollection<Routing> Routings { get; set; } = new List<Routing>();
+        public ICollection<LicensePermissionItem> LicensePermissions { get; set; } = new List<LicensePermissionItem>();
+
+        public ICollection<BomEditComponent> bomEditComponents { get; set; } = new List<BomEditComponent>();
+
+    }
+}

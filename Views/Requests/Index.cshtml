@@ -1,0 +1,136 @@
+@model IEnumerable<myapp.Models.RequestItem>
+
+@{
+    ViewData["Title"] = "Service Requests";
+    var hideDeleteIdSet = ViewBag.HideDeleteIdSet as HashSet<int> ?? new HashSet<int>();
+    var nextApproverNameByRequestId = ViewBag.NextApproverNameByRequestId as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var currentUserFullName = (ViewBag.CurrentUserFullName as string ?? string.Empty).Trim();
+    var isITUser = User.IsInRole("IT");
+
+    // Helper to get Bootstrap badge color class
+    Func<string, string> GetBadgeClass = (status) => {
+        var normalizedStatus = System.Text.RegularExpressions.Regex.Replace(
+            (status ?? string.Empty).Trim().ToLowerInvariant(),
+            "\\s+",
+            " ");
+
+        switch (normalizedStatus) {
+            case "approved": return "status-pill status-approved";
+            case "rejected": return "status-pill status-rejected";
+            case "pending": return "status-pill status-pending";
+            case "processing": return "status-pill status-processing";
+            case "inprocess": return "status-pill status-inprocess";
+            case "complete": return "status-pill status-complete";
+            case "run std cost": return "status-pill status-run-std-cost";
+            case "check and confirm" : return "status-pill status-checked";
+            case "release" : return "status-pill status-released";
+            default: return "status-pill status-default";
+        }
+    };
+}
+
+<div class="container requests-page">
+    <div class="requests-hero">
+        <div class="requests-hero-title">SAP Requests</div>
+        <a asp-action="Create" class="btn btn-primary requests-hero-btn">
+            <i class="fas fa-plus me-2"></i>Create New Request
+        </a>
+    </div>
+
+    <form asp-action="Index" method="get" class="search-toolbar">
+        <div class="input-group w-100">
+            <input type="text"
+                   name="searchTerm"
+                   value="@ViewBag.SearchTerm"
+                   class="form-control"
+                   placeholder="Search by Document No., Request Type, Date, Status, ItemCode" />
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
+
+    @if (Model.Any())
+    {
+        <div class="requests-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table requests-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="py-3 ps-4">Document No.</th>
+                                <th class="py-3 ps-4">Request</th>
+                                <th class="py-3">Requester</th>
+                                <th class="py-3">Next Approver</th>
+                                <th class="py-3">Request Date</th>
+                                <th class="py-3 text-center">Status</th>
+                                <th class="py-3 text-center pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4">@(string.IsNullOrWhiteSpace(item.DocumentNumber) ? "-" : item.DocumentNumber)</td>
+                                    <td class="ps-4">@Html.DisplayFor(modelItem => item.RequestType)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Requester)</td>
+                                    <td>@(nextApproverNameByRequestId.TryGetValue(item.Id, out var nextApproverName) ? nextApproverName : "-")</td>
+                                    <td>@item.RequestDate.ToString("MMM dd, yyyy")</td>
+                                    <td class="text-center">
+                                        <span class="badge @GetBadgeClass(item.Status)">@Html.DisplayFor(modelItem => item.Status)</span>
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        @{
+                                            var isPending = string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase);
+                                            var isInprocess = string.Equals(item.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+                                            var isRejected = string.Equals(item.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+                                                || string.Equals(item.Status, "Reject", StringComparison.OrdinalIgnoreCase);
+                                            var isRejectedRequester = isRejected
+                                                && !string.IsNullOrWhiteSpace(currentUserFullName)
+                                                && string.Equals(item.Requester?.Trim(), currentUserFullName, StringComparison.OrdinalIgnoreCase);
+                                            var canEdit = isITUser || (!isInprocess && (isPending || isRejectedRequester));
+                                            var canDelete = isITUser || (!isInprocess && ((isPending && !hideDeleteIdSet.Contains(item.Id)) || isRejectedRequester));
+                                        }
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Details">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        @if (canEdit)
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </a>
+                                        }
+                                        @if (canDelete)
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center main-content-card">
+            <h4 class="text-dark">No requests found.</h4>
+            <a asp-action="Create" class="btn btn-primary requests-hero-btn mt-3">
+                <i class="fas fa-plus me-2"></i>Create Your First Request
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+}

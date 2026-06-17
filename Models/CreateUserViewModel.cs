@@ -1,0 +1,52 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace myapp.Models
+{
+    public class CreateUserViewModel
+    {
+        [Required]
+        [Display(Name = "Username")]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm Password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Display(Name = "First Name")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        [Display(Name = "Last Name")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        [Display(Name = "Department")]
+        public int DepartmentId { get; set; }
+
+        [Required]
+        [Display(Name = "Section")]
+        public int SectionId { get; set; }
+
+        [Required]
+        [Display(Name = "Plant")]
+        public string Plant { get; set; } = string.Empty;
+
+        public bool IsApprove { get; set; }
+
+        public bool IsAdmin { get; set; }
+
+        public bool IsUser { get; set; }
+        
+        public bool IsIT { get; set; }
+    }
+}

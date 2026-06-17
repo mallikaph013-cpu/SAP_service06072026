@@ -1,0 +1,256 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IAuthorizationService AuthorizationService
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SAP Service</title>
+    <link rel="icon" href="~/favicon.png" type="image/png">
+
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/sweetalert2/dist/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/myapp.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light app-navbar">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-cogs text-primary me-1"></i>
+                    SAP Service
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse">
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-underline">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
+                                    <i class="fas fa-home me-1"></i><span class="d-none d-lg-inline">Home</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Requests" asp-action="Index">
+                                    <i class="fas fa-file-alt me-1"></i><span class="d-none d-lg-inline">Requests</span>
+                                </a>
+                            </li>
+
+                    
+
+                            @if (User.IsInRole("IT"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle app-dropdown-toggle" href="javascript:void(0);" id="navbarDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-cogs me-1"></i><span class="d-none d-lg-inline">Management</span>
+                                    </a>
+                                    <div class="dropdown-menu app-dropdown-menu shadow-lg border-0 rounded-4 mt-2" aria-labelledby="navbarDropdownAdmin">
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="News" asp-action="Index"> <i class="fas fa-newspaper me-2 text-primary"></i>Manage News</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Users" asp-action="Index"> <i class="fas fa-users-cog me-2 text-primary"></i>Manage Users</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Departments" asp-action="Index"> <i class="fas fa-building me-2 text-primary"></i>Manage Departments</a>
+                                        <a class="dropdown-item py-2 px-4 app-dropdown-item" asp-controller="Sections" asp-action="Index"> <i class="fas fa-layer-group me-2 text-primary"></i>Manage Sections</a>
+                                        <div class="dropdown-divider"></div>
+                                        <!-- <a class="dropdown-item" asp-controller="Departments" asp-action="Import">Import Departments</a> -->
+                                        <!-- <a class="dropdown-item" asp-controller="DocumentRouting" asp-action="Import">Import Document Routing</a> -->
+                                    </div>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="DocumentRouting" asp-action="Index">
+                                        <i class="fas fa-project-diagram me-1"></i><span class="d-none d-lg-inline">Document Routing</span>
+                                    </a>
+                                </li>
+
+                                   <!-- เมนู Report -->
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="javascript:void(0);" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-chart-bar me-1"></i><span class="d-none d-lg-inline">Report</span>
+                                        </a>
+                                        <div class="dropdown-menu app-dropdown-menu" aria-labelledby="navbarDropdownReport">
+                                            <a class="dropdown-item app-dropdown-item" asp-controller="Report" asp-action="SAPService">SAP Service Report</a>
+                                        </div>
+                                    </li>
+                            }
+                        </ul>
+                    }
+                    <div class="ms-auto">
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid page-shell">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer text-muted text-center py-3">
+        <div class="container page-shell">
+            &copy; 2026 - SAP Service By Dx Technology - All Rights Reserved
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const saveSuccessMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SaveSuccessMessage"] as string ?? ""));
+            const successMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"] as string ?? ""));
+            const errorMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"] as string ?? ""));
+            const infoMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["InfoMessage"] as string ?? ""));
+
+            if (!window.Swal) {
+                return;
+            }
+
+            if (!window.__appSwalStyled) {
+                const originalFire = window.Swal.fire.bind(window.Swal);
+                window.Swal.fire = function () {
+                    const options = window.Swal.argsToParams(Array.from(arguments));
+                    options.customClass = Object.assign({
+                        popup: 'app-alert-popup',
+                        title: 'app-alert-title',
+                        htmlContainer: 'app-alert-html',
+                        confirmButton: 'app-alert-confirm',
+                        cancelButton: 'app-alert-cancel'
+                    }, options.customClass || {});
+
+                    if (typeof options.buttonsStyling === 'undefined') {
+                        options.buttonsStyling = false;
+                    }
+
+                    if (!options.confirmButtonText) {
+                        options.confirmButtonText = 'ตกลง';
+                    }
+
+                    return originalFire(options);
+                };
+
+                window.__appSwalStyled = true;
+            }
+
+            const toast = window.Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3200,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'app-toast-popup',
+                    title: 'app-toast-title'
+                }
+            });
+
+            const alerts = [];
+
+            if (saveSuccessMessage) {
+                alerts.push({
+                    type: 'modal',
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    text: saveSuccessMessage
+                });
+            }
+
+            if (successMessage) {
+                alerts.push({
+                    type: 'toast',
+                    icon: 'success',
+                    title: successMessage
+                });
+            }
+
+            if (errorMessage) {
+                alerts.push({
+                    type: 'modal',
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: errorMessage,
+                    confirmButtonText: 'ปิด'
+                });
+            }
+
+            if (infoMessage) {
+                alerts.push({
+                    type: 'toast',
+                    icon: 'info',
+                    title: infoMessage
+                });
+            }
+
+            document.addEventListener('submit', function (event) {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+
+                const action = form.getAttribute('action') || '';
+                const shouldConfirmDelete = /\/Delete(?:\/|$|\?)/i.test(action) || form.dataset.confirmDeleteForm === 'true';
+
+                if (!shouldConfirmDelete || form.dataset.deleteConfirmed === 'true') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'ยืนยันการลบ',
+                    text: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? รายการจะถูกนำออกจากรายการใช้งาน',
+                    confirmButtonText: 'ใช่, ลบรายการ',
+                    cancelButtonText: 'ยกเลิก',
+                    showCancelButton: true,
+                    reverseButtons: true,
+                    focusCancel: true,
+                    backdrop: 'rgba(15, 23, 42, 0.45)'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        form.dataset.deleteConfirmed = 'true';
+                        form.submit();
+                    }
+                });
+            });
+
+            (async function showAlertsSequentially() {
+                for (const alert of alerts) {
+                    if (alert.type === 'toast') {
+                        await toast.fire({
+                            icon: alert.icon,
+                            title: alert.title
+                        });
+                    } else {
+                        await window.Swal.fire({
+                            icon: alert.icon,
+                            title: alert.title,
+                            text: alert.text,
+                            confirmButtonText: alert.confirmButtonText || 'ตกลง',
+                            backdrop: 'rgba(15, 23, 42, 0.45)'
+                        });
+                    }
+                }
+            })();
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

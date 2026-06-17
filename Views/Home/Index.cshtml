@@ -1,0 +1,56 @@
+@model List<myapp.Models.NewsArticleViewModel>
+@{
+    ViewData["Title"] = "Company News";
+}
+
+@using myapp.Models
+<!-- News Section: Show latest 3 news articles from News -->
+<div class="news-container">
+    <div class="news-hero">
+        <div class="page-title">SAP News</div>
+        <div class="page-subtitle">ข่าวสารและประกาศล่าสุดจากระบบ SAP ของบริษัท</div>
+    </div>
+    <div class="news-list-container">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var news in Model)
+            {
+                <div class="news-card">
+                    <div class="news-card-inner">
+                        <div class="news-item-icon">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <div>
+                            <div class="news-card-header">
+                                <a asp-controller="News" asp-action="Details" asp-route-id="@news.Id" class="news-title-link news-item-title">@news.Title</a>
+                                <div class="news-badges">
+                                    @if (news.IsFeatured)
+                                    {
+                                        <span class="news-badge news-badge-featured"><i class="fas fa-star"></i> ข่าวเด่น</span>
+                                    }
+                                    @if (news.Attachments != null && news.Attachments.Any())
+                                    {
+                                        <span class="news-badge news-badge-attachment"><i class="fas fa-paperclip"></i> ไฟล์แนบ</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="news-item-excerpt">
+                                @(string.IsNullOrWhiteSpace(news.Excerpt) ? "-" : (news.Excerpt.Length > 180 ? news.Excerpt.Substring(0, 180) + "..." : news.Excerpt))
+                            </div>
+                            <div class="news-item-meta">
+                                <span class="news-meta-text">โดย @news.Author | @news.PublishedDate.ToString("d MMM yyyy")</span>
+                                <div class="news-item-actions">
+                                    <a asp-controller="News" asp-action="Details" asp-route-id="@news.Id" class="news-action-link news-action-primary">อ่านต่อ <i class="fas fa-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-news">ยังไม่มีข่าวสาร</div>
+        }
+    </div>
+</div>

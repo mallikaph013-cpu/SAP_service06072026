@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "jquery@3.6.0",
+      "destination": "wwwroot/lib/jquery"
+    },
+    {
+      "library": "font-awesome@7.0.1",
+      "destination": "wwwroot/lib/font-awesome"
+    },
+    {
+      "provider": "jsdelivr",
+      "library": "sweetalert2@11.26.24",
+      "destination": "wwwroot/lib/sweetalert2"
+    }
+  ]
+}

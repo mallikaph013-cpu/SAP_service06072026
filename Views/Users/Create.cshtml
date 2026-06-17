@@ -1,0 +1,246 @@
+@model myapp.Models.CreateUserViewModel
+
+@{
+    ViewData["Title"] = "Create New User";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="main-content-card">
+            <div class="text-center mb-4">
+                <h2><i class="fas fa-user-plus me-2"></i>@ViewData["Title"]</h2>
+                <p class="text-light mb-0">Create a user account and assign role information.</p>
+            </div>
+
+                <form asp-action="Create" id="createUserForm">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input asp-for="UserName" class="form-control" placeholder="Username" />
+                                <label asp-for="UserName">Username</label>
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input asp-for="FirstName" class="form-control" placeholder="First Name" />
+                                <label asp-for="FirstName">First Name</label>
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input asp-for="LastName" class="form-control" placeholder="Last Name" />
+                                <label asp-for="LastName">Last Name</label>
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <select asp-for="Plant" class="form-select">
+                                    <option value="">-- Select Plant --</option>
+                                    <option value="6021">6021</option>
+                                    <option value="6031">6031</option>
+                                    <option value="6051">6051</option>
+                                    <option value="6081">6081</option>
+                                    <option value="6090">6090</option>
+                                </select>
+                                <label asp-for="Plant">Plant</label>
+                                <span asp-validation-for="Plant" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="Email" class="form-control" placeholder="Email" />
+                        <label asp-for="Email">Email Address</label>
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                             <div class="form-floating mb-3">
+                                <input asp-for="Password" class="form-control" placeholder="Password" />
+                                <label asp-for="Password">Password</label>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm Password" />
+                                <label asp-for="ConfirmPassword">Confirm Password</label>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <select asp-for="DepartmentId" class="form-select" asp-items="ViewBag.Departments">
+                                    <option value="">-- Select Department --</option>
+                                </select>
+                                <label asp-for="DepartmentId">Department</label>
+                                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <select asp-for="SectionId" class="form-select" asp-items="ViewBag.Sections">
+                                    <option value="">-- Select Section --</option>
+                                </select>
+                                <label asp-for="SectionId">Section</label>
+                                <span asp-validation-for="SectionId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" asp-for="IsIT">
+                        <label class="form-check-label" asp-for="IsIT">Assign to IT Role</label>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Assign Roles</label>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsApprove">
+                                    <label class="form-check-label" asp-for="IsApprove">Approve</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsAdmin">
+                                    <label class="form-check-label" asp-for="IsAdmin">Admin</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsUser">
+                                    <label class="form-check-label" asp-for="IsUser">User</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-2"></i>Create User
+                        </button>
+                    </div>
+                </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        $(document).ready(function () {
+            const departmentDropdown = $('#DepartmentId');
+            const sectionDropdown = $('#SectionId');
+
+            departmentDropdown.change(function () {
+                const departmentId = $(this).val();
+                sectionDropdown.empty().append($('<option></option>').val('').text('-- Select Section --'));
+
+                if (departmentId) {
+                    $.ajax({
+                        url: '@Url.Action("GetSections", "Users")',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: { departmentId: departmentId },
+                        success: function (data) {
+                            if (data && data.length > 0) {
+                                $.each(data, function (index, item) {
+                                    sectionDropdown.append($('<option></option>').val(item.value).text(item.text));
+                                });
+                            }
+                        },
+                        error: function () {
+                            sectionDropdown.append($('<option></option>').val('').text('Error loading sections'));
+                        }
+                    });
+                }
+            });
+
+            const createForm = $('#createUserForm');
+            const hasUnobtrusiveValidation = $.validator && $.validator.unobtrusive;
+            const requiredFields = [
+                { id: 'UserName', name: 'UserName', label: 'Username' },
+                { id: 'FirstName', name: 'FirstName', label: 'First Name' },
+                { id: 'LastName', name: 'LastName', label: 'Last Name' },
+                { id: 'Plant', name: 'Plant', label: 'Plant' },
+                { id: 'Email', name: 'Email', label: 'Email Address' },
+                { id: 'Password', name: 'Password', label: 'Password' },
+                { id: 'ConfirmPassword', name: 'ConfirmPassword', label: 'Confirm Password' },
+                { id: 'DepartmentId', name: 'DepartmentId', label: 'Department' },
+                { id: 'SectionId', name: 'SectionId', label: 'Section' }
+            ];
+
+            function clearFallbackErrors() {
+                requiredFields.forEach(function (field) {
+                    const input = $('#' + field.id);
+                    const message = $('[data-valmsg-for="' + field.name + '"]');
+                    input.removeClass('input-validation-error');
+                    message.removeClass('field-validation-error').addClass('field-validation-valid').text('');
+                });
+            }
+
+            function runFallbackRequiredValidation() {
+                let hasError = false;
+                clearFallbackErrors();
+
+                requiredFields.forEach(function (field) {
+                    const input = $('#' + field.id);
+                    const value = (input.val() || '').toString().trim();
+                    if (!value) {
+                        hasError = true;
+                        const message = $('[data-valmsg-for="' + field.name + '"]');
+                        input.addClass('input-validation-error');
+                        message.removeClass('field-validation-valid').addClass('field-validation-error').text('The ' + field.label + ' field is required.');
+                    }
+                });
+
+                return !hasError;
+            }
+
+            // Ensure unobtrusive validation is bound to this form
+            if (hasUnobtrusiveValidation) {
+                $.validator.unobtrusive.parse(createForm);
+            }
+
+            createForm.on('submit', function (e) {
+                const requiredFieldsValid = runFallbackRequiredValidation();
+                const unobtrusiveValid = hasUnobtrusiveValidation && typeof createForm.valid === 'function'
+                    ? createForm.valid()
+                    : true;
+                const isValid = requiredFieldsValid && unobtrusiveValid;
+
+                if (!isValid) {
+                    e.preventDefault();
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                        text: 'โปรดตรวจสอบและกรอกข้อมูลที่จำเป็นให้ครบก่อนบันทึก',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            });
+        });
+    </script>
+}

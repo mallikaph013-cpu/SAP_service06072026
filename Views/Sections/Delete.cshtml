@@ -1,0 +1,32 @@
+@model myapp.Models.Section
+
+@{
+    ViewData["Title"] = "Confirm Deletion";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+        <div class="main-content-card text-center">
+            
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+            </div>
+
+            <h2 class="mb-3">Confirm Deletion</h2>
+            <p class="text-light">Are you sure you want to permanently delete the section <strong class="text-white">@Model.SectionName</strong> from the <strong class="text-white">@Model.Department?.DepartmentName</strong> department?</p>
+
+            <form asp-action="Delete" class="mt-4">
+                <input type="hidden" asp-for="SectionId" />
+                <div class="d-grid gap-2 d-md-flex justify-content-center">
+                    <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel & Back to List
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-2"></i>Yes, Delete Section
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>

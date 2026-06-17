@@ -1,0 +1,3 @@
+// This file is used to install and reference QuestPDF in the project.
+// Add the following NuGet package:
+// dotnet add package QuestPDF

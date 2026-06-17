@@ -1,0 +1,621 @@
+
+@{
+    ViewData["Title"] = "Edit Service Request";
+}
+
+<style>
+    #create-form .form-control[readonly] {
+        background-color: var(--bs-secondary-bg);
+    }
+    .create-import-card {
+        order: 1;
+        margin-bottom: 3rem;
+    }
+    .create-manual-card {
+        order: 2;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9 d-flex flex-column">
+                <!-- Manual Edit Form (same as Create) -->
+                <div class="main-content-card mb-5 create-manual-card">
+                    <div class="text-center mb-4">
+                        <h2>Edit Service Request</h2>
+                    </div>
+                    <form id="create-form" asp-action="Edit" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <h5>Requester Information</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><div class="form-group"><label asp-for="RequesterName" class="form-label"></label><input asp-for="RequesterName" class="form-control" readonly /></div></div>
+                            <div class="col-md-3"><div class="form-group"><label asp-for="Department" class="form-label"></label><input asp-for="Department" class="form-control" readonly /></div></div>
+                            <div class="col-md-2"><div class="form-group"><label asp-for="Section" class="form-label"></label><input asp-for="Section" class="form-control" readonly /></div></div>
+                            <div class="col-md-3"><div class="form-group"><label asp-for="RequesterPlant" class="form-label"></label><input asp-for="RequesterPlant" class="form-control" readonly /></div></div>
+                        </div>
+                        <hr class="my-4">
+                        <h5>Request Details</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="RequestType" class="form-label">Request Type</label>
+                                    <select asp-for="RequestType" id="RequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
+                                        <option value="">-- Select Type --</option>
+                                    </select>
+                                    <span asp-validation-for="RequestType" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="request-plant-container">
+                                <div class="form-group">
+                                    <label asp-for="Plant" class="form-label"></label>
+                                    <select asp-for="Plant" id="RequestPlant" class="form-select">
+                                        <option value="">-- Select Plant --</option>
+                                        <option value="6021">6021</option>
+                                        <option value="6031">6031</option>
+                                        <option value="6051">6051</option>
+                                        <option value="6081">6081</option>
+                                        <option value="6090">6090</option>
+                                    </select>
+                                    <span asp-validation-for="Plant" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="SapModule" class="form-label">SAP Module</label>
+                                    <select asp-for="SapModule" class="form-select">
+                                        <option value="">-- Select SAP Module --</option>
+                                        <option value="MM">MM Module</option>
+                                        <option value="PP">PP Module</option>
+                                        <option value="SD">SD Module</option>
+                                        <option value="FI">FI Module</option>
+                                        <option value="CO">CO Module</option>
+                                        <option value="CR">Change Request</option>
+                                    </select>
+                                    <span asp-validation-for="SapModule" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mb-4" id="request-description-container">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Provide a detailed description of the request..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-4" id="change-request-no-container" style="display:none;">
+                            <label asp-for="ChangeRequestNoG2U" class="form-label">Change Request No. (G2U)</label>
+                            <input asp-for="ChangeRequestNoG2U" class="form-control" placeholder="Enter Change Request No. (G2U)" />
+                            <span asp-validation-for="ChangeRequestNoG2U" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-4" id="request-upload-container">
+                            <label for="RequestAttachment" class="form-label">Upload File</label>
+                            <input class="form-control" type="file" id="RequestAttachment" name="requestAttachment">
+                            <div class="form-text">Upload a new file here to replace the current attachment.</div>
+                            <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(ViewBag.CurrentAttachmentPath as string))
+                        {
+                            <div class="form-group mb-4">
+                                <label class="form-label">Current Attachment</label>
+                                <div>
+                                    <a href="@Url.Content(ViewBag.CurrentAttachmentPath as string)" target="_blank" class="btn btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> Download @(ViewBag.CurrentAttachmentFileName ?? "attached file")
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        <partial name="_MaterialForms" model="Model" />
+                        <div id="workflow-section">
+                            <hr class="my-4">
+                            <h5>Work Flow</h5>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
+                                        <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
+                                            <option value="">-- Please select a request type first --</option>
+                                        </select>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @if (User.IsInRole("IT"))
+                        {
+                            <hr class="my-4" />
+                            <h5>DX Update Status</h5>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Status</label>
+                                        <select name="Status" id="CreateStatus" class="form-select">
+                                            @{
+                                                var statusList = new[]{"Pending","Inprocess","Run Standard Cost","Check and Confirm","Release","Input Price","Complete","Rejected"};
+                                                var optionsStatus = "";
+                                                foreach (var status in statusList)
+                                                {
+                                                    if (Model.Status == status)
+                                                        optionsStatus += $"<option value=\"{status}\" selected>{status}</option>";
+                                                    else
+                                                        optionsStatus += $"<option value=\"{status}\">{status}</option>";
+                                                }
+                                                @Html.Raw(optionsStatus)
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="rejection-remark-container" style="display:none;">
+                                    <div class="form-group">
+                                        <label asp-for="RejectionRemark" class="form-label">หมายเหตุ</label>
+                                        <textarea asp-for="RejectionRemark" id="RejectionRemark" class="form-control" rows="3" placeholder="กรอกเหตุผลหรือหมายเหตุสำหรับการ Rejected..."></textarea>
+                                        <span asp-validation-for="RejectionRemark" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button type="submit" id="create-submit-button" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        @section Scripts {
+            @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+            <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const requestTypeSelect = document.getElementById('RequestType');
+                const requestPlantSelect = document.getElementById('RequestPlant');
+                const requesterNameInput = document.querySelector('input[name="RequesterName"]');
+                const nextResponsibleUserSelect = document.getElementById('NextResponsibleUserId');
+                const createForm = document.getElementById('create-form');
+                const workflowSection = document.getElementById('workflow-section');
+                const requestPlantContainer = document.getElementById('request-plant-container');
+                const materialFieldsContainer = document.getElementById('material-fields-container');
+                const allMaterialFields = document.querySelectorAll('[data-types]');
+                const bomContainer = document.getElementById('bom-container');
+                const routingContainer = document.getElementById('routing-container');
+                const licensePermissionContainer = document.getElementById('license-permission-container');
+                const distributionChannelSelect = document.getElementById('DistributionChannel');
+                const sapModuleSelect = document.getElementById('SapModule');
+                const boiCodeContainer = document.getElementById('boi-code-container');
+                const editBomFgInput = document.getElementById('EditBomFg');
+                const editBomAllFgCheckbox = document.getElementById('EditBomAllFg');
+                const statusSelect = document.getElementById('CreateStatus');
+                const rejectionRemarkContainer = document.getElementById('rejection-remark-container');
+                const rejectionRemarkInput = document.getElementById('RejectionRemark');
+                const changeRequestNoContainer = document.getElementById('change-request-no-container');
+                const changeRequestNoInput = document.getElementById('ChangeRequestNoG2U');
+                const isITCreator = @User.IsInRole("IT").ToString().ToLowerInvariant();
+                let lastSuccessfulApprovers = [];
+                let lastOldOption = null;
+
+                const typeMapping = {
+                    '0': 'Request',
+                    '1': 'FG',
+                    '2': 'SM',
+                    '3': 'RM',
+                    '4': 'ToolingB',
+                    '5': 'ToolingBFG',
+                    '6': 'ToolingBPU',
+                    '7': 'BOM',
+                    '8': 'Routing',
+                    '9': 'AddStorage',
+                    '10': 'DistributionChanel',
+                    '11': 'IPO',
+                    '12': 'Passthrough',
+                    '13': 'CrossPlantPurchase',
+                    '14': 'EditBOM',
+                    '15': 'LicensePermission',
+                    '16': 'EditCostCenter'
+                };
+
+                function toggleBoiCode() {
+                    if (!boiCodeContainer) return;
+
+                    const selectedRequestTypeValue = requestTypeSelect ? requestTypeSelect.value : '';
+                    const selectedTypeName = selectedRequestTypeValue ? (typeMapping[selectedRequestTypeValue] || selectedRequestTypeValue) : '';
+                    const normalizedTypeName = selectedTypeName.replace(/[_\s]/g, '');
+                    const shouldShowBoiCode = ['FG', 'IPO', 'DistributionChanel', 'ToolingBFG'].includes(normalizedTypeName);
+
+                    boiCodeContainer.style.display = shouldShowBoiCode ? 'block' : 'none';
+                }
+
+                function toggleEditBomFgInput() {
+                    if (!editBomFgInput || !editBomAllFgCheckbox) return;
+                    const isAllFgChecked = editBomAllFgCheckbox.checked;
+                    editBomFgInput.disabled = isAllFgChecked;
+                    if (isAllFgChecked) {
+                        editBomFgInput.value = '';
+                    }
+                }
+
+                function toggleRejectionRemark() {
+                    if (!statusSelect || !rejectionRemarkContainer) return;
+                    const isRejected = statusSelect.value === 'Rejected';
+                    rejectionRemarkContainer.style.display = isRejected ? 'block' : 'none';
+                    if (!isRejected && rejectionRemarkInput) {
+                        rejectionRemarkInput.value = '';
+                    }
+                }
+
+                function toggleChangeRequestNoField() {
+                    if (!changeRequestNoContainer || !sapModuleSelect) return;
+                    const isChangeRequestModule = (sapModuleSelect.value || '').trim().toUpperCase() === 'CR';
+                    changeRequestNoContainer.style.display = isChangeRequestModule ? 'block' : 'none';
+                    if (!isChangeRequestModule && changeRequestNoInput) {
+                        changeRequestNoInput.value = '';
+                    }
+                }
+
+                function toggleMaterialFields() {
+                    if (!requestTypeSelect) return;
+                    const selectedValue = requestTypeSelect.value;
+                    // support enum value as numeric string or as name (e.g. "6" or "BOM")
+                    let selectedTypeName = '';
+                    if (selectedValue) {
+                        selectedTypeName = typeMapping[selectedValue] || selectedValue;
+                    }
+                    //Treat EditBOM like BOM for field visibility
+                    if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
+                        selectedTypeName = 'EditBOM';
+                    }
+                    const isSimpleRequest = selectedTypeName === 'Request'
+                        || selectedTypeName === 'ร้องขอ'
+                        || selectedTypeName === 'EditCostCenter'
+                        || selectedTypeName === 'แก้ไข Cost Center';
+
+                    const showMaterialFields = selectedValue && !isSimpleRequest && selectedTypeName !== 'Routing' && selectedTypeName !== 'LicensePermission';
+                    if (materialFieldsContainer) materialFieldsContainer.style.display = showMaterialFields ? 'block' : 'none';
+
+                    if (requestPlantContainer) {
+                        requestPlantContainer.style.display = isSimpleRequest ? 'none' : 'block';
+                    }
+
+                    if (requestPlantSelect) {
+                        requestPlantSelect.disabled = isSimpleRequest;
+                        if (isSimpleRequest) {
+                            requestPlantSelect.value = '';
+                        }
+                    }
+
+                    if (showMaterialFields && allMaterialFields.length) {
+                        allMaterialFields.forEach(field => {
+                            const parentCol = field.closest('.col-md-4, .col-md-6, .col-md-8, .col-md-12');
+                            if (parentCol) {
+                                const types = parentCol.dataset.types ? parentCol.dataset.types.split(',') : [];
+                                if (selectedTypeName && types.includes(selectedTypeName)) {
+                                    parentCol.style.display = 'block';
+                                } else {
+                                    parentCol.style.display = 'none';
+                                }
+                            }
+                        });
+                    }
+
+                    const isBom = selectedTypeName === 'BOM';
+                    const isEditBom = selectedTypeName === 'EditBOM';
+                    const isLicensePermission = selectedTypeName === 'LicensePermission';
+
+                    //��� block �����ʴ� UI �ͧ BOM EditBom Routing
+
+                    if (bomContainer) bomContainer.style.display = (isEditBom) ? 'block' : 'none';
+                    if (routingContainer) routingContainer.style.display = selectedTypeName === 'Routing' ? 'block' : 'none';
+                    if (licensePermissionContainer) licensePermissionContainer.style.display = isLicensePermission ? 'block' : 'none';
+
+                    // After toggling all fields, specifically check for BOI code visibility
+                    toggleBoiCode();
+                }
+
+                function togglePlantField() {
+                    if (!requestTypeSelect) return;
+                    const selectedValue = requestTypeSelect.value;
+                    let selectedTypeName = '';
+                    if (selectedValue) {
+                        selectedTypeName = typeMapping[selectedValue] || selectedValue;
+                    }
+                    const isSimpleRequest = selectedTypeName === 'Request';
+
+                    if (requestPlantContainer) {
+                        requestPlantContainer.style.display = isSimpleRequest ? 'none' : 'block';
+                    }
+
+                    if (requestPlantSelect) {
+                        requestPlantSelect.disabled = isSimpleRequest;
+                        if (isSimpleRequest) {
+                            requestPlantSelect.value = '';
+                        }
+                    }
+                }
+
+                // Get the saved NextResponsibleUserId from the model (for initial load)
+                const savedNextResponsibleUserId = '@(Model.NextResponsibleUserId ?? "")';
+                const currentApproverName = '@(ViewBag.CurrentNextApproverName ?? "")';
+                const getNextApproversUrl = '@Url.Action("GetNextApprovers", "Requests")';
+
+                function renderOldOptionIfNeeded(found) {
+                    // Remove any previous old option
+                    if (lastOldOption) {
+                        nextResponsibleUserSelect.removeChild(lastOldOption);
+                        lastOldOption = null;
+                    }
+                    // If saved approver not found in current workflow, display them with actual name
+                    if (savedNextResponsibleUserId && !found && currentApproverName) {
+                        const oldOption = new Option(currentApproverName, savedNextResponsibleUserId);
+                        oldOption.selected = true;
+                        nextResponsibleUserSelect.add(oldOption);
+                        lastOldOption = oldOption;
+                    }
+                }
+
+                // Initial toggle
+                toggleMaterialFields();
+                toggleBoiCode();
+                toggleEditBomFgInput();
+                toggleRejectionRemark();
+                toggleChangeRequestNoField();
+
+                // Add event listener to request type select
+                if (requestTypeSelect) {
+                    requestTypeSelect.addEventListener('change', toggleMaterialFields);
+                }
+
+                // Add event listener to distribution channel select
+                if (distributionChannelSelect) {
+                    distributionChannelSelect.addEventListener('change', toggleBoiCode);
+                }
+
+                // Add event listener to edit bom all fg checkbox
+                if (editBomAllFgCheckbox) {
+                    editBomAllFgCheckbox.addEventListener('change', toggleEditBomFgInput);
+                }
+
+                if (statusSelect) {
+                    statusSelect.addEventListener('change', toggleRejectionRemark);
+                }
+
+                if (sapModuleSelect) {
+                    sapModuleSelect.addEventListener('change', toggleChangeRequestNoField);
+                }
+
+                function fetchNextApprovers() {
+                    const requestTypeValue = requestTypeSelect.value;
+                    const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
+                    const requesterNameValue = requesterNameInput ? requesterNameInput.value : '';
+                    const currentApproverId = savedNextResponsibleUserId;
+
+                    if (isITCreator === 'true') {
+                        nextResponsibleUserSelect.innerHTML = '';
+                        nextResponsibleUserSelect.disabled = true;
+                        return;
+                    }
+
+                    nextResponsibleUserSelect.disabled = false;
+                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                    const renderApproverOptions = (data) => {
+                        nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
+                        let found = false;
+                        const savedUserId = savedNextResponsibleUserId.split('|')[0];
+                        let matchedValue = null;
+                        data.forEach(user => {
+                            const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                            const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                            const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                            const userId = user.id.split('|')[0];
+                            if (userId === savedUserId) {
+                                found = true;
+                                matchedValue = user.id;
+                            }
+                            nextResponsibleUserSelect.add(option);
+                        });
+                        // If the saved userId matches, select the first matching option
+                        if (savedNextResponsibleUserId && found && matchedValue) {
+                            nextResponsibleUserSelect.value = matchedValue;
+                        } else if (data.length === 1) {
+                            nextResponsibleUserSelect.value = data[0].id;
+                        }
+                        renderOldOptionIfNeeded(found);
+                        lastSuccessfulApprovers = data;
+                    };
+
+                    if (requestTypeValue) {
+                        // Always send currentApproverId for Edit
+                        fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterName=${encodeURIComponent(requesterNameValue)}&currentApproverId=${encodeURIComponent(currentApproverId)}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data && data.length > 0) {
+                                    renderApproverOptions(data);
+                                } else {
+                                    // Fallback: retry without plant filter
+                                    fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}&currentApproverId=${encodeURIComponent(currentApproverId)}`)
+                                        .then(r => r.json())
+                                        .then(fallbackData => {
+                                            if (fallbackData && fallbackData.length > 0) {
+                                                renderApproverOptions(fallbackData);
+                                            } else if (lastSuccessfulApprovers.length > 0) {
+                                                renderApproverOptions(lastSuccessfulApprovers);
+                                            } else {
+                                                nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                                renderOldOptionIfNeeded(false);
+                                            }
+                                        })
+                                        .catch(() => {
+                                            if (lastSuccessfulApprovers.length > 0) {
+                                                renderApproverOptions(lastSuccessfulApprovers);
+                                            } else {
+                                                nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                                renderOldOptionIfNeeded(false);
+                                            }
+                                        });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching approvers:', error);
+                                if (lastSuccessfulApprovers.length > 0) {
+                                    renderApproverOptions(lastSuccessfulApprovers);
+                                } else {
+                                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                    renderOldOptionIfNeeded(false);
+                                }
+                            });
+                    } else {
+                        nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
+                        renderOldOptionIfNeeded(false);
+                    }
+                }
+
+                // Initial population
+                fetchNextApprovers();
+
+                requestTypeSelect.addEventListener('change', fetchNextApprovers);
+                if (requestPlantSelect) {
+                    requestPlantSelect.addEventListener('change', fetchNextApprovers);
+                }
+
+                // BOM Components
+                document.getElementById('add-bom-component')?.addEventListener('click', function() {
+                    const container = document.getElementById('bom-components-list');
+                    if (!container) return;
+                    const index = container.querySelectorAll('.bom-component-row').length;
+                    const newRow = `
+                        <div class="row g-3 mb-3 bom-component-row">
+                            <div class="col-md-2">
+                                <input name="Components[${index}].Level" class="form-control" placeholder="Level" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Components[${index}].Item" class="form-control" placeholder="Item" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Components[${index}].ItemCat" class="form-control" placeholder="Item Cat" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Components[${index}].ComponentNumber" class="form-control" placeholder="Component Number" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Components[${index}].Description" class="form-control" placeholder="Description" />
+                            </div>
+                            <div class="col-md-1">
+                                <input name="Components[${index}].ItemQuantity" class="form-control" placeholder="Qty" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger btn-sm remove-bom-component">Remove</button>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', newRow);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-bom-component')) {
+                        e.target.closest('.bom-component-row').remove();
+                    }
+                });
+
+                // Routing
+                document.getElementById('add-routing')?.addEventListener('click', function() {
+                    const container = document.getElementById('routings-list');
+                    if (!container) return;
+                    const index = container.querySelectorAll('.routing-row').length;
+                    const newRow = `
+                        <div class="row g-3 mb-3 routing-row">
+                            <div class="col-md-2">
+                                <input name="Routings[${index}].Material" class="form-control" placeholder="Material" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Routings[${index}].Description" class="form-control" placeholder="Description" />
+                            </div>
+                            <div class="col-md-1">
+                                <input name="Routings[${index}].Counter" class="form-control" placeholder="Counter" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Routings[${index}].Plant" class="form-control" placeholder="Plant" />
+                            </div>
+                            <div class="col-md-2">
+                                <input name="Routings[${index}].WorkCenter" class="form-control" placeholder="Work Center" />
+                            </div>
+                            <div class="col-md-1">
+                                <input name="Routings[${index}].Operation" class="form-control" placeholder="Operation" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger btn-sm remove-routing">Remove</button>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', newRow);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-routing')) {
+                        e.target.closest('.routing-row').remove();
+                    }
+                });
+
+                // License Permission
+                document.getElementById('add-license-permission')?.addEventListener('click', function() {
+                    const container = document.getElementById('license-permissions-list');
+                    if (!container) return;
+                    const index = container.querySelectorAll('.license-permission-row').length;
+                    const newRow = `
+                        <div class="row g-3 mb-3 license-permission-row">
+                            <div class="col-md-5">
+                                <input name="LicensePermissions[${index}].SapUsername" class="form-control" placeholder="SAP Username" />
+                            </div>
+                            <div class="col-md-5">
+                                <input name="LicensePermissions[${index}].TCode" class="form-control" placeholder="T-Code" />
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger btn-sm remove-license-permission">Remove</button>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', newRow);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-license-permission')) {
+                        e.target.closest('.license-permission-row').remove();
+                    }
+                });
+
+                function hasBlankRequiredRequestFields() {
+                    const names = ['RequesterName', 'RequestType', 'Description'];
+                    return names.some(name => {
+                        const field = createForm.elements.namedItem(name);
+                        if (!field) {
+                            return false;
+                        }
+
+                        const value = typeof field.value === 'string' ? field.value : '';
+                        return !value.trim();
+                    });
+                }
+
+                // Sync selected value to form on submit
+                createForm.addEventListener('submit', function(event) {
+                    // No hidden input needed, value is posted by select name
+                    let isValid = true;
+
+                    if (hasBlankRequiredRequestFields()) {
+                        isValid = false;
+                    } else if (window.jQuery && typeof jQuery(createForm).valid === 'function') {
+                        isValid = jQuery(createForm).valid();
+                    } else if (typeof createForm.checkValidity === 'function') {
+                        isValid = createForm.checkValidity();
+                    }
+
+                    if (!isValid) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        Swal.fire({
+                            title: 'Incomplete Information',
+                            text: 'Please fill in all required fields before submitting.',
+                            icon: 'warning',
+                            confirmButtonColor: '#F97316'
+                        });
+                    }
+                });
+            });
+            </script>
+        }
+@model myapp.Models.ViewModels.CreateRequestViewModel

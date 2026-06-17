@@ -1,0 +1,72 @@
+@model myapp.Models.DocumentRouting
+
+@{ 
+    ViewData["Title"] = "Edit Document Routing";
+}
+
+<div class="dr-page">
+    <div class="dr-card">
+        <div class="dr-card-header">
+            <h1 class="dr-title"><i class="fas fa-pen-to-square me-2"></i>Edit Document Routing</h1>
+            <p class="dr-subtitle">ปรับข้อมูลเส้นทางอนุมัติให้เป็นโทนสีขาวส้มและอ่านง่ายขึ้น</p>
+        </div>
+        <div class="dr-card-body">
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="DocumentTypeId" />
+
+                <div class="form-group mb-3">
+                    <label class="control-label">Document Type</label>
+                    <input class="form-control" value="@Model.DocumentType.Name" disabled />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="DepartmentId" class="control-label">Department</label>
+                    <select asp-for="DepartmentId" class="form-control" asp-items="ViewBag.DepartmentId"></select>
+                    <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="SectionId" class="control-label">Section</label>
+                    <select asp-for="SectionId" class="form-control" asp-items="ViewBag.SectionId"></select>
+                    <span asp-validation-for="SectionId" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="PlantName" class="control-label">Plant</label>
+                    <select name="PlantName" class="form-control">
+                        <option value="">-- Select Plant --</option>
+                        @{
+                            var selectedPlant = Model.Plant?.PlantName;
+                            var plants = new[] { "6021", "6031", "6051", "6081", "6090" };
+                            foreach (var plant in plants)
+                            {
+                                if (selectedPlant == plant)
+                                {
+                                    <option value="@plant" selected="selected">@plant</option>
+                                }
+                                else
+                                {
+                                    <option value="@plant">@plant</option>
+                                }
+                            }
+                        }
+                    </select>
+                    <span class="text-danger">@Html.ValidationMessage("PlantName")</span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Step" class="control-label">Step</label>
+                    <input asp-for="Step" class="form-control" />
+                    <span asp-validation-for="Step" class="text-danger"></span>
+                </div>
+
+                <div class="dr-actions">
+                    <button type="submit" class="dr-btn-primary"><i class="fas fa-save me-2"></i>Save Changes</button>
+                    <a asp-action="Index" class="dr-btn-outline"><i class="fas fa-arrow-left me-2"></i>Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

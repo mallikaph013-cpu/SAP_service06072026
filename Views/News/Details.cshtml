@@ -1,0 +1,65 @@
+@model myapp.Models.NewsArticleViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+    var isImageAttachment = !string.IsNullOrEmpty(Model.ImageUrl)
+        && (Model.ImageUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+            || Model.ImageUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || Model.ImageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+            || Model.ImageUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+            || Model.ImageUrl.EndsWith(".webp", StringComparison.OrdinalIgnoreCase));
+}
+
+<div class="article-container">
+    <div class="article-header">
+        <div class="article-eyebrow"><i class="fas fa-newspaper"></i> ข่าวประชาสัมพันธ์</div>
+        <h1 class="article-title">@Model.Title</h1>
+        <div class="article-meta">
+            <span><i class="fas fa-user"></i> @(string.IsNullOrWhiteSpace(Model.Author) ? "ไม่ระบุผู้เขียน" : Model.Author)</span>
+            <span><i class="fas fa-calendar-alt"></i> @Model.PublishedDate.ToString("d MMM yyyy")</span>
+            @if (Model.IsFeatured)
+            {
+                <span class="article-meta-featured"><i class="fas fa-star"></i> ข่าวเด่น</span>
+            }
+        </div>
+    </div>
+
+    <div class="article-body">
+        @if (isImageAttachment)
+        {
+            <div class="article-media">
+                <img src="@Model.ImageUrl" class="article-image" alt="@Model.Title">
+            </div>
+        }
+        <div class="article-content">@Model.Excerpt</div>
+
+        @if (Model.Attachments != null && Model.Attachments.Any())
+        {
+            <div class="article-media article-attachment article-attachment-list-wrap">
+                <div class="article-attachment-title"><i class="fas fa-paperclip"></i> ไฟล์แนบ</div>
+                <ul class="article-attachment-list">
+                @foreach (var file in Model.Attachments)
+                {
+                    <li class="article-attachment-item">
+                        <span class="article-attachment-file">
+                            <i class="fas fa-file-alt"></i> @file.FileName
+                        </span>
+                        <a href="@file.Url" target="_blank" rel="noopener" class="open-link" title="เปิดไฟล์">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                        <a href="@file.Url" download class="download-link" title="ดาวน์โหลด">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </li>
+                }
+                </ul>
+            </div>
+        }
+
+        <div class="article-footer">
+            <a asp-action="Index" asp-controller="Home" class="back-link">
+                <i class="fas fa-arrow-left"></i> กลับหน้าข่าว
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,91 @@
+@model IEnumerable<myapp.Models.NewsArticle>
+
+@{
+    ViewData["Title"] = "News Management";
+}
+
+<div class="news-admin-shell">
+    <div class="news-admin-hero">
+        <div class="news-hero-content">
+            <div class="news-hero-icon">
+                <i class="fas fa-newspaper"></i>
+            </div>
+            <div>
+                <h1 class="news-admin-title" style="color: #000000 !important;">
+                    @ViewData["Title"]
+                </h1>
+               
+            </div>
+        </div>
+        <a asp-action="Create" class="news-admin-create">
+            <i class="fas fa-plus"></i> Create New
+        </a>
+    </div>
+
+    <div class="news-table-card">
+        <div>
+            @if (Model.Any())
+            {
+            <table class="table news-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Published Date</th>
+                        <th>Featured</th>
+                        <th>Attachment</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+            @foreach (var item in Model)
+            {
+                    <tr class="news-row">
+                        <td class="news-title-cell">
+                           @Html.DisplayFor(modelItem => item.Title)
+                        </td>
+                        <td class="news-author-cell">
+                           @Html.DisplayFor(modelItem => item.Author)
+                        </td>
+                        <td class="news-date-cell">
+                            @item.PublishedDate.ToString("d MMMM yyyy")
+                        </td>
+                        <td>
+                            <span class="news-featured-badge @(item.IsFeatured ? "news-featured-yes" : "news-featured-no")">
+                                <i class="fas @(item.IsFeatured ? "fa-star" : "fa-circle")"></i> <span class="news-featured-text">@(item.IsFeatured ? "Yes" : "No")</span>
+                            </span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <a href="@item.ImageUrl" target="_blank" class="current-attachment-link news-attachment-link">
+                                    <i class="fas fa-paperclip"></i> View
+                                </a>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <span class="news-actions">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </span>
+                        </td>
+                    </tr>
+            }
+                </tbody>
+            </table>
+            }
+            else
+            {
+                <div class="news-empty">
+                    <i class="fas fa-newspaper fa-2x mb-3"></i>
+                    <p class="mb-0">No news articles found.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+

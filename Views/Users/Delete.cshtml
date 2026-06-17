@@ -1,0 +1,59 @@
+@model myapp.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Confirm Deletion";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+        <div class="main-content-card text-center">
+            
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+            </div>
+
+            <h2 class="mb-3">Confirm Deletion</h2>
+            <p class="text-light">Are you sure you want to permanently delete the user <strong class="text-white">@Model.FirstName @Model.LastName</strong>?</p>
+
+            <div class="user-details-delete my-4">
+                <div class="detail-item"><strong>Username:</strong> <span>@Html.DisplayFor(model => model.UserName)</span></div>
+                <div class="detail-item"><strong>Department:</strong> <span>@Html.DisplayFor(model => model.Department)</span></div>
+                <div class="detail-item"><strong>Section:</strong> <span>@Html.DisplayFor(model => model.Section)</span></div>
+            </div>
+
+            <form asp-action="Delete">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-grid gap-2 d-md-flex justify-content-center">
+                    <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel & Back to List
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-2"></i>Yes, Delete User
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .user-details-delete {
+        background-color: rgba(0,0,0,0.2);
+        border-radius: .5rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+    }
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+    .detail-item strong {
+        color: var(--primary-orange);
+    }
+</style>

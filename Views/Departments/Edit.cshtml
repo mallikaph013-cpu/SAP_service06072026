@@ -1,0 +1,64 @@
+@model myapp.Models.Department
+
+@{
+    ViewData["Title"] = "Edit Department";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-7 col-xl-6">
+        <div class="main-content-card">
+            <div class="text-center mb-4">
+                <h2>@ViewData["Title"]</h2>
+                <p class="text-light mb-0">Update department information.</p>
+            </div>
+
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <input type="hidden" asp-for="DepartmentId" />
+                <input type="hidden" asp-for="IsActive" />
+
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <div>
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="DepartmentName" class="form-label"></label>
+                    <input asp-for="DepartmentName" class="form-control" placeholder="Enter department name" />
+                    <span asp-validation-for="DepartmentName" class="text-danger"></span>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                    </a>
+                    <button type="submit" formaction="@Url.Action("ToggleActiveStatus", "Departments", new { id = Model.DepartmentId })" formmethod="post" class="btn btn-outline-warning">
+                        @if (Model.IsActive)
+                        {
+                            <i class="fas fa-toggle-off me-2"></i><text>Deactivate</text>
+                        }
+                        else
+                        {
+                            <i class="fas fa-toggle-on me-2"></i><text>Activate</text>
+                        }
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

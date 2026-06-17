@@ -1,0 +1,138 @@
+@model myapp.Models.ViewModels.MasterDataViewModel
+
+@{ ViewData["Title"] = "Master Data Management"; }
+
+<link rel="stylesheet" href="~/css/master-data.css" />
+
+<div class="card">
+    <div class="card-header">
+        <h1><i class="fas fa-database"></i> Master Data Management</h1>
+    </div>
+    <div class="card-body">
+        <form asp-action="CreateMasterData" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="NewCombination.DepartmentName"><i class="fas fa-building"></i> Department</label>
+                        <input asp-for="NewCombination.DepartmentName" class="form-control" list="department-list" />
+                        <datalist id="department-list">
+                            @foreach (var item in Model.DepartmentList)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </datalist>
+                        <span asp-validation-for="NewCombination.DepartmentName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="NewCombination.SectionName"><i class="fas fa-sitemap"></i> Section</label>
+                        <input asp-for="NewCombination.SectionName" class="form-control" list="section-list" />
+                        <datalist id="section-list">
+                            @foreach (var item in Model.SectionList)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </datalist>
+                        <span asp-validation-for="NewCombination.SectionName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="NewCombination.PlantName"><i class="fas fa-industry"></i> Plant</label>
+                        <input asp-for="NewCombination.PlantName" class="form-control" list="plant-list" />
+                        <datalist id="plant-list">
+                            @foreach (var item in Model.PlantList)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </datalist>
+                        <span asp-validation-for="NewCombination.PlantName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-plus"></i> Add Combination</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h2><i class="fas fa-file-import"></i> Import Master Data</h2>
+    </div>
+    <div class="card-body">
+        <form asp-action="ImportMasterData" method="post" enctype="multipart/form-data">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label for="importFile" class="form-label"><i class="fas fa-file-upload"></i> Upload File</label>
+                    <input type="file" id="importFile" name="importFile" class="form-control" accept=".csv,.xlsx" required />
+                    <small class="text-muted">Supported formats: .csv, .xlsx (Columns: Department, Section, Plant)</small>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid gap-2">
+                        <a asp-action="DownloadImportTemplate" class="btn btn-outline-secondary"><i class="fas fa-download"></i> Download Template</a>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-upload"></i> Import Data</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h2><i class="fas fa-list-ul"></i> Saved Combinations</h2>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-building"></i> @Html.DisplayNameFor(model => model.NewCombination.DepartmentName)</th>
+                    <th><i class="fas fa-sitemap"></i> @Html.DisplayNameFor(model => model.NewCombination.SectionName)</th>
+                    <th><i class="fas fa-industry"></i> @Html.DisplayNameFor(model => model.NewCombination.PlantName)</th>
+                    <th><i class="fas fa-clock"></i> @Html.DisplayNameFor(model => model.NewCombination.CreatedAt)</th>
+                    <th><i class="fas fa-user"></i> @Html.DisplayNameFor(model => model.NewCombination.CreatedBy)</th>
+                    <th><i class="fas fa-edit"></i> @Html.DisplayNameFor(model => model.NewCombination.UpdatedAt)</th>
+                    <th><i class="fas fa-user-edit"></i> @Html.DisplayNameFor(model => model.NewCombination.UpdatedBy)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.MasterDataCombinations != null && Model.MasterDataCombinations.Any())
+                {
+                    @foreach (var item in Model.MasterDataCombinations.OrderByDescending(x => x.CreatedAt))
+                    {
+                        <tr>
+                            <td>@item.DepartmentName</td>
+                            <td>@item.SectionName</td>
+                            <td>@item.PlantName</td>
+                            <td>@item.CreatedAt.ToLocalTime().ToString("g")</td>
+                            <td>@item.CreatedBy</td>
+                            <td>@item.UpdatedAt.ToLocalTime().ToString("g")</td>
+                            <td>@item.UpdatedBy</td>
+                            <td>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> Delete</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center">No combinations found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

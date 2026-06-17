@@ -1,0 +1,40 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace myapp.Models
+{
+    public enum RequestType
+    {
+        [Display(Name = "ร้องขอ")]
+        Request,
+        FG,
+        SM,
+        RM,
+        [Display(Name = "Tooling B")]
+        ToolingB,
+        [Display(Name = "Tooling B_FG")]
+        ToolingB_FG,
+        [Display(Name = "Tooling B_PU")]
+        ToolingB_PU,
+        BOM,
+        Routing,
+        [Display(Name = "Add Storage")]
+        AddStorage,
+        [Display(Name = "Distribution Chanel")]
+        DistributionChanel,
+        IPO,
+        [Display(Name = "Passthrough")]
+        Passthrough,
+        [Display(Name = "ซื้อข้าม Plant")]
+        CrossPlantPurchase,
+
+        [Display(Name = "แก้ BOM")]
+        EditBOM,
+
+        [Display(Name = "สิทธิ์การใช้งาน")]
+        LicensePermission,
+
+        [Display(Name = "แก้ไข Cost Center")]
+        EditCostCenter
+
+    }
+}

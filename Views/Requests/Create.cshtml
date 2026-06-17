@@ -1,0 +1,966 @@
+@model myapp.Models.ViewModels.CreateRequestViewModel
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
+    ViewData["Title"] = "Create Service Request";
+}
+
+<style>
+    .create-request-page {
+        width: 100%;
+        background: #ffffff;
+        padding: 0.75rem 0.5rem 1.5rem;
+    }
+
+    .create-request-shell {
+        width: 100%;
+    }
+
+    #create-form .form-control[readonly] {
+        background-color: var(--bs-secondary-bg);
+    }
+
+    .create-import-card {
+        order: 1;
+        margin-bottom: 3rem;
+    }
+
+    .create-manual-card {
+        order: 2;
+    }
+
+    @@media (max-width: 767.98px) {
+        .create-request-page {
+            padding: 0.5rem 0.2rem 1rem;
+        }
+    }
+</style>
+
+<div class="create-request-page">
+    <div class="create-request-shell d-flex flex-column">
+
+        <!-- Excel Import Form -->
+        <div class="main-content-card create-import-card">
+             <div class="text-center mb-4">
+                <h2>Import from Excel</h2>
+                @*<p class="text-light">เพิ่มคำขอหลายรายการอย่างรวดเร็วด้วยการอัปโหลดไฟล์ Excel ที่เตรียมไว้</p>*@
+            </div>
+            <form id="import-form" asp-action="Import" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="ImportRequestType" class="form-label">Request Type (Template)</label>
+                    <select id="ImportRequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
+                        <option value="">-- Select Type --</option>
+                    </select>
+                </div>
+                 <div class="mb-3">
+                    <label for="excelFile" class="form-label">Select Excel File (.xlsx, .xls)</label>
+                    <input class="form-control" type="file" id="excelFile" name="file" accept=".xlsx, .xls" required>
+                </div>
+
+                <input type="hidden" name="NextResponsibleUserId" id="importNextResponsibleUserId" />
+                
+                <div class="d-flex justify-content-center align-items-center mt-4">
+                    <div class="input-group">
+                        <a id="download-template-link" href="#" class="btn btn-outline-secondary disabled">
+                            <i class="fas fa-download me-2"></i>Download Template
+                        </a>
+                        <button type="submit" id="import-submit-button" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i>Import File
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Manual Creation Form -->
+        <div class="main-content-card mb-5 create-manual-card">
+            <div class="text-center mb-4">
+                <h2>Create New Service Request</h2>
+               @*<p class="text-light">กรุณากรอกรายละเอียดคำขอของคุณด้านล่าง</p>*@ 
+            </div>
+
+            <form id="create-form" asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <h5>Requester Information</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4"><div class="form-group"><label asp-for="RequesterName" class="form-label"></label><input asp-for="RequesterName" class="form-control" readonly /></div></div>
+                    <div class="col-md-3"><div class="form-group"><label asp-for="Department" class="form-label"></label><input asp-for="Department" class="form-control" readonly /></div></div>
+                    <div class="col-md-2"><div class="form-group"><label asp-for="Section" class="form-label"></label><input asp-for="Section" class="form-control" readonly /></div></div>
+                    <div class="col-md-3"><div class="form-group"><label asp-for="RequesterPlant" class="form-label"></label><input asp-for="RequesterPlant" class="form-control" readonly /></div></div>
+                </div>
+
+                <hr class="my-4">
+
+                <h5>Request Details</h5>
+                <div class="row g-3 mb-4">
+
+                      <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="SapModule" class="form-label">SAP Module</label>
+                            <select asp-for="SapModule" class="form-select">
+                                <option value="">-- Select SAP Module --</option>
+                                <option value="MM">MM Module</option>
+                                <option value="PP">PP Module</option>
+                                <option value="SD">SD Module</option>
+                                @* <option value="FI">FI Module</option> *@
+                                <option value="CO">CO Module</option>
+                                <option value="CR">Change Request</option>
+                            </select>
+                            <span asp-validation-for="SapModule" class="text-danger"></span>
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="RequestType" class="form-label">Request Type</label>
+                            <select asp-for="RequestType" id="RequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
+                                <option value="">-- Select Type --</option>
+                            </select>
+                            <span asp-validation-for="RequestType" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="request-plant-container">
+                        <div class="form-group">
+                            <label asp-for="Plant" class="form-label"></label>
+                            <select asp-for="Plant" id="RequestPlant" class="form-select">
+                                <option value="">-- Select Plant --</option>
+                                <option value="6021">6021</option>
+                                <option value="6031">6031</option>
+                                <option value="6051">6051</option>
+                                <option value="6081">6081</option>
+                                <option value="6090">6090</option>
+                            </select>
+                            <span asp-validation-for="Plant" class="text-danger"></span>
+                        </div>
+                    </div>
+                  
+                </div>
+                <div class="form-group mb-4" id="request-description-container">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="3" placeholder="Provide a detailed description of the request..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+             
+
+                <div class="form-group mb-4" id="request-upload-container">
+                    <label for="RequestAttachment" class="form-label">Attachment</label>
+                    <input class="form-control" type="file" id="RequestAttachment" name="requestAttachment">
+                    <div class="form-text">You can attach any file type for request details.</div>
+                    <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
+                </div>
+
+                <partial name="_MaterialForms" model="Model" />
+            </form>
+
+            <div id="workflow-section" class="mt-4">
+                <hr class="my-4" />
+                <h5>Work Flow</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
+                            <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select" form="create-form">
+                                <option value="">-- Please select a request type first --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                @* ส่วนนี้แสดงเฉพาะผู้ใช้บทบาท IT *@
+                @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
+                {
+                    <hr class="my-4" />
+                    <h5>DX Update Status</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Status" class="form-label"></label>
+                                <select asp-for="Status" id="CreateStatus" class="form-select" form="create-form">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Inprocess">Inprocess</option>
+                                    <option value="Run Standard Cost">Run Standard Cost</option>
+                                    <option value="Check and Confirm">Check and Confirm</option>
+                                    <option value="Release">Release</option>
+                                    <option value="Input Price">Input Price</option>
+                                    <option value="Complete">Complete</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 mb-4">
+                <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+                <button type="submit" id="create-submit-button" class="btn btn-primary" form="create-form">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Request
+                </button>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // เตรียมตัวแปรอ้างอิง DOM ที่ใช้งานบ่อยสำหรับควบคุมฟอร์มแบบไดนามิก
+            const requestTypeSelect = document.getElementById('RequestType');
+            const sapModuleSelect = document.getElementById('SapModule');
+            const requestPlantSelect = document.getElementById('RequestPlant');
+            const requesterNameInput = document.getElementById('RequesterName');
+            const materialFieldsContainer = document.getElementById('material-fields-container');
+            const allMaterialFields = document.querySelectorAll('[data-types]');
+            const bomContainer = document.getElementById('bom-fields-container');
+       
+            const bomEditContainer = document.getElementById('bom-edit-fields-container');
+            const routingContainer = document.getElementById('routing-fields-container');
+            const licensePermissionContainer = document.getElementById('license-permission-fields-container').style.display = 'block';
+            const nextResponsibleUserSelect = document.getElementById('NextResponsibleUserId');
+            const importNextResponsibleUserIdInput = document.getElementById('importNextResponsibleUserId');
+            const createForm = document.getElementById('create-form');
+            const importForm = document.getElementById('import-form');
+            const downloadLink = document.getElementById('download-template-link');
+            const importRequestTypeSelect = document.getElementById('ImportRequestType');
+            const distributionChannelSelect = document.getElementById('DistributionChannel');
+            const boiCodeContainer = document.getElementById('boi-code-container');
+            const editBomFgInput = document.getElementById('EditBomFg');
+            const editBomAllFgCheckbox = document.getElementById('EditBomAllFg');
+            const requestPlantContainer = document.getElementById('request-plant-container');
+            const requestUploadContainer = document.getElementById('request-upload-container');
+            const requestAttachmentInput = document.getElementById('RequestAttachment');
+            const changeRequestNoContainer = document.getElementById('change-request-no-container');
+            const changeRequestNoInput = document.getElementById('ChangeRequestG2U');
+            const workflowSection = document.getElementById('workflow-section');
+            const isITCreator = @Html.Raw((SignInManager.IsSignedIn(User) && User.IsInRole("IT")).ToString().ToLowerInvariant());
+            const isInitialCreateLoad = '@Context.Request.Method'.toUpperCase() === 'GET';
+            let lastSuccessfulApprovers = [];
+            const allRequestTypeOptions = requestTypeSelect
+                ? Array.from(requestTypeSelect.options).map(option => ({ value: option.value, text: option.text }))
+                : [];
+
+            if (requestTypeSelect && isInitialCreateLoad) {
+                requestTypeSelect.value = '';
+            }
+
+            // จับคู่ค่า enum กับชื่อประเภทคำขอที่ใช้ในเงื่อนไขของ UI
+            const typeMapping = {
+                '0': 'Request',
+                '1': 'FG',
+                '2': 'SM',
+                '3': 'RM',
+                '4': 'ToolingB',
+                '5': 'ToolingBFG',
+                '6': 'ToolingBPU',
+                '7': 'BOM',
+                '8': 'Routing',
+                '9': 'AddStorage',
+                '10': 'DistributionChanel',
+                '11': 'IPO',
+                '12': 'Passthrough',
+                '13': 'CrossPlantPurchase',
+                '14': 'EditBOM',
+                '15': 'LicensePermission',
+                '16': 'EditCostCenter'
+
+                
+
+            };
+
+            const normalizeKey = (value) => (value || '').replace(/[_\s-]/g, '').toLowerCase();
+
+            // กำหนดประเภทคำขอที่อนุญาตตามแต่ละ SAP Module
+            const allowedRequestTypeByModule = {
+                MM: new Set(['1', '2', '3', '4', '5', '6', '9', '11', '12', '13', 'fg', 'sm', 'rm', 'toolingb', 'toolingbfg', 'toolingbpu', 'addstorage', 'ipo', 'passthrough', 'crossplantpurchase']),
+                PP: new Set(['7', '8', '14', 'bom', 'routing', 'editbom']),
+                CO: new Set(['16', 'editcostcenter']),
+                SD: new Set(['10', 'distributionchanel']),
+                CR: new Set(['0', '15',  'request', 'licensepermission'])
+            };
+
+            function getSapModuleKey() {
+                const selectedModule = (sapModuleSelect?.value || '').trim().toUpperCase();
+                if (selectedModule.startsWith('MM')) return 'MM';
+                if (selectedModule.startsWith('PP')) return 'PP';
+                if (selectedModule.startsWith('CO')) return 'CO';
+                if (selectedModule.startsWith('SD')) return 'SD';
+                if (selectedModule === 'CR' || selectedModule.startsWith('OTHER')) return 'CR';
+                return '';
+            }
+
+            function toggleChangeRequestNoField() {
+                if (!changeRequestNoContainer || !sapModuleSelect) return;
+                const isChangeRequestModule = (sapModuleSelect.value || '').trim().toUpperCase() === 'CR';
+                changeRequestNoContainer.style.display = isChangeRequestModule ? 'block' : 'none';
+                if (!isChangeRequestModule && changeRequestNoInput) {
+                    changeRequestNoInput.value = '';
+                }
+            }
+
+            // กรองและเปิดใช้งาน Request Type หลังจากเลือก SAP Module แล้วเท่านั้น
+            function applyRequestTypeFilterBySapModule() {
+                if (!requestTypeSelect || !allRequestTypeOptions.length) return;
+
+                const moduleKey = getSapModuleKey();
+                const previousValue = requestTypeSelect.value;
+                const allowedSet = moduleKey ? allowedRequestTypeByModule[moduleKey] : null;
+
+                
+                console.log('moduleKey =', moduleKey);
+                console.log('allowedSet =', allowedSet);
+                console.log('allRequestTypeOptions =', allRequestTypeOptions);
+
+
+                requestTypeSelect.disabled = !moduleKey;
+
+                if (!moduleKey) {
+                    requestTypeSelect.innerHTML = '';
+                    requestTypeSelect.add(new Option('-- Select SAP Module first --', ''));
+                    requestTypeSelect.value = '';
+                    return;
+                }
+
+                const filteredOptions = allRequestTypeOptions.filter(option => {
+                    if (option.value === '') return true;
+                    if (!allowedSet) return true;
+
+                    const valueKey = normalizeKey(option.value);
+                    const textKey = normalizeKey(option.text);
+                    return allowedSet.has(valueKey) || allowedSet.has(textKey);
+                });
+
+                requestTypeSelect.innerHTML = '';
+                filteredOptions.forEach(option => {
+                    requestTypeSelect.add(new Option(option.text, option.value));
+                });
+
+                const keepSelection = previousValue && filteredOptions.some(option => option.value === previousValue);
+                requestTypeSelect.value = keepSelection ? previousValue : '';
+            }
+
+            // แสดงหรือซ่อนช่อง BOI Code ตามประเภทคำขอที่กำหนด
+            function toggleBoiCode() {
+                if (!boiCodeContainer) return;
+
+                const selectedRequestTypeValue = requestTypeSelect ? requestTypeSelect.value : '';
+                const selectedTypeName = selectedRequestTypeValue ? (typeMapping[selectedRequestTypeValue] || selectedRequestTypeValue) : '';
+                const normalizedTypeName = selectedTypeName.replace(/[_\s]/g, '');
+                const shouldShowBoiCode = ['FG', 'IPO', 'DistributionChanel', 'ToolingBFG'].includes(normalizedTypeName);
+
+                boiCodeContainer.style.display = shouldShowBoiCode ? 'block' : 'none';
+            }
+
+            // ปิดการกรอก FG เมื่อเลือกตัวเลือก "All FG" ใน Edit BOM
+            function toggleEditBomFgInput() {
+                if (!editBomFgInput || !editBomAllFgCheckbox) return;
+                const isAllFgChecked = editBomAllFgCheckbox.checked;
+                editBomFgInput.disabled = isAllFgChecked;
+                if (isAllFgChecked) {
+                    editBomFgInput.value = '';
+                }
+            }
+
+            function collapseEmptyMaterialRows() {
+                if (!materialFieldsContainer) return;
+
+                const rows = materialFieldsContainer.querySelectorAll('.row');
+                rows.forEach(row => {
+                    const typedColumns = row.querySelectorAll('[data-types]');
+                    if (!typedColumns.length) {
+                        row.style.display = '';
+                        return;
+                    }
+
+                    const hasVisibleTypedColumn = Array.from(typedColumns).some(col => {
+                        return col instanceof HTMLElement && col.style.display !== 'none';
+                    });
+
+                    row.style.display = hasVisibleTypedColumn ? '' : 'none';
+                });
+            }
+
+            // สลับการแสดงส่วนหลักของฟอร์ม (material, BOM, routing, upload, workflow) ตามประเภทคำขอ
+            function toggleMaterialFields() {
+                if (!requestTypeSelect) return;
+                const selectedValue = requestTypeSelect.value;
+                // รองรับค่าประเภทคำขอทั้งแบบตัวเลข enum และชื่อ เช่น "6" หรือ "BOM"
+                let selectedTypeName = '';
+                if (selectedValue) {
+                    selectedTypeName = typeMapping[selectedValue] || selectedValue;
+                }
+                // ให้ EditBOM ใช้เงื่อนไขการแสดงผลฟิลด์แยกตามประเภทของตัวเอง
+                if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
+                    selectedTypeName = 'EditBOM';
+                }
+                const isSimpleRequest = selectedTypeName === 'Request'
+                    || selectedTypeName === 'ร้องขอ'
+                    || selectedTypeName === 'EditCostCenter'
+                    || selectedTypeName === 'แก้ไข Cost Center';
+
+                const showMaterialFields = selectedValue && !isSimpleRequest && selectedTypeName !== 'Routing' && selectedTypeName !== 'LicensePermission';
+                if (materialFieldsContainer) materialFieldsContainer.style.display = showMaterialFields ? 'block' : 'none';
+
+                if (requestPlantContainer) {
+                    requestPlantContainer.style.display = isSimpleRequest ? 'none' : 'block';
+                }
+
+                if (requestPlantSelect) {
+                    requestPlantSelect.disabled = isSimpleRequest;
+                    if (isSimpleRequest) {
+                        requestPlantSelect.value = '';
+                    }
+                }
+
+                if (workflowSection) {
+                    workflowSection.style.display = 'block';
+                }
+
+                if (requestAttachmentInput) {
+                    requestAttachmentInput.required = false;
+                    requestAttachmentInput.disabled = false;
+                }
+
+                if (allMaterialFields.length) {
+                    allMaterialFields.forEach(field => {
+                        const parentCol = field.closest('.col-md-4, .col-md-6, .col-md-8, .col-md-12');
+                        if (!parentCol) return;
+
+                        const types = parentCol.dataset.types ? parentCol.dataset.types.split(',').map(type => type.trim()) : [];
+                        const shouldShowField = showMaterialFields && selectedTypeName && types.includes(selectedTypeName);
+                        parentCol.style.display = shouldShowField ? '' : 'none';
+                    });
+                }
+
+                collapseEmptyMaterialRows();
+
+                    const isBom = selectedTypeName === 'BOM';
+                    const isEditBom = selectedTypeName === 'EditBOM';
+                    const isLicensePermission = selectedTypeName === 'LicensePermission';
+
+                // แสดงหรือซ่อนบล็อก UI ของ BOM, EditBOM และ Routing
+
+                if (bomEditContainer) bomEditContainer.style.display = (isEditBom) ? 'block' : 'none';
+                if (routingContainer) routingContainer.style.display = selectedTypeName === 'Routing' ? 'block' : 'none';
+                if (bomContainer) bomContainer.style.display = (isBom) ? 'block' : 'none';
+                if (licensePermissionContainer) licensePermissionContainer.style.display = isLicensePermission ? 'block' : 'none';
+
+                // หลังสลับฟิลด์ทั้งหมดแล้ว ให้ตรวจการแสดงผล BOI Code อีกครั้ง
+                toggleBoiCode();
+            }
+
+            const getNextApproversUrl = '@Url.Action("GetNextApprovers", "Requests")';
+            const downloadTemplateUrl = '@Url.Action("DownloadTemplate", "Requests")';
+
+            // โหลดรายชื่อผู้รับผิดชอบลำดับถัดไปจาก backend ตามประเภทคำขอ, plant และผู้ร้องขอ
+            function fetchNextApprovers() {
+                const requestTypeValue = requestTypeSelect.value;
+                const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
+                const requesterNameValue = requesterNameInput ? requesterNameInput.value : '';
+
+                if (isITCreator) {
+                    nextResponsibleUserSelect.innerHTML = '';
+                    nextResponsibleUserSelect.add(new Option('ระบบจะกำหนดเป็นตัวเองอัตโนมัติ', ''));
+                    nextResponsibleUserSelect.disabled = true;
+                    importNextResponsibleUserIdInput.value = '';
+                    return;
+                }
+
+                nextResponsibleUserSelect.disabled = false;
+                nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                const renderApproverOptions = (data) => {
+                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
+                    data.forEach(user => {
+                        const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                        const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                        const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                        nextResponsibleUserSelect.add(option);
+                    });
+
+                    if (data.length === 1) {
+                        nextResponsibleUserSelect.value = data[0].id;
+                    }
+
+                    importNextResponsibleUserIdInput.value = nextResponsibleUserSelect.value || '';
+                    lastSuccessfulApprovers = data;
+                };
+
+                if (requestTypeValue) {
+                    fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.length > 0) {
+                                renderApproverOptions(data);
+                            } else {
+                                // กรณีสำรอง: ลองใหม่โดยไม่ส่ง plant เผื่อการตั้งค่าเส้นทางใช้ป้ายชื่อ plant ไม่ตรงกัน
+                                fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
+                                    .then(r => r.json())
+                                    .then(fallbackData => {
+                                        if (fallbackData && fallbackData.length > 0) {
+                                            renderApproverOptions(fallbackData);
+                                        } else if (lastSuccessfulApprovers.length > 0) {
+                                            renderApproverOptions(lastSuccessfulApprovers);
+                                        } else {
+                                            nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                            importNextResponsibleUserIdInput.value = '';
+                                        }
+                                    })
+                                    .catch(() => {
+                                        if (lastSuccessfulApprovers.length > 0) {
+                                            renderApproverOptions(lastSuccessfulApprovers);
+                                        } else {
+                                            nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                            importNextResponsibleUserIdInput.value = '';
+                                        }
+                                    });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching approvers:', error);
+                            if (lastSuccessfulApprovers.length > 0) {
+                                renderApproverOptions(lastSuccessfulApprovers);
+                            } else {
+                                nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                importNextResponsibleUserIdInput.value = '';
+                            }
+                        });
+                } else {
+                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
+                    importNextResponsibleUserIdInput.value = '';
+                }
+            }
+            
+            // อัปเดตลิงก์ดาวน์โหลดเทมเพลต Excel เมื่อเปลี่ยนประเภทคำขอสำหรับนำเข้า
+            function updateDownloadLink() {
+                const selectedValue = importRequestTypeSelect ? importRequestTypeSelect.value : '';
+                if (selectedValue) {
+                    downloadLink.href = `${downloadTemplateUrl}?requestType=${encodeURIComponent(selectedValue)}`;
+                    downloadLink.classList.remove('disabled');
+                } else {
+                    downloadLink.href = '#';
+                    downloadLink.classList.add('disabled');
+                }
+            }
+
+            // กันการ submit import เมื่อจำเป็นต้องเลือกผู้รับผิดชอบแต่ยังไม่ได้เลือก
+            function checkResponsibleUser(event) {
+                const hasApproverOptions = Array.from(nextResponsibleUserSelect.options || [])
+                    .some(option => option.value && option.value.trim() !== '');
+
+                if (hasApproverOptions && nextResponsibleUserSelect.value === '') {
+                    event.preventDefault(); // หยุดการส่งฟอร์ม
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: "Please select a 'Next Responsible User' before submitting.",
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316' // สีส้มหลักของปุ่มยืนยัน
+                    });
+                }
+            }
+
+            // เพิ่มแถว BOM (Parent/Child) แบบไดนามิกในฟอร์มสร้างคำขอ
+            function addBomItem(level) {
+                const tbody = document.getElementById('bom-items-body');
+                if (!tbody) return;
+                const index = tbody.getElementsByTagName('tr').length;
+                const parentReadonly = level === 1 ? 'readonly' : '';
+                const componentBomUsageReadonly = level === 2 ? 'readonly' : '';
+                const newRow = `
+                    <tr>
+                        <td><input type="text" name="Components[${index}].Level" class="form-control" value="${level}" readonly/></td>
+                        <td><input type="text" name="Components[${index}].Item" class="form-control" ${parentReadonly} /></td>
+                        <td><input type="text" name="Components[${index}].ItemCat" class="form-control" ${parentReadonly} /></td>
+                        <td><input type="text" name="Components[${index}].ComponentNumber" class="form-control" /></td>
+                        <td><input type="text" name="Components[${index}].Description" class="form-control" /></td>
+                        <td><input type="number" name="Components[${index}].ItemQuantity" class="form-control" ${parentReadonly} /></td>
+                        <td><input type="text" name="Components[${index}].Unit" class="form-control" ${parentReadonly} /></td>
+                        <td><input type="text" name="Components[${index}].BomUsage" class="form-control" ${componentBomUsageReadonly} /></td>
+                        <td><input type="text" name="Components[${index}].Plant" class="form-control" /></td>
+                        <td><input type="text" name="Components[${index}].Sloc" class="form-control" ${parentReadonly} /></td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-bom-item">Remove</button></td>
+                    </tr>`;
+                tbody.insertAdjacentHTML('beforeend', newRow);
+            }
+
+            const addParentBtn = document.getElementById('add-parent-item');
+            const addChildBtn = document.getElementById('add-child-item');
+            if (addParentBtn) addParentBtn.addEventListener('click', () => addBomItem(1));
+            if (addChildBtn) addChildBtn.addEventListener('click', () => addBomItem(2));
+
+            const bomBody = document.getElementById('bom-items-body');
+            if (bomBody) {
+                bomBody.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-bom-item')) {
+                        e.target.closest('tr').remove();
+                    }
+                });
+            }
+
+
+            // เพิ่มแถวเปรียบเทียบ Edit BOM (ค่าเดิม/ค่าใหม่)
+
+             function addBomEditItem(level) {
+                const tbody = document.getElementById('bom-edit-items-body');
+                if (!tbody) return;
+                const index = tbody.getElementsByTagName('tr').length;
+                const newRow = `
+                    <tr>
+                        <td><input type="text" name="EditBOM[${index}].ItemCodeFrom" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].DescriptionFrom" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].ItemQuantityFrom" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].UnitFrom" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].BomUsageFrom" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].SlocFrom" class="form-control" /></td>
+                        <td></td>
+
+
+                        <td><input type="text" name="EditBOM[${index}].ItemCodeTo" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].DescriptionTo" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].ItemQuantityTo" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].UnitTo" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].BomUsageTo" class="form-control" /></td>
+                        <td><input type="text" name="EditBOM[${index}].SlocTo" class="form-control" /></td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-editbom-item">Remove</button></td>
+                    </tr>`;
+                tbody.insertAdjacentHTML('beforeend', newRow);
+            }
+
+
+                    const addEditBomBtn = document.getElementById('add-editbom-row');
+                    if (addEditBomBtn) {
+                       addEditBomBtn.addEventListener('click', () => addBomEditItem());
+                    }
+
+                    const editBomBody = document.getElementById('bom-edit-items-body');
+                    if (editBomBody) {
+                        editBomBody.addEventListener('click', function (e) {
+                            if (e.target && e.target.classList.contains('remove-editbom-item')) {
+                                e.target.closest('tr').remove();
+                            }
+                        });
+                    }
+
+
+                    // เพิ่มแถวรายละเอียด Routing และซิงก์ค่า Unit ที่ต้องสะท้อนกัน
+
+            const addRoutingBtn = document.getElementById('add-routing-item');
+            if (addRoutingBtn) addRoutingBtn.addEventListener('click', function() {
+                const tbody = document.getElementById('routing-items-body');
+                if (!tbody) return;
+                const index = tbody.rows.length;
+                const row = `
+                    <tr>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Counter"></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Plant"></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Material"></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Description"></td>
+                    <td><input class="form-control" type="text" name="Routings[${index}].WorkCenter"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td><input class="form-control" type="number" step="0.01" name="Routings[${index}].BaseQty" value="1"></td>
+                    <td><input class="form-control routing-unit-source" type="text" name="Routings[${index}].Unit"></td>
+                    <td><input class="form-control" type="number" step="0.01" name="Routings[${index}].DirectLaborCosts"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td><input class="form-control" type="number" step="0.01" name="Routings[${index}].DirectExpenses"></td>
+                        <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td><input class="form-control" type="number" step="0.01" name="Routings[${index}].AllocationExpense"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].ProductionVersionCode"></td>
+                    <td><input class="form-control" type="text" name="Routings[${index}].Version"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                    <td class="routing-spacer-col"></td>
+                        <td><input class="form-control" type="date" name="Routings[${index}].ValidFrom"></td>
+                        <td><input class="form-control" type="date" name="Routings[${index}].ValidTo" value="9999-12-13"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td><input class="form-control" type="number" step="0.01" name="Routings[${index}].MaximumLotSize" value="99999999"></td>
+                        <td><input class="form-control routing-unit-mirror" type="text" readonly></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Alternative" value="1" readonly></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].BomUsage" value="1"></td>
+                        <td class="routing-spacer-col"></td>
+                        <td><input class="form-control" type="text" name="Routings[${index}].Group"></td>
+                    <td><input class="form-control" type="text" name="Routings[${index}].GroupCounter" value="1"></td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-routing-item">Remove</button></td>
+                    </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            const routingBody = document.getElementById('routing-items-body');
+            if (routingBody) {
+                const syncRoutingUnitMirror = (row) => {
+                    const source = row.querySelector('.routing-unit-source');
+                    const mirror = row.querySelector('.routing-unit-mirror');
+                    if (source && mirror) {
+                        mirror.value = source.value || '';
+                    }
+                };
+
+                routingBody.querySelectorAll('tr').forEach(syncRoutingUnitMirror);
+
+                routingBody.addEventListener('input', function (e) {
+                    if (e.target && e.target.classList.contains('routing-unit-source')) {
+                        const row = e.target.closest('tr');
+                        if (row) {
+                            syncRoutingUnitMirror(row);
+                        }
+                    }
+                });
+
+                routingBody.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-routing-item')) {
+                        e.target.closest('tr').remove();
+                    }
+                });
+            }
+
+            // ตรรกะส่วน License Permission: สลับโหมด New Username และ Add Permission
+            const addLicensePermissionBtn = document.getElementById('add-license-permission-item');
+            const licenseRequestOptionSelect = document.getElementById('LicenseRequestOption');
+            const licenseNewUsernameFields = document.getElementById('license-new-username-fields');
+            const licenseAddPermissionFields = document.getElementById('license-add-permission-fields');
+            const licensePrimaryUsernameInput = document.getElementById('LicensePrimaryUsername');
+            const licenseSecondaryUsernameInput = document.getElementById('LicenseSecondaryUsername');
+            const licenseSecondaryUsernameWrapper = document.getElementById('license-secondary-username-wrapper');
+
+            function setSectionEnabled(section, enabled) {
+                if (!section) return;
+                const controls = section.querySelectorAll('input, select, textarea, button');
+                controls.forEach(control => {
+                    control.disabled = !enabled;
+                });
+            }
+
+            function toggleLicenseRequestOptionFields() {
+                const selectedOption = licenseRequestOptionSelect ? licenseRequestOptionSelect.value : '';
+                const isNewUsernameRequest = selectedOption === 'NewUsername';
+                const isAddPermissionRequest = selectedOption === 'AddPermission';
+
+                if (licenseNewUsernameFields) {
+                    licenseNewUsernameFields.style.display = isNewUsernameRequest ? 'block' : 'none';
+                    setSectionEnabled(licenseNewUsernameFields, isNewUsernameRequest);
+                }
+
+                if (licenseAddPermissionFields) {
+                    licenseAddPermissionFields.style.display = isAddPermissionRequest ? 'block' : 'none';
+                    setSectionEnabled(licenseAddPermissionFields, isAddPermissionRequest);
+                }
+
+                if (licenseSecondaryUsernameWrapper) {
+                    const showSecondaryUsername = false;
+                    licenseSecondaryUsernameWrapper.style.display = (isAddPermissionRequest && showSecondaryUsername) ? 'block' : 'none';
+                }
+
+                if (licenseSecondaryUsernameInput) {
+                    const enableSecondaryUsername = false;
+                    licenseSecondaryUsernameInput.disabled = !(isAddPermissionRequest && enableSecondaryUsername);
+                    if (!isAddPermissionRequest || !enableSecondaryUsername) {
+                        licenseSecondaryUsernameInput.value = '';
+                    }
+                }
+
+                syncLicensePermissionUsernames();
+            }
+
+            // รวมค่า username เพื่อนำไปกระจายลงในแต่ละแถวของ License Permission
+            function getLicenseUsernames() {
+                const usernames = [];
+                const primary = licensePrimaryUsernameInput ? licensePrimaryUsernameInput.value.trim() : '';
+                const secondary = licenseSecondaryUsernameInput ? licenseSecondaryUsernameInput.value.trim() : '';
+                if (primary) usernames.push(primary);
+                if (secondary) usernames.push(secondary);
+                return usernames;
+            }
+
+            function getCombinedLicenseUsernames() {
+                return getLicenseUsernames().join(' / ');
+            }
+
+            function syncLicensePermissionUsernames() {
+                const combinedUsernames = getCombinedLicenseUsernames();
+                const usernameInputs = document.querySelectorAll('#license-permission-items-body .license-permission-username');
+                usernameInputs.forEach(input => {
+                    input.value = combinedUsernames;
+                });
+            }
+
+            function hydrateLicenseUsernameInputsFromRows() {
+                if (!licensePrimaryUsernameInput || !licenseSecondaryUsernameInput) return;
+                const usernameInputs = document.querySelectorAll('#license-permission-items-body .license-permission-username');
+                const rawValues = Array.from(usernameInputs)
+                    .map(input => (input.value || '').trim())
+                    .filter(value => value.length > 0);
+
+                if (!rawValues.length) return;
+
+                const parsedUsers = [];
+                rawValues.forEach(value => {
+                    value.split(/\s*\/\s*|\s*,\s*/)
+                        .map(part => part.trim())
+                        .filter(part => part.length > 0)
+                        .forEach(user => {
+                            if (!parsedUsers.includes(user)) {
+                                parsedUsers.push(user);
+                            }
+                        });
+                });
+
+                if (parsedUsers[0]) licensePrimaryUsernameInput.value = parsedUsers[0];
+                if (parsedUsers[1]) licenseSecondaryUsernameInput.value = parsedUsers[1];
+                syncLicensePermissionUsernames();
+            }
+
+            if (addLicensePermissionBtn) {
+                addLicensePermissionBtn.addEventListener('click', function() {
+                    const tbody = document.getElementById('license-permission-items-body');
+                    if (!tbody) return;
+                    const index = tbody.getElementsByTagName('tr').length;
+                    const combinedUsernames = getCombinedLicenseUsernames();
+                    const row = `
+                        <tr>
+                            <td>
+                                <input class="license-permission-username" type="hidden" name="LicensePermissions[${index}].SapUsername" value="${combinedUsernames}">
+                                <input class="form-control" type="text" name="LicensePermissions[${index}].TCode">
+                            </td>
+                            <td><button type="button" class="btn btn-danger btn-sm remove-license-permission-item">Remove</button></td>
+                        </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+
+            const licensePermissionBody = document.getElementById('license-permission-items-body');
+            if (licensePermissionBody) {
+                licensePermissionBody.addEventListener('click', function(e) {
+                    if (e.target && e.target.classList.contains('remove-license-permission-item')) {
+                        e.target.closest('tr').remove();
+                    }
+                });
+            }
+
+            // ตั้งค่าเริ่มต้นของหน้าในครั้งแรกและกรณี postback
+            applyRequestTypeFilterBySapModule();
+            toggleMaterialFields();
+            toggleChangeRequestNoField();
+            updateDownloadLink();
+            fetchNextApprovers(); // โหลดผู้รับผิดชอบตอนเปิดหน้า หากมีประเภทคำขอถูกเลือกอยู่แล้ว
+            hydrateLicenseUsernameInputsFromRows();
+            toggleLicenseRequestOptionFields();
+
+            // กลุ่ม event handler หลักสำหรับพฤติกรรมฟอร์มแบบไดนามิก
+            requestTypeSelect.addEventListener('change', () => {
+                toggleMaterialFields();
+                fetchNextApprovers();
+            });
+
+            if (sapModuleSelect) {
+                sapModuleSelect.addEventListener('change', () => {
+                    applyRequestTypeFilterBySapModule();
+                    toggleMaterialFields();
+                    toggleChangeRequestNoField();
+                    fetchNextApprovers();
+                });
+            }
+
+            if (requestPlantSelect) {
+                requestPlantSelect.addEventListener('change', fetchNextApprovers);
+
+                        // ซิงก์ค่า Plant จากส่วนหัวฟอร์มไปยังช่อง Plant ในส่วน Material
+                        const materialSectionPlant = document.getElementById('MaterialSectionPlant');
+                        function syncMaterialPlant() {
+                            if (materialSectionPlant && requestPlantSelect) {
+                                materialSectionPlant.value = requestPlantSelect.value;
+                            }
+                        }
+                        if (requestPlantSelect) {
+                            requestPlantSelect.addEventListener('change', syncMaterialPlant);
+                            syncMaterialPlant(); // ซิงก์ค่าเริ่มต้นเมื่อเปิดหน้า
+                        }
+
+            }
+
+            if (importRequestTypeSelect) {
+                importRequestTypeSelect.addEventListener('change', updateDownloadLink);
+            }
+
+            if (distributionChannelSelect) {
+                 distributionChannelSelect.addEventListener('change', toggleBoiCode);
+            }
+              if (editBomAllFgCheckbox) {
+                 editBomAllFgCheckbox.addEventListener('change', toggleEditBomFgInput);
+              }
+
+              toggleEditBomFgInput();
+
+            nextResponsibleUserSelect.addEventListener('change', () => {
+                 importNextResponsibleUserIdInput.value = nextResponsibleUserSelect.value;
+            });
+            if (licensePrimaryUsernameInput) {
+                licensePrimaryUsernameInput.addEventListener('input', syncLicensePermissionUsernames);
+            }
+            if (licenseSecondaryUsernameInput) {
+                licenseSecondaryUsernameInput.addEventListener('input', syncLicensePermissionUsernames);
+            }
+            if (licenseRequestOptionSelect) {
+                licenseRequestOptionSelect.addEventListener('change', toggleLicenseRequestOptionFields);
+            }
+
+            // ตรวจสอบก่อนส่งฟอร์มขั้นสุดท้ายว่าฟิลด์บังคับกรอกครบ
+            function hasBlankRequiredRequestFields() {
+                const names = ['RequesterName', 'RequestType', 'Description'];
+                return names.some(name => {
+                    const field = createForm.elements.namedItem(name);
+                    if (!field) {
+                        return false;
+                    }
+
+                    const value = typeof field.value === 'string' ? field.value : '';
+                    return !value.trim();
+                });
+            }
+
+            createForm.addEventListener('submit', function(event) {
+                syncLicensePermissionUsernames();
+                let isValid = true;
+
+                if (hasBlankRequiredRequestFields()) {
+                    isValid = false;
+                } else if (window.jQuery && typeof jQuery(createForm).valid === 'function') {
+                    isValid = jQuery(createForm).valid();
+                } else if (typeof createForm.checkValidity === 'function') {
+                    isValid = createForm.checkValidity();
+                }
+
+                if (!isValid) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: 'Please fill in all required fields before submitting.',
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316'
+                    });
+                }
+            });
+            importForm.addEventListener('submit', checkResponsibleUser);
+        });
+    </script>
+}
