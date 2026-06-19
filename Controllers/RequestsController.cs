@@ -1081,6 +1081,11 @@ namespace myapp.Controllers
             }
 
             var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
+            // Filter to only users with Approve or admin role for next approver candidates
+            var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
+            var adminRoleUsers = await _userManager.GetUsersInRoleAsync("admin");
+            var allowedUserIds = new HashSet<string>(approverRoleUsers.Select(u => u.Id).Concat(adminRoleUsers.Select(u => u.Id)));
+            allUsers = allUsers.Where(u => allowedUserIds.Contains(u.Id)).ToList();
             var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
 
             // Build approver candidates per workflow step so the UI can move the request forward one configured step at a time.
@@ -2487,6 +2492,11 @@ namespace myapp.Controllers
             }
 
             var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
+            // Filter to only users with Approve or admin role for next approver candidates
+            var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
+            var adminRoleUsers = await _userManager.GetUsersInRoleAsync("admin");
+            var allowedUserIds = new HashSet<string>(approverRoleUsers.Select(u => u.Id).Concat(adminRoleUsers.Select(u => u.Id)));
+            allUsers = allUsers.Where(u => allowedUserIds.Contains(u.Id)).ToList();
             var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
 
             foreach (var stepRouting in routings)

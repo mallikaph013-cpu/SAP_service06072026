@@ -43,5 +43,11 @@ namespace myapp.Models
         public string Plant { get; set; } = string.Empty;
 
         public bool IsIT { get; set; }
+
+        public bool IsApprove { get; set; }
+
+        public bool IsAdmin { get; set; }
+
+        public bool IsUser { get; set; }
     }
 }

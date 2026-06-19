@@ -94,6 +94,30 @@
                         <label class="form-check-label" asp-for="IsIT">Assign to IT Role</label>
                     </div>
 
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Assign Roles</label>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsApprove">
+                                    <label class="form-check-label" asp-for="IsApprove">Approve</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsAdmin">
+                                    <label class="form-check-label" asp-for="IsAdmin">Admin</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsUser">
+                                    <label class="form-check-label" asp-for="IsUser">User</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <h5 class="mt-4 mb-2">
                         <a data-bs-toggle="collapse" href="#securityCollapse" role="button" aria-expanded="false" aria-controls="securityCollapse" class="text-decoration-none">
                            <i class="fas fa-chevron-down me-1"></i> Security

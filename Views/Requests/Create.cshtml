@@ -23,7 +23,7 @@
 
     .create-import-card {
         order: 1;
-        margin-bottom: 3rem;
+        margin-bottom: 1rem;
     }
 
     .create-manual-card {
@@ -58,6 +58,13 @@
                     <input class="form-control" type="file" id="excelFile" name="file" accept=".xlsx, .xls" required>
                 </div>
 
+                <div class="mb-3">
+                    <label for="ImportNextResponsibleUserId" class="form-label">Assign to Approve Role</label>
+                    <select id="ImportNextResponsibleUserId" class="form-select">
+                        <option value="">-- Select Request Type first --</option>
+                    </select>
+                </div>
+
                 <input type="hidden" name="NextResponsibleUserId" id="importNextResponsibleUserId" />
                 
                 <div class="d-flex justify-content-center align-items-center mt-4">
@@ -74,7 +81,7 @@
         </div>
 
         <!-- Manual Creation Form -->
-        <div class="main-content-card mb-5 create-manual-card">
+        <div class="main-content-card create-manual-card">
             <div class="text-center mb-4">
                 <h2>Create New Service Request</h2>
                @*<p class="text-light">กรุณากรอกรายละเอียดคำขอของคุณด้านล่าง</p>*@ 
@@ -153,10 +160,89 @@
                     <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
                 </div>
 
+                <div id="license-permission-fields-container" style="display: none;">
+                    <hr />
+                    <h4>สิทธิ์การใช้งาน SAP</h4>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="LicenseRequestOption" class="control-label">ประเภทคำร้องขอ</label>
+                                <select id="LicenseRequestOption" name="LicenseRequestOption" class="form-select">
+                                    <option value="">-- กรุณาเลือก --</option>
+                                    <option value="NewUsername">ขอ Username ใหม่</option>
+                                    <option value="AddPermission">ขอเพิ่มสิทธิ์การใช้งาน</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="license-new-username-fields" style="display: none;">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="LicenseUsernameFrom" class="control-label">Username From</label>
+                                    <input type="text" id="LicenseUsernameFrom" name="LicenseUsernameFrom" class="form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="LicenseUsernameTo" class="control-label">Username To</label>
+                                    <input type="text" id="LicenseUsernameTo" name="LicenseUsernameTo" class="form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="license-add-permission-fields" style="display: none;">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="LicensePrimaryUsername" class="control-label">Username SAP</label>
+                                    <input type="text" id="LicensePrimaryUsername" class="form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="license-secondary-username-wrapper">
+                                <div class="form-group">
+                                    <label for="LicenseSecondaryUsername" class="control-label">Username SAP 2</label>
+                                    <input type="text" id="LicenseSecondaryUsername" class="form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>T Code</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="license-permission-items-body">
+                                    @if (Model.LicensePermissions != null)
+                                    {
+                                        @for (int i = 0; i < Model.LicensePermissions.Count; i++)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="hidden" class="license-permission-username" asp-for="LicensePermissions[i].SapUsername" />
+                                                    <input asp-for="LicensePermissions[i].TCode" class="form-control" />
+                                                </td>
+                                                <td><button type="button" class="btn btn-danger btn-sm remove-license-permission-item">Remove</button></td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-primary btn-sm" id="add-license-permission-item">+ Add Row</button>
+                        </div>
+                    </div>
+                </div>
+
                 <partial name="_MaterialForms" model="Model" />
             </form>
+        </div>
 
-            <div id="workflow-section" class="mt-4">
+        <div id="workflow-section" class="main-content-card mt-3">
                 <hr class="my-4" />
                 <h5>Work Flow</h5>
                 <div class="row mb-4">
@@ -224,8 +310,9 @@
        
             const bomEditContainer = document.getElementById('bom-edit-fields-container');
             const routingContainer = document.getElementById('routing-fields-container');
-            const licensePermissionContainer = document.getElementById('license-permission-fields-container').style.display = 'block';
+            const licensePermissionContainer = document.getElementById('license-permission-fields-container');
             const nextResponsibleUserSelect = document.getElementById('NextResponsibleUserId');
+            const importNextResponsibleUserSelect = document.getElementById('ImportNextResponsibleUserId');
             const importNextResponsibleUserIdInput = document.getElementById('importNextResponsibleUserId');
             const createForm = document.getElementById('create-form');
             const importForm = document.getElementById('import-form');
@@ -300,8 +387,12 @@
             function toggleChangeRequestNoField() {
                 if (!changeRequestNoContainer || !sapModuleSelect) return;
                 const isChangeRequestModule = (sapModuleSelect.value || '').trim().toUpperCase() === 'CR';
-                changeRequestNoContainer.style.display = isChangeRequestModule ? 'block' : 'none';
-                if (!isChangeRequestModule && changeRequestNoInput) {
+                const selectedRequestTypeValue = requestTypeSelect ? requestTypeSelect.value : '';
+                const selectedTypeName = selectedRequestTypeValue ? (typeMapping[selectedRequestTypeValue] || selectedRequestTypeValue) : '';
+                const isRequestType = selectedTypeName === 'Request' || selectedTypeName === 'ร้องขอ';
+                const shouldShow = isChangeRequestModule && isRequestType;
+                changeRequestNoContainer.style.display = shouldShow ? 'block' : 'none';
+                if (!shouldShow && changeRequestNoInput) {
                     changeRequestNoInput.value = '';
                 }
             }
@@ -477,17 +568,18 @@
                 nextResponsibleUserSelect.disabled = false;
                 nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
 
-                const renderApproverOptions = (data) => {
-                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
+                const renderApproverOptions = (data, targetSelect) => {
+                    const select = targetSelect || nextResponsibleUserSelect;
+                    select.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
                     data.forEach(user => {
                         const stepPrefix = user.step ? `Step ${user.step} - ` : '';
                         const ruleSuffix = user.rule ? ` (${user.rule})` : '';
                         const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
-                        nextResponsibleUserSelect.add(option);
+                        select.add(option);
                     });
 
                     if (data.length === 1) {
-                        nextResponsibleUserSelect.value = data[0].id;
+                        select.value = data[0].id;
                     }
 
                     importNextResponsibleUserIdInput.value = nextResponsibleUserSelect.value || '';
@@ -499,16 +591,16 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data && data.length > 0) {
-                                renderApproverOptions(data);
+                                renderApproverOptions(data, nextResponsibleUserSelect);
                             } else {
                                 // กรณีสำรอง: ลองใหม่โดยไม่ส่ง plant เผื่อการตั้งค่าเส้นทางใช้ป้ายชื่อ plant ไม่ตรงกัน
                                 fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
                                     .then(r => r.json())
                                     .then(fallbackData => {
                                         if (fallbackData && fallbackData.length > 0) {
-                                            renderApproverOptions(fallbackData);
+                                            renderApproverOptions(fallbackData, nextResponsibleUserSelect);
                                         } else if (lastSuccessfulApprovers.length > 0) {
-                                            renderApproverOptions(lastSuccessfulApprovers);
+                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
                                         } else {
                                             nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
                                             importNextResponsibleUserIdInput.value = '';
@@ -516,7 +608,7 @@
                                     })
                                     .catch(() => {
                                         if (lastSuccessfulApprovers.length > 0) {
-                                            renderApproverOptions(lastSuccessfulApprovers);
+                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
                                         } else {
                                             nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
                                             importNextResponsibleUserIdInput.value = '';
@@ -527,7 +619,7 @@
                         .catch(error => {
                             console.error('Error fetching approvers:', error);
                             if (lastSuccessfulApprovers.length > 0) {
-                                renderApproverOptions(lastSuccessfulApprovers);
+                                renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
                             } else {
                                 nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
                                 importNextResponsibleUserIdInput.value = '';
@@ -535,6 +627,57 @@
                         });
                 } else {
                     nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
+                    importNextResponsibleUserIdInput.value = '';
+                }
+            }
+
+            // โหลดรายชื่อผู้รับผิดชอบสำหรับ Import Form ตามประเภทคำขอ Import
+            function fetchImportApprovers() {
+                const requestTypeValue = importRequestTypeSelect ? importRequestTypeSelect.value : '';
+                const requesterNameValue = requesterNameInput ? requesterNameInput.value : '';
+
+                if (isITCreator) {
+                    importNextResponsibleUserSelect.innerHTML = '';
+                    importNextResponsibleUserSelect.add(new Option('ระบบจะกำหนดเป็นตัวเองอัตโนมัติ', ''));
+                    importNextResponsibleUserSelect.disabled = true;
+                    importNextResponsibleUserIdInput.value = '';
+                    return;
+                }
+
+                importNextResponsibleUserSelect.disabled = false;
+                importNextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                if (requestTypeValue) {
+                    fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.length > 0) {
+                                const select = importNextResponsibleUserSelect;
+                                select.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
+                                data.forEach(user => {
+                                    const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                    const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                    const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                    select.add(option);
+                                });
+
+                                if (data.length === 1) {
+                                    select.value = data[0].id;
+                                }
+
+                                importNextResponsibleUserIdInput.value = select.value || '';
+                            } else {
+                                importNextResponsibleUserSelect.innerHTML = '<option value="">-- No users found for this request type --</option>';
+                                importNextResponsibleUserIdInput.value = '';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching import approvers:', error);
+                            importNextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                            importNextResponsibleUserIdInput.value = '';
+                        });
+                } else {
+                    importNextResponsibleUserSelect.innerHTML = '<option value="">-- Select Request Type first --</option>';
                     importNextResponsibleUserIdInput.value = '';
                 }
             }
@@ -862,12 +1005,14 @@
             toggleChangeRequestNoField();
             updateDownloadLink();
             fetchNextApprovers(); // โหลดผู้รับผิดชอบตอนเปิดหน้า หากมีประเภทคำขอถูกเลือกอยู่แล้ว
+            fetchImportApprovers(); // โหลดผู้รับผิดชอบสำหรับ Import Form
             hydrateLicenseUsernameInputsFromRows();
             toggleLicenseRequestOptionFields();
 
             // กลุ่ม event handler หลักสำหรับพฤติกรรมฟอร์มแบบไดนามิก
             requestTypeSelect.addEventListener('change', () => {
                 toggleMaterialFields();
+                toggleChangeRequestNoField();
                 fetchNextApprovers();
             });
 
@@ -898,7 +1043,10 @@
             }
 
             if (importRequestTypeSelect) {
-                importRequestTypeSelect.addEventListener('change', updateDownloadLink);
+                importRequestTypeSelect.addEventListener('change', function() {
+                    updateDownloadLink();
+                    fetchImportApprovers();
+                });
             }
 
             if (distributionChannelSelect) {
@@ -913,6 +1061,13 @@
             nextResponsibleUserSelect.addEventListener('change', () => {
                  importNextResponsibleUserIdInput.value = nextResponsibleUserSelect.value;
             });
+
+            if (importNextResponsibleUserSelect) {
+                importNextResponsibleUserSelect.addEventListener('change', () => {
+                    importNextResponsibleUserIdInput.value = importNextResponsibleUserSelect.value;
+                });
+            }
+
             if (licensePrimaryUsernameInput) {
                 licensePrimaryUsernameInput.addEventListener('input', syncLicensePermissionUsernames);
             }
@@ -960,7 +1115,22 @@
                     });
                 }
             });
-            importForm.addEventListener('submit', checkResponsibleUser);
+
+            // ตรวจสอบ Import Form ก่อน submit
+            importForm.addEventListener('submit', function(event) {
+                const hasApproverOptions = Array.from(importNextResponsibleUserSelect.options || [])
+                    .some(option => option.value && option.value.trim() !== '');
+
+                if (hasApproverOptions && importNextResponsibleUserSelect.value === '') {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: "Please select an 'Assign to Approve Role' before importing.",
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316'
+                    });
+                }
+            });
         });
     </script>
 }

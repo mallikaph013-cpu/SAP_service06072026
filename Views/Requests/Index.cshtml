@@ -7,7 +7,6 @@
     var currentUserFullName = (ViewBag.CurrentUserFullName as string ?? string.Empty).Trim();
     var isITUser = User.IsInRole("IT");
 
-    // Helper to get Bootstrap badge color class
     Func<string, string> GetBadgeClass = (status) => {
         var normalizedStatus = System.Text.RegularExpressions.Regex.Replace(
             (status ?? string.Empty).Trim().ToLowerInvariant(),
@@ -29,6 +28,66 @@
     };
 }
 
+<style>
+    .btn-action-xs {
+        width: 2.2rem;
+        height: 2.2rem;
+        padding: 0;
+        font-size: 0.85rem;
+        line-height: 1;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .requests-table {
+        table-layout: auto;
+        width: 100%;
+        min-width: 1100px;
+    }
+    .requests-table th,
+    .requests-table td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .requests-table td.ps-4,
+    .requests-table th.ps-4 {
+        min-width: 100px;
+    }
+    .requests-table td:nth-child(3),
+    .requests-table th:nth-child(3) {
+        min-width: 120px;
+    }
+    .requests-table td:nth-child(2),
+    .requests-table th:nth-child(2) {
+        min-width: 130px;
+    }
+    .requests-table td.col-docno,
+    .requests-table th.col-docno {
+        min-width: 80px;
+        padding-left: 1rem;
+        position: sticky;
+        left: 0;
+        background-color: #fff;
+        z-index: 2;
+    }
+    .requests-table th.col-docno {
+        z-index: 3;
+        background-color: #f8f9fa;
+    }
+    .requests-table td:nth-child(5),
+    .requests-table th:nth-child(5),
+    .requests-table td:nth-child(6),
+    .requests-table th:nth-child(6) {
+        min-width: 140px;
+    }
+    .requests-table td:last-child,
+    .requests-table th:last-child {
+        min-width: 140px;
+    }
+</style>
+
 <div class="container requests-page">
     <div class="requests-hero">
         <div class="requests-hero-title">SAP Requests</div>
@@ -42,8 +101,7 @@
             <input type="text"
                    name="searchTerm"
                    value="@ViewBag.SearchTerm"
-                   class="form-control"
-                   placeholder="Search by Document No., Request Type, Date, Status, ItemCode" />
+                   class="form-control" />
             <button type="submit" class="btn btn-outline-primary">Search</button>
             <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
         </div>
@@ -57,8 +115,10 @@
                     <table class="table requests-table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th class="py-3 ps-4">Document No.</th>
+                                <th class="py-3 col-docno">Document No.</th>
+                                <th class="py-3 ps-4">Document No.(G2U)</th>
                                 <th class="py-3 ps-4">Request</th>
+                                <th class="py-3 ps-4">ICS Code</th>
                                 <th class="py-3">Requester</th>
                                 <th class="py-3">Next Approver</th>
                                 <th class="py-3">Request Date</th>
@@ -70,8 +130,10 @@
                             @foreach (var item in Model)
                             {
                                 <tr>
-                                    <td class="ps-4">@(string.IsNullOrWhiteSpace(item.DocumentNumber) ? "-" : item.DocumentNumber)</td>
+                                    <td class="col-docno">@(string.IsNullOrWhiteSpace(item.DocumentNumber) ? "-" : item.DocumentNumber)</td>
+                                    <td class="ps-4">@(string.IsNullOrWhiteSpace(item.ChangeRequestG2U) ? "-" : item.ChangeRequestG2U)</td>
                                     <td class="ps-4">@Html.DisplayFor(modelItem => item.RequestType)</td>
+                                    <td class="ps-4">@Html.DisplayFor(modelItem => item.ItemCode)</td>
                                     <td>@Html.DisplayFor(modelItem => item.Requester)</td>
                                     <td>@(nextApproverNameByRequestId.TryGetValue(item.Id, out var nextApproverName) ? nextApproverName : "-")</td>
                                     <td>@item.RequestDate.ToString("MMM dd, yyyy")</td>
@@ -90,18 +152,18 @@
                                             var canEdit = isITUser || (!isInprocess && (isPending || isRejectedRequester));
                                             var canDelete = isITUser || (!isInprocess && ((isPending && !hideDeleteIdSet.Contains(item.Id)) || isRejectedRequester));
                                         }
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Details">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-action-xs btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Details">
                                             <i class="fas fa-info-circle"></i>
                                         </a>
                                         @if (canEdit)
                                         {
-                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-action-xs btn-warning me-1" data-bs-toggle="tooltip" title="Edit">
                                                 <i class="fas fa-pencil-alt"></i>
                                             </a>
                                         }
                                         @if (canDelete)
                                         {
-                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-icon btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-action-xs btn-danger" data-bs-toggle="tooltip" title="Delete">
                                                 <i class="fas fa-trash-alt"></i>
                                             </a>
                                         }
@@ -127,7 +189,6 @@
 
 @section Scripts {
     <script>
-        // Initialize Bootstrap tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)

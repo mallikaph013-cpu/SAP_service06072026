@@ -11,7 +11,7 @@
           "BCrypt.Net-Next": "4.1.0",
           "ClosedXML": "0.105.0",
           "EPPlus": "8.4.2",
-          "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "9.0.0",
+          "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "8.0.28",
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "9.0.0",
           "Microsoft.EntityFrameworkCore.Design": "9.0.0",
           "Microsoft.EntityFrameworkCore.SqlServer": "9.0.0",
@@ -157,14 +157,14 @@
           "Microsoft.AspNetCore.Cryptography.Internal": "9.0.0"
         }
       },
-      "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore/9.0.0": {
+      "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore/8.0.28": {
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Relational": "9.0.0"
         },
         "runtime": {
-          "lib/net9.0/Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore.dll": {
-            "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.24.52903"
+          "lib/net8.0/Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore.dll": {
+            "assemblyVersion": "8.0.28.0",
+            "fileVersion": "8.0.2826.26913"
           }
         }
       },
@@ -1713,12 +1713,12 @@
       "path": "microsoft.aspnetcore.cryptography.keyderivation/9.0.0",
       "hashPath": "microsoft.aspnetcore.cryptography.keyderivation.9.0.0.nupkg.sha512"
     },
-    "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore/9.0.0": {
+    "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore/8.0.28": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-iWGrOsmmgz7wKc27SzC/rWrTuzl/jqWKIl/+YP7OL3mrDcADS/W5WFtmGkfQCAVGv0aZyck4CVfAVdjZLyyY8w==",
-      "path": "microsoft.aspnetcore.diagnostics.entityframeworkcore/9.0.0",
-      "hashPath": "microsoft.aspnetcore.diagnostics.entityframeworkcore.9.0.0.nupkg.sha512"
+      "sha512": "sha512-cpJNGb509fghClSO9OadFJYCSU85BKsBu4ZG7HJUBRXn81L0jZEgFX5i4JKHY7nfWR4BwQ/QfO5sm74ZqtqzgQ==",
+      "path": "microsoft.aspnetcore.diagnostics.entityframeworkcore/8.0.28",
+      "hashPath": "microsoft.aspnetcore.diagnostics.entityframeworkcore.8.0.28.nupkg.sha512"
     },
     "Microsoft.AspNetCore.Identity.EntityFrameworkCore/9.0.0": {
       "type": "package",
