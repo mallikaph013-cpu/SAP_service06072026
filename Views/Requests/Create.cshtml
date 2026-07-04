@@ -9,12 +9,14 @@
 <style>
     .create-request-page {
         width: 100%;
+        max-width: 100%;
         background: #ffffff;
         padding: 0.75rem 0.5rem 1.5rem;
     }
 
     .create-request-shell {
         width: 100%;
+        max-width: 100%;
     }
 
     #create-form .form-control[readonly] {
@@ -26,7 +28,7 @@
         margin-bottom: 1rem;
     }
 
-    .create-manual-card {
+    #create-form {
         order: 2;
     }
 
@@ -81,216 +83,81 @@
         </div>
 
         <!-- Manual Creation Form -->
-        <div class="main-content-card create-manual-card">
-            <div class="text-center mb-4">
-                <h2>Create New Service Request</h2>
-               @*<p class="text-light">กรุณากรอกรายละเอียดคำขอของคุณด้านล่าง</p>*@ 
+        <form id="create-form" asp-action="Create" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="main-content-card create-manual-card">
+                <div class="text-center mb-4">
+                    <h2>Create New Service Request</h2>
+                   @*<p class="text-light">กรุณากรอกรายละเอียดคำขอของคุณด้านล่าง</p>*@ 
+                </div>
+
+                <partial name="_RequestFormPartial" model="Model" />
             </div>
 
-            <form id="create-form" asp-action="Create" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-
-                <h5>Requester Information</h5>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4"><div class="form-group"><label asp-for="RequesterName" class="form-label"></label><input asp-for="RequesterName" class="form-control" readonly /></div></div>
-                    <div class="col-md-3"><div class="form-group"><label asp-for="Department" class="form-label"></label><input asp-for="Department" class="form-control" readonly /></div></div>
-                    <div class="col-md-2"><div class="form-group"><label asp-for="Section" class="form-label"></label><input asp-for="Section" class="form-control" readonly /></div></div>
-                    <div class="col-md-3"><div class="form-group"><label asp-for="RequesterPlant" class="form-label"></label><input asp-for="RequesterPlant" class="form-control" readonly /></div></div>
-                </div>
-
-                <hr class="my-4">
-
-                <h5>Request Details</h5>
-                <div class="row g-3 mb-4">
-
-                      <div class="col-md-6">
-                        <div class="form-group">
-                            <label asp-for="SapModule" class="form-label">SAP Module</label>
-                            <select asp-for="SapModule" class="form-select">
-                                <option value="">-- Select SAP Module --</option>
-                                <option value="MM">MM Module</option>
-                                <option value="PP">PP Module</option>
-                                <option value="SD">SD Module</option>
-                                @* <option value="FI">FI Module</option> *@
-                                <option value="CO">CO Module</option>
-                                <option value="CR">Change Request</option>
-                            </select>
-                            <span asp-validation-for="SapModule" class="text-danger"></span>
-                        </div>
-                    </div>
-
-
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label asp-for="RequestType" class="form-label">Request Type</label>
-                            <select asp-for="RequestType" id="RequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
-                                <option value="">-- Select Type --</option>
-                            </select>
-                            <span asp-validation-for="RequestType" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6" id="request-plant-container">
-                        <div class="form-group">
-                            <label asp-for="Plant" class="form-label"></label>
-                            <select asp-for="Plant" id="RequestPlant" class="form-select">
-                                <option value="">-- Select Plant --</option>
-                                <option value="6021">6021</option>
-                                <option value="6031">6031</option>
-                                <option value="6051">6051</option>
-                                <option value="6081">6081</option>
-                                <option value="6090">6090</option>
-                            </select>
-                            <span asp-validation-for="Plant" class="text-danger"></span>
-                        </div>
-                    </div>
-                  
-                </div>
-                <div class="form-group mb-4" id="request-description-container">
-                    <label asp-for="Description" class="form-label"></label>
-                    <textarea asp-for="Description" class="form-control" rows="3" placeholder="Provide a detailed description of the request..."></textarea>
-                    <span asp-validation-for="Description" class="text-danger"></span>
-                </div>
-
-             
-
-                <div class="form-group mb-4" id="request-upload-container">
-                    <label for="RequestAttachment" class="form-label">Attachment</label>
-                    <input class="form-control" type="file" id="RequestAttachment" name="requestAttachment">
-                    <div class="form-text">You can attach any file type for request details.</div>
-                    <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
-                </div>
-
-                <div id="license-permission-fields-container" style="display: none;">
-                    <hr />
-                    <h4>สิทธิ์การใช้งาน SAP</h4>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="LicenseRequestOption" class="control-label">ประเภทคำร้องขอ</label>
-                                <select id="LicenseRequestOption" name="LicenseRequestOption" class="form-select">
-                                    <option value="">-- กรุณาเลือก --</option>
-                                    <option value="NewUsername">ขอ Username ใหม่</option>
-                                    <option value="AddPermission">ขอเพิ่มสิทธิ์การใช้งาน</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="license-new-username-fields" style="display: none;">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="LicenseUsernameFrom" class="control-label">Username From</label>
-                                    <input type="text" id="LicenseUsernameFrom" name="LicenseUsernameFrom" class="form-control" autocomplete="off" />
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="LicenseUsernameTo" class="control-label">Username To</label>
-                                    <input type="text" id="LicenseUsernameTo" name="LicenseUsernameTo" class="form-control" autocomplete="off" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="license-add-permission-fields" style="display: none;">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="LicensePrimaryUsername" class="control-label">Username SAP</label>
-                                    <input type="text" id="LicensePrimaryUsername" class="form-control" autocomplete="off" />
-                                </div>
-                            </div>
-                            <div class="col-md-6" id="license-secondary-username-wrapper">
-                                <div class="form-group">
-                                    <label for="LicenseSecondaryUsername" class="control-label">Username SAP 2</label>
-                                    <input type="text" id="LicenseSecondaryUsername" class="form-control" autocomplete="off" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>T Code</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="license-permission-items-body">
-                                    @if (Model.LicensePermissions != null)
-                                    {
-                                        @for (int i = 0; i < Model.LicensePermissions.Count; i++)
-                                        {
-                                            <tr>
-                                                <td>
-                                                    <input type="hidden" class="license-permission-username" asp-for="LicensePermissions[i].SapUsername" />
-                                                    <input asp-for="LicensePermissions[i].TCode" class="form-control" />
-                                                </td>
-                                                <td><button type="button" class="btn btn-danger btn-sm remove-license-permission-item">Remove</button></td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-primary btn-sm" id="add-license-permission-item">+ Add Row</button>
-                        </div>
-                    </div>
-                </div>
-
-                <partial name="_MaterialForms" model="Model" />
-            </form>
-        </div>
-
-        <div id="workflow-section" class="main-content-card mt-3">
-                <hr class="my-4" />
-                <h5>Work Flow</h5>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
-                            <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select" form="create-form">
-                                <option value="">-- Please select a request type first --</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                @* ส่วนนี้แสดงเฉพาะผู้ใช้บทบาท IT *@
-                @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
-                {
+            <div id="workflow-section" class="main-content-card mt-3">
                     <hr class="my-4" />
-                    <h5>DX Update Status</h5>
+                    <h5>Work Flow</h5>
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label asp-for="Status" class="form-label"></label>
-                                <select asp-for="Status" id="CreateStatus" class="form-select" form="create-form">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Inprocess">Inprocess</option>
-                                    <option value="Run Standard Cost">Run Standard Cost</option>
-                                    <option value="Check and Confirm">Check and Confirm</option>
-                                    <option value="Release">Release</option>
-                                    <option value="Input Price">Input Price</option>
-                                    <option value="Complete">Complete</option>
-                                    <option value="Rejected">Rejected</option>
+                                <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
+                                <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
+                                    <option value="">-- Please select a request type first --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="approver-role-container" style="display:none;">
+                            <div class="form-group">
+                                <label for="ApproverRoleUserId" id="approver-role-label" class="form-label">ผู้รับผิดชอบลำดับถัดไป (มี Role Approve)</label>
+                                <select name="ApproverRoleUserId" id="ApproverRoleUserId" class="form-select">
+                                    <option value="">-- Please select a request type first --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="it-assignee-container" style="display:none;">
+                            <div class="form-group">
+                                <label for="ITAssigneeUserId" class="form-label">Assign ให้กับเจ้าหน้าที่ IT</label>
+                                <select name="ITAssigneeUserId" id="ITAssigneeUserId" class="form-select">
+                                    <option value="">-- Please select IT staff --</option>
                                 </select>
                             </div>
                         </div>
                     </div>
-                }
-            </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 mb-4">
-                <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
-                    <i class="fas fa-arrow-left me-1"></i> Back to List
-                </a>
-                <button type="submit" id="create-submit-button" class="btn btn-primary" form="create-form">
-                    <i class="fas fa-paper-plane me-2"></i>Submit Request
-                </button>
-            </div>
-        </div>
+                    @* ส่วนนี้แสดงเฉพาะผู้ใช้บทบาท IT *@
+                    @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
+                    {
+                        <hr class="my-4" />
+                        <h5>DX Update Status</h5>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Status" class="form-label"></label>
+                                    <select asp-for="Status" id="CreateStatus" class="form-select">
+                                        <option value="Pending">Pending</option>
+                                        <option value="Inprocess">Inprocess</option>
+                                        <option value="Run Standard Cost">Run Standard Cost</option>
+                                        <option value="Check and Confirm">Check and Confirm</option>
+                                        <option value="Release">Release</option>
+                                        <option value="Input Price">Input Price</option>
+                                        <option value="Complete">Complete</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
 
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 mb-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-1"></i> Back to List
+                    </a>
+                    <button type="submit" id="create-submit-button" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Request
+                    </button>
+                </div>
+        </form>
 
     </div>
 </div>
@@ -327,10 +194,17 @@
             const requestAttachmentInput = document.getElementById('RequestAttachment');
             const changeRequestNoContainer = document.getElementById('change-request-no-container');
             const changeRequestNoInput = document.getElementById('ChangeRequestG2U');
+            const approverRoleUserSelect = document.getElementById('ApproverRoleUserId');
+            const approverRoleContainer = document.getElementById('approver-role-container');
+            const itAssigneeUserSelect = document.getElementById('ITAssigneeUserId');
+            const itAssigneeContainer = document.getElementById('it-assignee-container');
             const workflowSection = document.getElementById('workflow-section');
-            const isITCreator = @Html.Raw((SignInManager.IsSignedIn(User) && User.IsInRole("IT")).ToString().ToLowerInvariant());
+            const isITCreator = @Html.Raw(((bool?)ViewBag.IsITByDbRole ?? false).ToString().ToLowerInvariant());
+            const isApproveRoleUser = @Html.Raw(User.IsInRole("Approve").ToString().ToLowerInvariant());
+            const isITApproveCreator = isITCreator && isApproveRoleUser;
             const isInitialCreateLoad = '@Context.Request.Method'.toUpperCase() === 'GET';
             let lastSuccessfulApprovers = [];
+            let lastSuccessfulApproverRoleUsers = [];
             const allRequestTypeOptions = requestTypeSelect
                 ? Array.from(requestTypeSelect.options).map(option => ({ value: option.value, text: option.text }))
                 : [];
@@ -535,12 +409,24 @@
 
                     const isBom = selectedTypeName === 'BOM';
                     const isEditBom = selectedTypeName === 'EditBOM';
+                    const isRouting = selectedTypeName === 'Routing';
                     const isLicensePermission = selectedTypeName === 'LicensePermission';
+
+                // Show/hide approver role dropdown for BOM, EditBOM, and Routing
+                const showApproverRoleDropdown = isBom || isEditBom || (isRouting && !isITCreator);
+                if (approverRoleContainer) {
+                    approverRoleContainer.style.display = showApproverRoleDropdown ? 'block' : 'none';
+                }
+
+                if (itAssigneeContainer) {
+                    const showITAssigneeDropdown = !!selectedValue && isITApproveCreator;
+                    itAssigneeContainer.style.display = showITAssigneeDropdown ? 'block' : 'none';
+                }
 
                 // แสดงหรือซ่อนบล็อก UI ของ BOM, EditBOM และ Routing
 
                 if (bomEditContainer) bomEditContainer.style.display = (isEditBom) ? 'block' : 'none';
-                if (routingContainer) routingContainer.style.display = selectedTypeName === 'Routing' ? 'block' : 'none';
+                if (routingContainer) routingContainer.style.display = isRouting ? 'block' : 'none';
                 if (bomContainer) bomContainer.style.display = (isBom) ? 'block' : 'none';
                 if (licensePermissionContainer) licensePermissionContainer.style.display = isLicensePermission ? 'block' : 'none';
 
@@ -549,32 +435,66 @@
             }
 
             const getNextApproversUrl = '@Url.Action("GetNextApprovers", "Requests")';
+            const getApproverRoleUsersUrl = '@Url.Action("GetApproverRoleUsers", "Requests")';
+            const getITUsersUrl = '@Url.Action("GetITUsers", "Requests")';
+            const getITApproveUsersUrl = '@Url.Action("GetITApproveUsers", "Requests")';
             const downloadTemplateUrl = '@Url.Action("DownloadTemplate", "Requests")';
+            const approverRoleLabel = document.getElementById('approver-role-label');
+
+            function getSelectedTypeName() {
+                const selectedValue = requestTypeSelect ? requestTypeSelect.value : '';
+                return selectedValue ? (typeMapping[selectedValue] || selectedValue) : '';
+            }
+
+            function isRoutingRequestType() {
+                const normalizedType = (getSelectedTypeName() || '')
+                    .replace(/[_\s-]/g, '')
+                    .toLowerCase();
+                return normalizedType === 'routing';
+            }
+
+            function setWorkflowLabelsForCurrentMode() {
+                if (!approverRoleLabel) return;
+                approverRoleLabel.textContent = 'ผู้รับผิดชอบลำดับถัดไป (มี Role Approve)';
+            }
+
+            function isITDepartmentContext() {
+                const departmentInput = document.querySelector('input[name="Department"]');
+                const departmentValue = (departmentInput ? departmentInput.value : '').trim().toLowerCase();
+                if (!departmentValue) {
+                    return false;
+                }
+
+                return departmentValue === 'it'
+                    || departmentValue.includes('it')
+                    || departmentValue.includes('information technology')
+                    || departmentValue.includes('dx technology');
+            }
+
+            function shouldUseApproveOnlyForNextResponsible() {
+                return isITCreator || isITDepartmentContext();
+            }
 
             // โหลดรายชื่อผู้รับผิดชอบลำดับถัดไปจาก backend ตามประเภทคำขอ, plant และผู้ร้องขอ
             function fetchNextApprovers() {
                 const requestTypeValue = requestTypeSelect.value;
                 const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
                 const requesterNameValue = requesterNameInput ? requesterNameInput.value : '';
+                const debugMode = false;
 
-                if (isITCreator) {
-                    nextResponsibleUserSelect.innerHTML = '';
-                    nextResponsibleUserSelect.add(new Option('ระบบจะกำหนดเป็นตัวเองอัตโนมัติ', ''));
-                    nextResponsibleUserSelect.disabled = true;
-                    importNextResponsibleUserIdInput.value = '';
-                    return;
-                }
+                const buildDebugPrefix = (source) => {
+                    if (!debugMode) return '';
+                    return `[DBG:${source}|isITCreator=${isITCreator}|isITDept=${isITDepartmentContext()}] `;
+                };
 
-                nextResponsibleUserSelect.disabled = false;
-                nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
-
-                const renderApproverOptions = (data, targetSelect) => {
+                const renderApproverOptions = (data, targetSelect, source) => {
                     const select = targetSelect || nextResponsibleUserSelect;
-                    select.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
+                    const debugPrefix = buildDebugPrefix(source || 'unknown');
+                    select.innerHTML = `<option value="">${debugPrefix}-- Please select a responsible user by flow --</option>`;
                     data.forEach(user => {
                         const stepPrefix = user.step ? `Step ${user.step} - ` : '';
                         const ruleSuffix = user.rule ? ` (${user.rule})` : '';
-                        const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                        const option = new Option(`${debugPrefix}${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
                         select.add(option);
                     });
 
@@ -586,31 +506,85 @@
                     lastSuccessfulApprovers = data;
                 };
 
+                if (shouldUseApproveOnlyForNextResponsible()) {
+                    if (!requestTypeValue) {
+                        nextResponsibleUserSelect.disabled = false;
+                        nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:no-type')}-- Please select a request type first --</option>`;
+                        importNextResponsibleUserIdInput.value = '';
+                        return;
+                    }
+
+                    nextResponsibleUserSelect.disabled = false;
+                    nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:loading')}-- Loading...--</option>`;
+
+                    if (isITCreator) {
+                        // For IT creators: show only IT users who have Approve role
+                        fetch(getITApproveUsersUrl)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data && data.length > 0) {
+                                    renderApproverOptions(data, nextResponsibleUserSelect, 'approve-only:it-data');
+                                } else {
+                                    nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:empty')}-- No IT approve-role users found --</option>`;
+                                    importNextResponsibleUserIdInput.value = '';
+                                }
+                            })
+                            .catch(() => {
+                                nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:error')}-- Error loading data --</option>`;
+                                importNextResponsibleUserIdInput.value = '';
+                            });
+                    } else {
+                        // For non-IT users with IT department context: show users with Approve role in same department
+                        const departmentInput = document.querySelector('input[name="Department"]');
+                        const requesterDepartment = departmentInput ? departmentInput.value : '';
+
+                        fetch(`${getApproverRoleUsersUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterDepartment=${encodeURIComponent(requesterDepartment)}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data && data.length > 0) {
+                                    renderApproverOptions(data, nextResponsibleUserSelect, 'approve-only:data');
+                                } else {
+                                    nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:empty')}-- No approve-role users found --</option>`;
+                                    importNextResponsibleUserIdInput.value = '';
+                                }
+                            })
+                            .catch(() => {
+                                nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('approve-only:error')}-- Error loading data --</option>`;
+                                importNextResponsibleUserIdInput.value = '';
+                            });
+                    }
+
+                    return;
+                }
+
+                nextResponsibleUserSelect.disabled = false;
+                nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('normal:loading')}-- Loading...--</option>`;
+
                 if (requestTypeValue) {
                     fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data && data.length > 0) {
-                                renderApproverOptions(data, nextResponsibleUserSelect);
+                                renderApproverOptions(data, nextResponsibleUserSelect, 'normal:data');
                             } else {
                                 // กรณีสำรอง: ลองใหม่โดยไม่ส่ง plant เผื่อการตั้งค่าเส้นทางใช้ป้ายชื่อ plant ไม่ตรงกัน
                                 fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}`)
                                     .then(r => r.json())
                                     .then(fallbackData => {
                                         if (fallbackData && fallbackData.length > 0) {
-                                            renderApproverOptions(fallbackData, nextResponsibleUserSelect);
+                                            renderApproverOptions(fallbackData, nextResponsibleUserSelect, 'normal:fallback-data');
                                         } else if (lastSuccessfulApprovers.length > 0) {
-                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
+                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect, 'normal:last-success');
                                         } else {
-                                            nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                            nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('normal:empty')}-- No users found --</option>`;
                                             importNextResponsibleUserIdInput.value = '';
                                         }
                                     })
                                     .catch(() => {
                                         if (lastSuccessfulApprovers.length > 0) {
-                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
+                                            renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect, 'normal:last-success-on-error');
                                         } else {
-                                            nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                            nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('normal:error-fallback')}-- Error loading data --</option>`;
                                             importNextResponsibleUserIdInput.value = '';
                                         }
                                     });
@@ -619,16 +593,139 @@
                         .catch(error => {
                             console.error('Error fetching approvers:', error);
                             if (lastSuccessfulApprovers.length > 0) {
-                                renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect);
+                                renderApproverOptions(lastSuccessfulApprovers, nextResponsibleUserSelect, 'normal:last-success-on-catch');
                             } else {
-                                nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('normal:error')}-- Error loading data --</option>`;
                                 importNextResponsibleUserIdInput.value = '';
                             }
                         });
                 } else {
-                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
+                    nextResponsibleUserSelect.innerHTML = `<option value="">${buildDebugPrefix('normal:no-type')}-- Please select a request type first --</option>`;
                     importNextResponsibleUserIdInput.value = '';
                 }
+            }
+
+            // โหลดรายชื่อผู้รับผิดชอบที่มี Role Approve สำหรับ BOM/Routing/EditBOM (กรองตาม Department ของผู้สร้างรายการ)
+            function fetchApproverRoleUsers() {
+                const requestTypeValue = requestTypeSelect.value;
+                const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
+                const departmentInput = document.querySelector('input[name="Department"]');
+                const requesterDepartment = departmentInput ? departmentInput.value : '';
+                
+                if (!requestTypeValue || !approverRoleUserSelect) {
+                    return;
+                }
+
+                if (isITCreator) {
+                    approverRoleUserSelect.innerHTML = '';
+                    approverRoleUserSelect.disabled = true;
+                    return;
+                }
+
+                approverRoleUserSelect.disabled = false;
+                approverRoleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                // Fetch users with Approve role in the same department as requester
+                fetch(`${getApproverRoleUsersUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterDepartment=${encodeURIComponent(requesterDepartment)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                            data.forEach(user => {
+                                const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                approverRoleUserSelect.add(option);
+                            });
+                            lastSuccessfulApproverRoleUsers = data;
+                        } else {
+                            // Fallback: retry without plant filter
+                            fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&currentApproverId=`)
+                                .then(r => r.json())
+                                .then(fallbackData => {
+                                    if (fallbackData && fallbackData.length > 0) {
+                                        approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                        fallbackData.forEach(user => {
+                                            const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                            const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                            const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                            approverRoleUserSelect.add(option);
+                                        });
+                                        lastSuccessfulApproverRoleUsers = fallbackData;
+                                    } else {
+                                        approverRoleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                        lastSuccessfulApproverRoleUsers = [];
+                                    }
+                                })
+                                .catch(() => {
+                                    if (lastSuccessfulApproverRoleUsers.length > 0) {
+                                        approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                        lastSuccessfulApproverRoleUsers.forEach(user => {
+                                            const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                            const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                            const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                            approverRoleUserSelect.add(option);
+                                        });
+                                    } else {
+                                        approverRoleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                                    }
+                                });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching approver role users:', error);
+                        if (lastSuccessfulApproverRoleUsers.length > 0) {
+                            approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                            lastSuccessfulApproverRoleUsers.forEach(user => {
+                                const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                approverRoleUserSelect.add(option);
+                            });
+                        } else {
+                            approverRoleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                        }
+                    });
+            }
+
+            function fetchITAssigneeUsers() {
+                if (!itAssigneeUserSelect) {
+                    return;
+                }
+
+                const previouslySelectedId = itAssigneeUserSelect.value;
+
+                if (!(isITApproveCreator && requestTypeSelect && requestTypeSelect.value)) {
+                    itAssigneeUserSelect.disabled = true;
+                    return;
+                }
+
+                itAssigneeUserSelect.disabled = false;
+                itAssigneeUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                fetch(getITUsersUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            itAssigneeUserSelect.innerHTML = '<option value="">-- Please select IT staff --</option>';
+                            data.forEach(user => {
+                                const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                itAssigneeUserSelect.add(new Option(`${user.fullName}${ruleSuffix}`, user.id));
+                            });
+
+                            const hasPreviousSelection = !!previouslySelectedId && data.some(user => user.id === previouslySelectedId);
+                            if (hasPreviousSelection) {
+                                itAssigneeUserSelect.value = previouslySelectedId;
+                            } else if (data.length === 1) {
+                                itAssigneeUserSelect.value = data[0].id;
+                            }
+                        } else {
+                            itAssigneeUserSelect.innerHTML = '<option value="">-- No IT staff found --</option>';
+                        }
+                    })
+                    .catch(() => {
+                        itAssigneeUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                    });
             }
 
             // โหลดรายชื่อผู้รับผิดชอบสำหรับ Import Form ตามประเภทคำขอ Import
@@ -706,6 +803,33 @@
                         text: "Please select a 'Next Responsible User' before submitting.",
                         icon: 'warning',
                         confirmButtonColor: '#F97316' // สีส้มหลักของปุ่มยืนยัน
+                    });
+                }
+                
+                // For BOM/Routing/EditBOM, also check approver role dropdown
+                const hasApproverRoleOptions = Array.from(approverRoleUserSelect.options || [])
+                    .some(option => option.value && option.value.trim() !== '');
+                    
+                if (hasApproverRoleOptions && approverRoleUserSelect.value === '') {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: "Please select an 'Approver Role User' before submitting.",
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316'
+                    });
+                }
+
+                const hasITAssigneeOptions = Array.from(itAssigneeUserSelect?.options || [])
+                    .some(option => option.value && option.value.trim() !== '');
+
+                if (hasITAssigneeOptions && isITApproveCreator && requestTypeSelect && requestTypeSelect.value && itAssigneeUserSelect.value === '') {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'Incomplete Information',
+                        text: "Please select an 'IT Assignee' before submitting.",
+                        icon: 'warning',
+                        confirmButtonColor: '#F97316'
                     });
                 }
             }
@@ -1001,32 +1125,46 @@
 
             // ตั้งค่าเริ่มต้นของหน้าในครั้งแรกและกรณี postback
             applyRequestTypeFilterBySapModule();
+            setWorkflowLabelsForCurrentMode();
             toggleMaterialFields();
             toggleChangeRequestNoField();
             updateDownloadLink();
             fetchNextApprovers(); // โหลดผู้รับผิดชอบตอนเปิดหน้า หากมีประเภทคำขอถูกเลือกอยู่แล้ว
+            fetchApproverRoleUsers(); // โหลดผู้รับผิดชอบที่มี Role Approve
+            fetchITAssigneeUsers(); // โหลดเจ้าหน้าที่ IT สำหรับผู้สร้างที่เป็น IT
             fetchImportApprovers(); // โหลดผู้รับผิดชอบสำหรับ Import Form
             hydrateLicenseUsernameInputsFromRows();
             toggleLicenseRequestOptionFields();
 
             // กลุ่ม event handler หลักสำหรับพฤติกรรมฟอร์มแบบไดนามิก
             requestTypeSelect.addEventListener('change', () => {
+                setWorkflowLabelsForCurrentMode();
                 toggleMaterialFields();
                 toggleChangeRequestNoField();
                 fetchNextApprovers();
+                fetchApproverRoleUsers();
+                fetchITAssigneeUsers();
             });
 
             if (sapModuleSelect) {
                 sapModuleSelect.addEventListener('change', () => {
                     applyRequestTypeFilterBySapModule();
+                    setWorkflowLabelsForCurrentMode();
                     toggleMaterialFields();
                     toggleChangeRequestNoField();
                     fetchNextApprovers();
+                    fetchApproverRoleUsers();
+                    fetchITAssigneeUsers();
                 });
             }
 
             if (requestPlantSelect) {
-                requestPlantSelect.addEventListener('change', fetchNextApprovers);
+                requestPlantSelect.addEventListener('change', () => {
+                    setWorkflowLabelsForCurrentMode();
+                    fetchNextApprovers();
+                    fetchApproverRoleUsers();
+                    fetchITAssigneeUsers();
+                });
 
                         // ซิงก์ค่า Plant จากส่วนหัวฟอร์มไปยังช่อง Plant ในส่วน Material
                         const materialSectionPlant = document.getElementById('MaterialSectionPlant');
@@ -1094,6 +1232,7 @@
 
             createForm.addEventListener('submit', function(event) {
                 syncLicensePermissionUsernames();
+                checkResponsibleUser(event);
                 let isValid = true;
 
                 if (hasBlankRequiredRequestFields()) {
