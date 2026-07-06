@@ -1,0 +1,297 @@
+@model IEnumerable<myapp.Models.ViewModels.CaseTrackingReportItemViewModel>
+@{
+    ViewData["Title"] = "Case Tracking Report";
+    var items = Model?.ToList() ?? new List<myapp.Models.ViewModels.CaseTrackingReportItemViewModel>();
+    var totalCases = items.Count;
+    var assignedCases = items.Count(x => x.AssignedToName != "-");
+    var inProgressCases = items.Count(x => !string.Equals(x.Status, "Complete", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(x.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(x.Status, "Reject", StringComparison.OrdinalIgnoreCase));
+    var closedCases = items.Count(x => string.Equals(x.Status, "Complete", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(x.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(x.Status, "Reject", StringComparison.OrdinalIgnoreCase));
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Case Tracking Report</title>
+    <style>
+        body {
+            background: #fffaf5;
+            color: #4a2c12;
+        }
+
+        .report-container {
+            max-width: 100%;
+            margin-top: 20px;
+            padding: 24px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #ffd9b3;
+            box-shadow: 0 8px 24px rgba(230, 126, 34, 0.10);
+        }
+
+        .page-title {
+            margin-bottom: 8px;
+            color: #d96b00;
+            font-weight: 700;
+        }
+
+        .section-title {
+            display: inline-block;
+            margin-bottom: 16px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #fff3e6;
+            color: #b85c00;
+            font-weight: 600;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .summary-card {
+            padding: 16px;
+            border: 1px solid #ffe1c2;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #fffaf4 0%, #fff4e8 100%);
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: #9a5d1e;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #d96b00;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        .table {
+            min-width: 1200px;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid #ffe1c2;
+            background: #ffffff;
+        }
+
+        .table thead th {
+            background: #ff8c1a;
+            color: #ffffff;
+            border-color: #ffb366;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #fff8f0;
+        }
+
+        .table tbody tr:hover {
+            background-color: #fff1e0;
+        }
+
+        .table td {
+            vertical-align: middle;
+            border-color: #ffe7cc;
+        }
+
+        .desc-cell {
+            max-width: 260px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-approved {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-default {
+            background: #fff3e0;
+            color: #b85c00;
+        }
+        .search-section {
+            margin-bottom: 18px;
+            padding: 16px;
+            border: 1px solid #ffe1c2;
+            border-radius: 14px;
+            background: #fffaf4;
+        }
+
+        .search-section .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .search-section .form-control,
+        .search-section .form-select {
+            border-radius: 10px;
+            border: 1px solid #ffd9b3;
+            padding: 0.5rem 0.75rem;
+            background: #ffffff;
+        }
+
+        .search-section .form-control:focus,
+        .search-section .form-select:focus {
+            border-color: #ff8c1a;
+            box-shadow: 0 0 0 0.2rem rgba(255, 140, 26, 0.15);
+        }
+
+        .search-section .btn {
+            border-radius: 999px;
+            font-weight: 600;
+            padding: 0.5rem 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <h1 class="page-title">Case Tracking Report</h1>
+        <div class="section-title">ติดตามสถานะเคสและเวลาทำงานผู้ได้รับมอบหมาย</div>
+
+        <form method="get" action="@Url.Action("CaseTracking")" class="search-section">
+            <div class="row">
+                <div style="flex: 2; min-width: 200px;">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 4px;">ค้นหา</label>
+                    <input type="text" name="searchTerm" value="@Context.Request.Query["searchTerm"]" class="form-control" placeholder="ค้นหาด้วย Document No., ผู้ขอ, คำอธิบาย..." />
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 4px;">ประเภทคำขอ</label>
+                    <select name="requestType" class="form-select">
+                        <option value="">-- ทั้งหมด --</option>
+                        @foreach (var type in (ViewBag.RequestTypes as List<string> ?? new List<string>()))
+                        {
+                            <option value="@type" selected="@(string.Equals(Context.Request.Query["requestType"], type, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@type</option>
+                        }
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 4px;">สถานะ</label>
+                    <select name="status" class="form-select">
+                        <option value="">-- ทั้งหมด --</option>
+                        @foreach (var s in (ViewBag.Statuses as List<string> ?? new List<string>()))
+                        {
+                            <option value="@s" selected="@(string.Equals(Context.Request.Query["status"], s, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@s</option>
+                        }
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <button type="submit" class="btn" style="background: #ff8c1a; color: #fff; border: none;">
+                        <i class="fas fa-search me-1"></i>ค้นหา
+                    </button>
+                    <a href="@Url.Action("CaseTracking")" class="btn btn-outline-secondary" style="background: #fff; color: #000; border: 1px solid #ccc;">
+                        <i class="fas fa-times me-1"></i>ล้าง
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">จำนวนเคสทั้งหมด</div>
+                <div class="summary-value">@totalCases</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">เคสที่มีผู้รับมอบหมาย</div>
+                <div class="summary-value">@assignedCases</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">เคสที่กำลังดำเนินการ</div>
+                <div class="summary-value">@inProgressCases</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">เคสที่ปิดแล้ว</div>
+                <div class="summary-value">@closedCases</div>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Document No.</th>
+                        <th>Requester</th>
+                        <th>Department</th>
+                        <th>Request Type</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Assigned At</th>
+                        <th>Last Updated</th>
+                        <th>Closed At</th>
+                        <th>Working Time</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in items)
+                {
+                    <tr>
+                        <td>@item.DocumentNumber</td>
+                        <td>@item.Requester</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.RequesterDepartment) ? "-" : item.RequesterDepartment)</td>
+                        <td>@item.RequestType</td>
+                        <td>
+                            @{
+                                var statusClass = string.Equals(item.Status, "Complete", StringComparison.OrdinalIgnoreCase) ? "status-complete"
+                                    : string.Equals(item.Status, "Approved", StringComparison.OrdinalIgnoreCase) ? "status-approved"
+                                    : string.Equals(item.Status, "Rejected", StringComparison.OrdinalIgnoreCase) || string.Equals(item.Status, "Reject", StringComparison.OrdinalIgnoreCase) ? "status-rejected"
+                                    : string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase) ? "status-pending"
+                                    : "status-default";
+                            }
+                            <span class="status-pill @statusClass">@item.Status</span>
+                        </td>
+                        <td>@item.AssignedToName</td>
+                        <td>@(item.AssignedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(item.LastUpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(item.ClosedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@item.WorkingDurationText</td>
+                        <td class="desc-cell" title="@item.Description">@item.Description</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

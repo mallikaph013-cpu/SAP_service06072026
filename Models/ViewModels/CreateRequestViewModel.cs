@@ -27,6 +27,12 @@ namespace myapp.Models.ViewModels
         // เก็บค่าผู้รับผิดชอบถัดไปจาก dropdown ในรูปแบบ userId|routingId
         public string? NextResponsibleUserId { get; set; }
 
+        // เก็บค่าผู้รับผิดชอบที่มี Role Approve สำหรับ BOM/Routing/EditBOM
+        public string? ApproverRoleUserId { get; set; }
+
+        // ใช้ในหน้าของผู้ใช้ IT เพื่อระบุเจ้าหน้าที่ IT ที่รับงานต่อ
+        public string? ITAssigneeUserId { get; set; }
+
         // สถานะและเหตุผลการ reject ใช้ในหน้าแก้ไขหรือการอนุมัติ
         public string Status { get; set; } = "Pending";
         public string? RejectionRemark { get; set; }

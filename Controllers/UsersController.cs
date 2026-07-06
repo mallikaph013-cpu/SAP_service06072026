@@ -216,6 +216,11 @@ namespace myapp.Controllers
                 IsIT = user.IsIT
             };
 
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            model.IsApprove = currentRoles.Any(r => r.Equals("Approve", StringComparison.OrdinalIgnoreCase));
+            model.IsAdmin = currentRoles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+            model.IsUser = currentRoles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+
             ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
             ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
             ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
@@ -262,6 +267,86 @@ namespace myapp.Controllers
 
                     if (result.Succeeded)
                     {
+                        var selectedRoles = new List<string>();
+
+                        if (model.IsApprove)
+                        {
+                            selectedRoles.Add("Approve");
+                        }
+
+                        if (model.IsAdmin)
+                        {
+                            selectedRoles.Add("Admin");
+                        }
+
+                        if (model.IsUser)
+                        {
+                            selectedRoles.Add("User");
+                        }
+
+                        if (selectedRoles.Count == 0)
+                        {
+                            selectedRoles.Add("User");
+                        }
+
+                        foreach (var roleName in selectedRoles)
+                        {
+                            if (!await _roleManager.RoleExistsAsync(roleName))
+                            {
+                                var roleCreateResult = await _roleManager.CreateAsync(new IdentityRole(roleName));
+                                if (!roleCreateResult.Succeeded)
+                                {
+                                    foreach (var roleError in roleCreateResult.Errors)
+                                    {
+                                        ModelState.AddModelError(string.Empty, roleError.Description);
+                                    }
+
+                                    ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
+                                    ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
+                                    ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
+                                    return View(model);
+                                }
+                            }
+                        }
+
+                        var existingRoles = await _userManager.GetRolesAsync(user);
+                        var rolesToRemove = existingRoles.Where(r => !selectedRoles.Contains(r, StringComparer.OrdinalIgnoreCase)).ToList();
+                        var rolesToAdd = selectedRoles.Where(r => !existingRoles.Contains(r, StringComparer.OrdinalIgnoreCase)).ToList();
+
+                        if (rolesToRemove.Any())
+                        {
+                            var removeRolesResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+                            if (!removeRolesResult.Succeeded)
+                            {
+                                foreach (var roleError in removeRolesResult.Errors)
+                                {
+                                    ModelState.AddModelError(string.Empty, roleError.Description);
+                                }
+
+                                ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
+                                ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
+                                ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
+                                return View(model);
+                            }
+                        }
+
+                        if (rolesToAdd.Any())
+                        {
+                            var addRolesResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+                            if (!addRolesResult.Succeeded)
+                            {
+                                foreach (var roleError in addRolesResult.Errors)
+                                {
+                                    ModelState.AddModelError(string.Empty, roleError.Description);
+                                }
+
+                                ViewBag.Departments = new SelectList(_context.Departments.OrderBy(d => d.DepartmentName).ToList(), "DepartmentId", "DepartmentName", model.DepartmentId);
+                                ViewBag.Sections = new SelectList(await _context.Sections.Where(s => s.DepartmentId == model.DepartmentId).OrderBy(s => s.SectionName).ToListAsync(), "SectionId", "SectionName", model.SectionId);
+                                ViewBag.Plants = new SelectList(_context.Plants.OrderBy(p => p.PlantName).ToList(), "PlantName", "PlantName", model.Plant);
+                                return View(model);
+                            }
+                        }
+
                         if (!string.IsNullOrEmpty(model.NewPassword))
                         {
                             var token = await _userManager.GeneratePasswordResetTokenAsync(user);

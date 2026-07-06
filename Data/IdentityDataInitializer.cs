@@ -23,10 +23,14 @@ namespace myapp.Data
 
         private static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
         {
-            // Seed Roles: Admin and User
+            // Seed Roles: Admin, Approve, and User
             if (!await roleManager.RoleExistsAsync("Admin"))
             {
                 await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+            if (!await roleManager.RoleExistsAsync("Approve"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Approve"));
             }
             if (!await roleManager.RoleExistsAsync("User"))
             {

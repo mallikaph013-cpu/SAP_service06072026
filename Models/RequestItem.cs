@@ -47,6 +47,10 @@ namespace myapp.Models
         // เก็บผู้อนุมัติ/ผู้รับผิดชอบถัดไปในรูปแบบ userId|routingId
         public string? NextApproverId { get; set; }
 
+        // เก็บผู้ได้รับมอบหมายงานฝั่ง IT แบบถาวร เพื่อแสดงผลได้แม้ NextApproverId ถูกเปลี่ยนตาม workflow
+        [StringLength(450)]
+        public string? AssignedITUserId { get; set; }
+
         // ข้อมูลเอกสารแนบและเลขเอกสารที่ระบบสร้างให้บางประเภทคำร้อง
         [StringLength(260)]
         public string? AttachmentFileName { get; set; }

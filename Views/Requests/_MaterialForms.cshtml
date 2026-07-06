@@ -1,5 +1,18 @@
 @model myapp.Models.ViewModels.CreateRequestViewModel
 
+@{
+    var showChangeRequestG2U = User.IsInRole("IT") || ((ViewBag.IsITByDbRole as bool?) ?? false);
+}
+
+@if (showChangeRequestG2U)
+{
+    <div class="form-group mb-4" id="change-request-no-container">
+        <label asp-for="ChangeRequestG2U" class="form-label">Change Request No. (G2U)</label>
+        <input asp-for="ChangeRequestG2U" class="form-control" placeholder="Enter Change Request No. (G2U)" />
+        <span asp-validation-for="ChangeRequestG2U" class="text-danger"></span>
+    </div>
+}
+
 <div id="material-fields-container"  style="display: none;"> 
     <hr class="my-4">
     <h5 class="mb-3">Material Information</h5>
@@ -7,15 +20,6 @@
 
    
  @* ==================================================================== FG ====================================================================== *@
-
-            <div class="col-md-12" id="change-request-no-container">
-                <div class="form-group">
-                    <label asp-for="ChangeRequestG2U" class="form-label">Change Request No. (G2U)</label>
-                    <input asp-for="ChangeRequestG2U" class="form-control" placeholder="Enter Change Request No. (G2U)" />
-                    <span asp-validation-for="ChangeRequestG2U" class="text-danger"></span>
-                </div>
-            </div>
-
 
 
     <div class="row g-3 mb-3">
@@ -1501,7 +1505,10 @@
 <div id="bom-edit-fields-container" style="display: none;">
     <hr />
     <h4>Material Information (Edit BOM)</h4>
-    <div class="row g-3 mb-3">
+    <br></br>
+    
+
+    <div class="row g-6 mb-6">
         <div class="col-md-6">
             <div class="form-group">
                 <label asp-for="EditBomFg" class="control-label">FG</label>

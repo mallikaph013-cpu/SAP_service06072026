@@ -389,6 +389,12 @@
                     workflowSection.style.display = 'block';
                 }
 
+                // For Request type (ร้องขอ), ensure approver dropdowns are shown
+                const isRequestType = selectedTypeName === 'Request' || selectedTypeName === 'ร้องขอ';
+                if (isRequestType && nextResponsibleUserSelect) {
+                    nextResponsibleUserSelect.disabled = false;
+                }
+
                 if (requestAttachmentInput) {
                     requestAttachmentInput.required = false;
                     requestAttachmentInput.disabled = false;
@@ -419,7 +425,7 @@
                 }
 
                 if (itAssigneeContainer) {
-                    const showITAssigneeDropdown = !!selectedValue && isITApproveCreator;
+                    const showITAssigneeDropdown = !!selectedValue && isITCreator;
                     itAssigneeContainer.style.display = showITAssigneeDropdown ? 'block' : 'none';
                 }
 
@@ -491,6 +497,7 @@
                     const select = targetSelect || nextResponsibleUserSelect;
                     const debugPrefix = buildDebugPrefix(source || 'unknown');
                     select.innerHTML = `<option value="">${debugPrefix}-- Please select a responsible user by flow --</option>`;
+                    
                     data.forEach(user => {
                         const stepPrefix = user.step ? `Step ${user.step} - ` : '';
                         const ruleSuffix = user.rule ? ` (${user.rule})` : '';
@@ -807,10 +814,12 @@
                 }
                 
                 // For BOM/Routing/EditBOM, also check approver role dropdown
+                const selectedTypeName = getSelectedTypeName();
+                const isBomRoutingEditBom = selectedTypeName === 'BOM' || selectedTypeName === 'Routing' || selectedTypeName === 'EditBOM';
                 const hasApproverRoleOptions = Array.from(approverRoleUserSelect.options || [])
                     .some(option => option.value && option.value.trim() !== '');
                     
-                if (hasApproverRoleOptions && approverRoleUserSelect.value === '') {
+                if (isBomRoutingEditBom && hasApproverRoleOptions && approverRoleUserSelect.value === '') {
                     event.preventDefault();
                     Swal.fire({
                         title: 'Incomplete Information',
@@ -1129,7 +1138,7 @@
             toggleMaterialFields();
             toggleChangeRequestNoField();
             updateDownloadLink();
-            fetchNextApprovers(); // โหลดผู้รับผิดชอบตอนเปิดหน้า หากมีประเภทคำขอถูกเลือกอยู่แล้ว
+            // fetchNextApprovers(); // จะโหลดเมื่อเลือกประเภทคำขอเท่านั้น
             fetchApproverRoleUsers(); // โหลดผู้รับผิดชอบที่มี Role Approve
             fetchITAssigneeUsers(); // โหลดเจ้าหน้าที่ IT สำหรับผู้สร้างที่เป็น IT
             fetchImportApprovers(); // โหลดผู้รับผิดชอบสำหรับ Import Form

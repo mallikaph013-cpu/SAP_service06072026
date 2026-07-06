@@ -137,6 +137,7 @@ namespace myapp.Controllers
 
             var currentUserFullName = $"{user.FirstName} {user.LastName}".Trim();
             ViewBag.CurrentUserFullName = currentUserFullName;
+            ViewBag.CurrentUserId = user.Id;
 
             List<RequestItem> requests;
 
@@ -147,6 +148,25 @@ namespace myapp.Controllers
             else
             {
                 var currentUserId = user.Id;
+                var currentUserCandidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrWhiteSpace(user.UserName)) currentUserCandidates.Add(user.UserName.Trim());
+                if (!string.IsNullOrWhiteSpace(user.Email)) currentUserCandidates.Add(user.Email.Trim());
+                if (!string.IsNullOrWhiteSpace(currentUserFullName)) currentUserCandidates.Add(currentUserFullName);
+
+                var approvedByCurrentUserRequestIds = await _context.AuditLogs
+                    .Where(a => a.EntityName == nameof(RequestItem)
+                        && a.Action == "Approve"
+                        && a.EntityId != null
+                        && a.PerformedBy != null)
+                    .Select(a => new { a.EntityId, a.PerformedBy })
+                    .ToListAsync();
+
+                var approvedByCurrentUserIdSet = approvedByCurrentUserRequestIds
+                    .Where(a => !string.IsNullOrWhiteSpace(a.PerformedBy)
+                        && currentUserCandidates.Contains(a.PerformedBy!.Trim())
+                        && int.TryParse(a.EntityId, out _))
+                    .Select(a => int.Parse(a.EntityId!))
+                    .ToHashSet();
 
                 requests = allRequests
                     .Where(r =>
@@ -155,7 +175,8 @@ namespace myapp.Controllers
                             && string.Equals(
                                 r.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries)[0],
                                 currentUserId,
-                                StringComparison.OrdinalIgnoreCase)))
+                                StringComparison.OrdinalIgnoreCase))
+                        || approvedByCurrentUserIdSet.Contains(r.Id))
                     .ToList();
             }
 
@@ -188,8 +209,93 @@ namespace myapp.Controllers
                 .Select(a => new { a.EntityId, a.PerformedBy })
                 .ToListAsync();
 
+            var workflowAuditLogs = await _context.AuditLogs
+                .Where(a => a.EntityName == nameof(RequestItem)
+                    && a.EntityId != null
+                    && requestIds.Contains(a.EntityId)
+                    && (a.Action == "Create" || a.Action == "Update"))
+                .Select(a => new { a.EntityId, a.PerformedAt, a.Details })
+                .ToListAsync();
+
             var allUsers = await _userManager.Users.ToListAsync();
             var usersById = allUsers.ToDictionary(u => u.Id, u => u);
+
+            string ResolveUserDisplayName(string? userId)
+            {
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    return "-";
+                }
+
+                if (usersById.TryGetValue(userId, out var userById))
+                {
+                    var fullNameById = $"{userById.FirstName} {userById.LastName}".Trim();
+                    return !string.IsNullOrWhiteSpace(fullNameById) ? fullNameById : userId;
+                }
+
+                var userByUserName = allUsers.FirstOrDefault(u => u.UserName == userId);
+                if (userByUserName != null)
+                {
+                    var fullNameByUserName = $"{userByUserName.FirstName} {userByUserName.LastName}".Trim();
+                    return !string.IsNullOrWhiteSpace(fullNameByUserName) ? fullNameByUserName : userId;
+                }
+
+                var userByEmail = allUsers.FirstOrDefault(u => u.Email == userId);
+                if (userByEmail != null)
+                {
+                    var fullNameByEmail = $"{userByEmail.FirstName} {userByEmail.LastName}".Trim();
+                    return !string.IsNullOrWhiteSpace(fullNameByEmail) ? fullNameByEmail : userId;
+                }
+
+                return userId;
+            }
+
+            string? ExtractITAssigneeUserIdFromAuditDetails(string? details)
+            {
+                if (string.IsNullOrWhiteSpace(details))
+                {
+                    return null;
+                }
+
+                var itAssignIndex = details.LastIndexOf("ITASSIGN", StringComparison.OrdinalIgnoreCase);
+                if (itAssignIndex < 0)
+                {
+                    return null;
+                }
+
+                var equalIndex = details.LastIndexOf('=', itAssignIndex);
+                var arrowIndex = details.LastIndexOf('>', itAssignIndex);
+                var separatorIndex = Math.Max(equalIndex, arrowIndex);
+                if (separatorIndex < 0 || separatorIndex >= itAssignIndex)
+                {
+                    return null;
+                }
+
+                var encodedSegment = details.Substring(separatorIndex + 1, itAssignIndex - separatorIndex - 1).Trim();
+                var idParts = encodedSegment.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                if (idParts.Length >= 2)
+                {
+                    return idParts[1].Trim();
+                }
+
+                return null;
+            }
+
+            var latestITAssigneeByRequestId = workflowAuditLogs
+                .Select(log => new
+                {
+                    RequestId = int.TryParse(log.EntityId, out var parsedId) ? parsedId : 0,
+                    log.PerformedAt,
+                    ITAssigneeUserId = ExtractITAssigneeUserIdFromAuditDetails(log.Details)
+                })
+                .Where(x => x.RequestId > 0 && !string.IsNullOrWhiteSpace(x.ITAssigneeUserId))
+                .GroupBy(x => x.RequestId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g
+                        .OrderByDescending(x => x.PerformedAt)
+                        .Select(x => x.ITAssigneeUserId!)
+                        .First());
 
             bool IsUpdatedByNextApprover(RequestItem request)
             {
@@ -231,10 +337,73 @@ namespace myapp.Controllers
                         return "-";
                     }
 
-                    var userId = r.NextApproverId.Split('|')[0];
-                    return usersById.TryGetValue(userId, out var nextApprover)
-                        ? $"{nextApprover.FirstName} {nextApprover.LastName}".Trim()
-                        : userId;  // Show userId if name not found
+                    var idParts = r.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    var userId = idParts.Length > 0 ? idParts[0] : r.NextApproverId;
+                    var routingId = idParts.Length > 1 ? idParts[1] : null;
+                    
+                    _logger.LogInformation("[DEBUG] NextApproverName lookup: RequestId={RequestId}, NextApproverId={NextApproverId}, ParsedUserId={UserId}, ParsedRoutingId={RoutingId}", 
+                        r.Id, r.NextApproverId, userId, routingId);
+                    
+                    if (usersById.TryGetValue(userId, out var nextApprover))
+                    {
+                        var fullName = $"{nextApprover.FirstName} {nextApprover.LastName}".Trim();
+                        _logger.LogInformation("[DEBUG] Found user by ID: RequestId={RequestId}, UserId={UserId}, FullName={FullName}", 
+                            r.Id, userId, fullName);
+                        return !string.IsNullOrWhiteSpace(fullName) ? fullName : userId;
+                    }
+                    
+                    // If user not found in dictionary, try to find by UserName or Email as fallback
+                    var userByUserName = allUsers.FirstOrDefault(u => u.UserName == userId);
+                    if (userByUserName != null)
+                    {
+                        var nameByUserName = $"{userByUserName.FirstName} {userByUserName.LastName}".Trim();
+                        _logger.LogInformation("[DEBUG] Found user by UserName: RequestId={RequestId}, UserName={UserName}, FullName={FullName}", 
+                            r.Id, userId, nameByUserName);
+                        return !string.IsNullOrWhiteSpace(nameByUserName) ? nameByUserName : userId;
+                    }
+                    
+                    var userByEmail = allUsers.FirstOrDefault(u => u.Email == userId);
+                    if (userByEmail != null)
+                    {
+                        var nameByEmail = $"{userByEmail.FirstName} {userByEmail.LastName}".Trim();
+                        _logger.LogInformation("[DEBUG] Found user by Email: RequestId={RequestId}, Email={Email}, FullName={FullName}", 
+                            r.Id, userId, nameByEmail);
+                        return !string.IsNullOrWhiteSpace(nameByEmail) ? nameByEmail : userId;
+                    }
+                    
+                    _logger.LogWarning("[DEBUG] User NOT found for RequestId={RequestId}, NextApproverId={NextApproverId}, ParsedUserId={UserId}, UsersInDb={UserCount}", 
+                        r.Id, r.NextApproverId, userId, allUsers.Count);
+                    return userId;  // Show userId if name not found
+                });
+
+            var assignedNameByRequestId = requests.ToDictionary(
+                r => r.Id,
+                r =>
+                {
+                    if (!string.IsNullOrWhiteSpace(r.AssignedITUserId))
+                    {
+                        return ResolveUserDisplayName(r.AssignedITUserId);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(r.NextApproverId))
+                    {
+                        return latestITAssigneeByRequestId.TryGetValue(r.Id, out var fallbackAssigneeUserId)
+                            ? ResolveUserDisplayName(fallbackAssigneeUserId)
+                            : "-";
+                    }
+
+                    var idParts = r.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    if (idParts.Length >= 3 && string.Equals(idParts[2], "ITASSIGN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ResolveUserDisplayName(idParts[1]);
+                    }
+
+                    if (latestITAssigneeByRequestId.TryGetValue(r.Id, out var historicalAssigneeUserId))
+                    {
+                        return ResolveUserDisplayName(historicalAssigneeUserId);
+                    }
+
+                    return "-";
                 });
 
             var allRoutingRules = await _context.DocumentRoutings
@@ -325,6 +494,7 @@ namespace myapp.Controllers
 
             ViewBag.HideDeleteIdSet = hideDeleteIdSet;
             ViewBag.NextApproverNameByRequestId = nextApproverNameByRequestId;
+            ViewBag.AssignedNameByRequestId = assignedNameByRequestId;
             
             return View(requests);
         }
@@ -338,12 +508,20 @@ namespace myapp.Controllers
 
             var requestItem = await _context.RequestItems
                 .Include(r => r.BomComponents)
+                .Include(r => r.bomEditComponents)
                 .Include(r => r.Routings)
+                .Include(r => r.LicensePermissions)
                 .FirstOrDefaultAsync(m => m.Id == id);
             
             if (requestItem == null)
             {
                 return NotFound();
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return Challenge();
             }
 
             string? nextApproverUserId = null;
@@ -353,12 +531,32 @@ namespace myapp.Controllers
                 nextApproverUserId = idParts.Length > 0 ? idParts[0] : requestItem.NextApproverId;
             }
 
+            var currentUserFullName = $"{currentUser.FirstName} {currentUser.LastName}".Trim();
+            var canViewDetails = User.IsInRole("IT")
+                || (!string.IsNullOrWhiteSpace(requestItem.Requester)
+                    && string.Equals(requestItem.Requester.Trim(), currentUserFullName, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrWhiteSpace(nextApproverUserId)
+                    && string.Equals(nextApproverUserId, currentUser.Id, StringComparison.OrdinalIgnoreCase));
+
+            if (!canViewDetails)
+            {
+                TempData["ErrorMessage"] = "You are not allowed to view this request.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var nextApproverUser = !string.IsNullOrWhiteSpace(nextApproverUserId)
                 ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == nextApproverUserId)
                 : null;
 
+            var assignedITUser = !string.IsNullOrWhiteSpace(requestItem.AssignedITUserId)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == requestItem.AssignedITUserId)
+                : null;
+
             ViewBag.NextResponsibleUserName = nextApproverUser != null
                 ? $"{nextApproverUser.FirstName} {nextApproverUser.LastName}".Trim()
+                : "-";
+            ViewBag.AssignedITUserName = assignedITUser != null
+                ? $"{assignedITUser.FirstName} {assignedITUser.LastName}".Trim()
                 : "-";
 
             return View(requestItem);
@@ -632,11 +830,17 @@ namespace myapp.Controllers
         // Create GET preloads requester profile fields from the signed-in user to reduce manual data entry.
         public async Task<IActionResult> Create()
         {
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
                 return Challenge(); // User not found, should not happen for authorized users
             }
+
+            ViewBag.IsITByDbRole = await IsITAssignedUserAsync(user);
 
             var viewModel = new CreateRequestViewModel
             {
@@ -716,7 +920,8 @@ namespace myapp.Controllers
         public async Task<IActionResult> Create(CreateRequestViewModel viewModel, IFormFile? requestAttachment)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            var isITUser = User.IsInRole("IT");
+            var isITUser = await IsITAssignedUserAsync(currentUser);
+            ViewBag.IsITByDbRole = isITUser;
 
             _logger.LogInformation(
                 "Create POST started by {Actor}. RequestType={RequestType}, Requester={Requester}, NextResponsible={NextResponsibleUserId}",
@@ -752,6 +957,10 @@ namespace myapp.Controllers
             if (!isITUser && string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
             {
                 ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
+            }
+            if (isITUser && viewModel?.RequestType == RequestType.Routing && string.IsNullOrWhiteSpace(viewModel?.ITAssigneeUserId))
+            {
+                ModelState.AddModelError(nameof(viewModel.ITAssigneeUserId), "Please select an IT assignee.");
             }
 
             if (!ModelState.IsValid)
@@ -797,11 +1006,48 @@ namespace myapp.Controllers
                         uploadedFile.Length);
                 }
 
-                // The approver value keeps both the user id and routing rule id in the format userId|routingId.
+                // The approver value format:
+                // - Normal: userId|routingId
+                // - BOM/Routing/EditBOM: approverRoleUserId|documentRoutingUserId|routingId
+                // - IT Routing custom: approveRoleUserId|itAssigneeUserId|ITASSIGN
                 string? nextApproverId = null;
-                if (viewModel != null && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
+                string? assignedITUserId = viewModel?.ITAssigneeUserId;
+                var isITRoutingFlow = isITUser
+                    && viewModel != null
+                    && viewModel.RequestType == RequestType.Routing;
+
+                if (isITRoutingFlow && viewModel != null
+                    && !string.IsNullOrEmpty(viewModel.ITAssigneeUserId)
+                    && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
                 {
-                    // เก็บค่าเต็ม userId|routingId
+                    // IT Routing: NextResponsibleUserId carries Approve-role user and ITAssigneeUserId carries IT assignee.
+                    nextApproverId = $"{viewModel.NextResponsibleUserId}|{viewModel.ITAssigneeUserId}|ITASSIGN";
+                }
+                else if (isITRoutingFlow && viewModel != null
+                    && !string.IsNullOrEmpty(viewModel.ApproverRoleUserId)
+                    && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
+                {
+                    // Backward compatibility if old form still posts ApproverRoleUserId as IT assignee.
+                    nextApproverId = $"{viewModel.NextResponsibleUserId}|{viewModel.ApproverRoleUserId}|ITASSIGN";
+                    assignedITUserId = viewModel.ApproverRoleUserId;
+                }
+                else if (viewModel != null && !string.IsNullOrEmpty(viewModel.ApproverRoleUserId) && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
+                {
+                    // สำหรับ BOM/Routing/EditBOM เก็บทั้ง Approve Role User และ Document Routing User
+                    // รูปแบบ: approverRoleUserId|documentRoutingUserId|routingId
+                    var routingId = viewModel.NextResponsibleUserId.Split('|').Length > 1 
+                        ? viewModel.NextResponsibleUserId.Split('|')[1] 
+                        : string.Empty;
+                    nextApproverId = $"{viewModel.ApproverRoleUserId}|{viewModel.NextResponsibleUserId.Split('|')[0]}|{routingId}";
+                }
+                else if (viewModel != null && !string.IsNullOrEmpty(viewModel.ApproverRoleUserId))
+                {
+                    // มีแต่ Approve Role User (ไม่มี Document Routing)
+                    nextApproverId = viewModel.ApproverRoleUserId;
+                }
+                else if (viewModel != null && !string.IsNullOrEmpty(viewModel.NextResponsibleUserId))
+                {
+                    // สำหรับ request type อื่นๆ ใช้ Document Routing User
                     nextApproverId = viewModel.NextResponsibleUserId;
                 }
 
@@ -843,6 +1089,7 @@ namespace myapp.Controllers
                     UsageStatus = 1,
                     RequestDate = requestDateUtc,
                     NextApproverId = nextApproverId, // Set the next approver
+                    AssignedITUserId = assignedITUserId,
                     AttachmentFileName = attachmentFileName,
                     AttachmentPath = attachmentPath,
                     DocumentNumber = documentNumber,
@@ -943,6 +1190,38 @@ namespace myapp.Controllers
                         {
                             SapUsername = lp.SapUsername,
                             TCode = lp.TCode
+                        }).ToList(),
+
+                    bomEditComponents = (viewModel?.EditBOM ?? new List<BomEditComponentViewModel>())
+                        .Where(b =>
+                            !string.IsNullOrWhiteSpace(b.ItemCodeFrom)
+                            || !string.IsNullOrWhiteSpace(b.DescriptionFrom)
+                            || b.ItemQuantityFrom.HasValue
+                            || !string.IsNullOrWhiteSpace(b.UnitFrom)
+                            || !string.IsNullOrWhiteSpace(b.BomUsageFrom)
+                            || !string.IsNullOrWhiteSpace(b.SlocFrom)
+                            || !string.IsNullOrWhiteSpace(b.ItemCodeTo)
+                            || !string.IsNullOrWhiteSpace(b.DescriptionTo)
+                            || b.ItemQuantityTo.HasValue
+                            || !string.IsNullOrWhiteSpace(b.UnitTo)
+                            || !string.IsNullOrWhiteSpace(b.BomUsageTo)
+                            || !string.IsNullOrWhiteSpace(b.SlocTo)
+                            || !string.IsNullOrWhiteSpace(b.PlantTo))
+                        .Select(b => new BomEditComponent
+                        {
+                            ItemCodeFrom = b.ItemCodeFrom,
+                            DescriptionFrom = b.DescriptionFrom,
+                            ItemQuantityFrom = b.ItemQuantityFrom,
+                            UnitFrom = b.UnitFrom,
+                            BomUsageFrom = b.BomUsageFrom,
+                            SlocFrom = b.SlocFrom,
+                            ItemCodeTo = b.ItemCodeTo,
+                            DescriptionTo = b.DescriptionTo,
+                            ItemQuantityTo = b.ItemQuantityTo,
+                            UnitTo = b.UnitTo,
+                            BomUsageTo = b.BomUsageTo,
+                            SlocTo = b.SlocTo,
+                            PlantTo = b.PlantTo
                         }).ToList()
                 };
 
@@ -991,6 +1270,7 @@ namespace myapp.Controllers
                 .Include(r => r.BomComponents)
                 .Include(r => r.Routings)
                 .Include(r => r.LicensePermissions)
+                .Include(r => r.bomEditComponents)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -1002,6 +1282,7 @@ namespace myapp.Controllers
             }
         //user ที่ login เข้ามา
             var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.IsITByDbRole = await IsITAssignedUserAsync(currentUser);
             var currentUserFullName = currentUser == null
                 ? string.Empty
                 : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
@@ -1035,14 +1316,6 @@ namespace myapp.Controllers
 
             // Find the original requester to populate their details
             var requesterUser = await _userManager.Users.FirstOrDefaultAsync(u => (u.FirstName + " " + u.LastName) == requestItem.Requester);
-            // Always extract userId part from NextApproverId (before '|')
-            var nextApproverUserId = !string.IsNullOrWhiteSpace(requestItem.NextApproverId)
-                ? requestItem.NextApproverId.Split('|')[0]
-                : null;
-            var currentApproverUser = !string.IsNullOrWhiteSpace(nextApproverUserId)
-                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == nextApproverUserId)
-                : null;
-
             // ดึง workflow candidates (next approvers)
             var requestTypeName = requestItem.RequestType;
             var normalizedPlant = (requestItem.Plant ?? string.Empty).Trim();
@@ -1081,11 +1354,6 @@ namespace myapp.Controllers
             }
 
             var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
-            // Filter to only users with Approve or admin role for next approver candidates
-            var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
-            var adminRoleUsers = await _userManager.GetUsersInRoleAsync("admin");
-            var allowedUserIds = new HashSet<string>(approverRoleUsers.Select(u => u.Id).Concat(adminRoleUsers.Select(u => u.Id)));
-            allUsers = allUsers.Where(u => allowedUserIds.Contains(u.Id)).ToList();
             var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
 
             // Build approver candidates per workflow step so the UI can move the request forward one configured step at a time.
@@ -1170,6 +1438,153 @@ namespace myapp.Controllers
             }
 
 
+            var nextResponsibleUserIdForView = requestItem.NextApproverId;
+            var approverRoleUserIdForView = string.Empty;
+            var itAssigneeUserIdForView = requestItem.AssignedITUserId ?? string.Empty;
+            var supportsApproverRole = TryResolveRequestType(requestItem.RequestType, out var resolvedRequestType)
+                && (resolvedRequestType == RequestType.BOM
+                    || resolvedRequestType == RequestType.Routing
+                    || resolvedRequestType == RequestType.EditBOM);
+
+            string? ExtractPreviousNextApproverIdFromAuditDetails(string? details)
+            {
+                if (string.IsNullOrWhiteSpace(details))
+                {
+                    return null;
+                }
+
+                const string marker = "NextApproverId:";
+                var markerIndex = details.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                if (markerIndex < 0)
+                {
+                    return null;
+                }
+
+                var valueStart = markerIndex + marker.Length;
+                var afterMarker = details.Substring(valueStart);
+                var transitionParts = afterMarker.Split("->", StringSplitOptions.None);
+                if (transitionParts.Length < 2)
+                {
+                    return null;
+                }
+
+                return transitionParts[0].Trim();
+            }
+
+            string? ExtractITAssigneeUserIdFromAuditDetails(string? details)
+            {
+                if (string.IsNullOrWhiteSpace(details))
+                {
+                    return null;
+                }
+
+                var itAssignIndex = details.LastIndexOf("ITASSIGN", StringComparison.OrdinalIgnoreCase);
+                if (itAssignIndex < 0)
+                {
+                    return null;
+                }
+
+                var equalIndex = details.LastIndexOf('=', itAssignIndex);
+                var arrowIndex = details.LastIndexOf('>', itAssignIndex);
+                var separatorIndex = Math.Max(equalIndex, arrowIndex);
+                if (separatorIndex < 0 || separatorIndex >= itAssignIndex)
+                {
+                    return null;
+                }
+
+                var encodedSegment = details.Substring(separatorIndex + 1, itAssignIndex - separatorIndex - 1).Trim();
+                var idParts = encodedSegment.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                if (idParts.Length >= 2)
+                {
+                    return idParts[1].Trim();
+                }
+
+                return null;
+            }
+
+            if (supportsApproverRole && !string.IsNullOrWhiteSpace(requestItem.NextApproverId))
+            {
+                var nextApproverParts = requestItem.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                if (nextApproverParts.Length >= 3)
+                {
+                    if (string.Equals(nextApproverParts[2], "ITASSIGN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // IT Routing custom format: approveRoleUserId|itAssigneeUserId|ITASSIGN
+                        nextResponsibleUserIdForView = nextApproverParts[0];
+                        itAssigneeUserIdForView = nextApproverParts[1];
+                    }
+                    else
+                    {
+                    // Stored format for BOM/Routing/EditBOM is approverRoleUserId|documentRoutingUserId|routingId.
+                        approverRoleUserIdForView = nextApproverParts[0];
+                        nextResponsibleUserIdForView = $"{nextApproverParts[1]}|{nextApproverParts[2]}";
+                    }
+                }
+                else if (nextApproverParts.Length == 2)
+                {
+                    if (int.TryParse(nextApproverParts[1], out _))
+                    {
+                        // Legacy normal format: documentRoutingUserId|routingId
+                        nextResponsibleUserIdForView = requestItem.NextApproverId;
+                        approverRoleUserIdForView = string.Empty;
+                    }
+                    else
+                    {
+                        // Legacy BOM/Routing/EditBOM format from previous bug: approverRoleUserId|documentRoutingUserId
+                        approverRoleUserIdForView = nextApproverParts[0];
+                        nextResponsibleUserIdForView = nextApproverParts[1];
+                    }
+                }
+                else if (nextApproverParts.Length == 1)
+                {
+                    // Backward-compatible case where only Approve-role user id was persisted.
+                    approverRoleUserIdForView = nextApproverParts[0];
+                    nextResponsibleUserIdForView = string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(approverRoleUserIdForView))
+                {
+                    var latestApproveAudit = await _context.AuditLogs
+                        .Where(a => a.EntityName == nameof(RequestItem)
+                            && a.Action == "Approve"
+                            && a.EntityId == requestItem.Id.ToString())
+                        .OrderByDescending(a => a.PerformedAt)
+                        .Select(a => a.Details)
+                        .FirstOrDefaultAsync();
+
+                    var previousNextApproverId = ExtractPreviousNextApproverIdFromAuditDetails(latestApproveAudit);
+                    if (!string.IsNullOrWhiteSpace(previousNextApproverId))
+                    {
+                        var previousParts = previousNextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                        if (previousParts.Length >= 3)
+                        {
+                            // Preserve the Approve-role assignee in UI after first approval hop.
+                            approverRoleUserIdForView = previousParts[0];
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(itAssigneeUserIdForView))
+                {
+                    var workflowAuditDetails = await _context.AuditLogs
+                        .Where(a => a.EntityName == nameof(RequestItem)
+                            && a.EntityId == requestItem.Id.ToString()
+                            && (a.Action == "Create" || a.Action == "Update"))
+                        .OrderByDescending(a => a.PerformedAt)
+                        .Select(a => a.Details)
+                        .ToListAsync();
+
+                    var historicalITAssigneeUserId = workflowAuditDetails
+                        .Select(ExtractITAssigneeUserIdFromAuditDetails)
+                        .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+                    if (!string.IsNullOrWhiteSpace(historicalITAssigneeUserId))
+                    {
+                        itAssigneeUserIdForView = historicalITAssigneeUserId;
+                    }
+                }
+            }
+
             var viewModel = new CreateRequestViewModel
             {
                 Id = requestItem.Id,
@@ -1181,8 +1596,10 @@ namespace myapp.Controllers
                 Section = requesterUser?.Section ?? "",
                 RequesterPlant = requesterUser?.Plant ?? "",
                 Status = requestItem.Status,
-                // Always set full value (userId|routingId) for dropdown
-                NextResponsibleUserId = requestItem.NextApproverId,
+                // For BOM/Routing/EditBOM split stored value so each dropdown can restore selected option.
+                NextResponsibleUserId = nextResponsibleUserIdForView,
+                ApproverRoleUserId = approverRoleUserIdForView,
+                ITAssigneeUserId = itAssigneeUserIdForView,
 
                 // Convert model properties back to strings for display
                 Plant = requestItem.Plant,
@@ -1281,6 +1698,24 @@ namespace myapp.Controllers
                 {
                     SapUsername = lp.SapUsername,
                     TCode = lp.TCode
+                }).ToList(),
+
+                EditBOM = requestItem.bomEditComponents.Select(b => new BomEditComponentViewModel
+                {
+                    Id = b.Id,
+                    ItemCodeFrom = b.ItemCodeFrom,
+                    DescriptionFrom = b.DescriptionFrom,
+                    ItemQuantityFrom = b.ItemQuantityFrom,
+                    UnitFrom = b.UnitFrom,
+                    BomUsageFrom = b.BomUsageFrom,
+                    SlocFrom = b.SlocFrom,
+                    ItemCodeTo = b.ItemCodeTo,
+                    DescriptionTo = b.DescriptionTo,
+                    ItemQuantityTo = b.ItemQuantityTo,
+                    UnitTo = b.UnitTo,
+                    BomUsageTo = b.BomUsageTo,
+                    SlocTo = b.SlocTo,
+                    PlantTo = b.PlantTo
                 }).ToList()
             };
 
@@ -1291,15 +1726,45 @@ namespace myapp.Controllers
                 ViewBag.ImportNotice = "This request was created from imported data. Some validations may be relaxed for initial save. Please verify fields before finalizing.";
             }
 
-            ViewBag.CurrentNextApproverName = currentApproverUser != null
-                ? $"{currentApproverUser.FirstName} {currentApproverUser.LastName}"
+            var nextResponsibleUserIdOnly = !string.IsNullOrWhiteSpace(nextResponsibleUserIdForView)
+                ? nextResponsibleUserIdForView.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
+                : null;
+            var approverRoleUserIdOnly = !string.IsNullOrWhiteSpace(approverRoleUserIdForView)
+                ? approverRoleUserIdForView.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
+                : null;
+            var itAssigneeUserIdOnly = !string.IsNullOrWhiteSpace(itAssigneeUserIdForView)
+                ? itAssigneeUserIdForView.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
+                : null;
+
+            var nextResponsibleUser = !string.IsNullOrWhiteSpace(nextResponsibleUserIdOnly)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == nextResponsibleUserIdOnly)
+                : null;
+            var approverRoleUser = !string.IsNullOrWhiteSpace(approverRoleUserIdOnly)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == approverRoleUserIdOnly)
+                : null;
+            var itAssigneeUser = !string.IsNullOrWhiteSpace(itAssigneeUserIdOnly)
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == itAssigneeUserIdOnly)
+                : null;
+
+            ViewBag.CurrentNextApproverName = nextResponsibleUser != null
+                ? $"{nextResponsibleUser.FirstName} {nextResponsibleUser.LastName}"
                 : "Current Responsible User";
+            ViewBag.CurrentApproverRoleName = approverRoleUser != null
+                ? $"{approverRoleUser.FirstName} {approverRoleUser.LastName}"
+                : "Current Approver Role User";
+            ViewBag.CurrentITAssigneeName = itAssigneeUser != null
+                ? $"{itAssigneeUser.FirstName} {itAssigneeUser.LastName}"
+                : "Current IT Assignee";
             ViewBag.CurrentAttachmentFileName = requestItem.AttachmentFileName;
             ViewBag.CurrentAttachmentPath = requestItem.AttachmentPath;
             ViewBag.IsRequesterEditor = isRequesterEditor;
+            ViewBag.IsCurrentUserNextResponsible = isNextApprover;
             ViewBag.CanReject = User.IsInRole("IT");
+            
+            var signedInUser = await _userManager.GetUserAsync(User);
+            ViewBag.IsITByDbRole = signedInUser != null && await IsITAssignedUserAsync(signedInUser);
 
-            return View("Edit", viewModel); 
+            return View("Edit", viewModel);
         }
 
 
@@ -1323,7 +1788,7 @@ namespace myapp.Controllers
             var existingRequest = await _context.RequestItems
                 .AsNoTracking()
                 .Where(r => r.Id == id)
-                .Select(r => new { r.AttachmentFileName, r.AttachmentPath })
+                .Select(r => new { r.AttachmentFileName, r.AttachmentPath, r.AssignedITUserId, r.NextApproverId })
                 .FirstOrDefaultAsync();
 
             if (existingRequest == null)
@@ -1333,7 +1798,32 @@ namespace myapp.Controllers
 
 
             // Check required fields: RequesterName, Department, Section, RequesterPlant, RequestType, Plant, NextResponsibleUserId (if not IT)
-            var isITUser = User.IsInRole("IT");
+            var currentUserForPermission = await _userManager.GetUserAsync(User);
+            var isITUser = await IsITAssignedUserAsync(currentUserForPermission) || User.IsInRole("IT");
+
+            // Keep IT assignee value when dropdown is temporarily disabled/hidden and no value is posted back.
+            if (viewModel != null
+                && string.IsNullOrWhiteSpace(viewModel.ITAssigneeUserId)
+                && existingRequest != null)
+            {
+                var fallbackITAssigneeUserId = existingRequest.AssignedITUserId;
+
+                if (string.IsNullOrWhiteSpace(fallbackITAssigneeUserId)
+                    && !string.IsNullOrWhiteSpace(existingRequest.NextApproverId))
+                {
+                    var existingParts = existingRequest.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    if (existingParts.Length >= 3
+                        && string.Equals(existingParts[2], "ITASSIGN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        fallbackITAssigneeUserId = existingParts[1];
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(fallbackITAssigneeUserId))
+                {
+                    viewModel.ITAssigneeUserId = fallbackITAssigneeUserId;
+                }
+            }
             if (string.IsNullOrWhiteSpace(viewModel?.RequesterName))
             {
                 ModelState.AddModelError(nameof(viewModel.RequesterName), "Requester is required.");
@@ -1359,6 +1849,10 @@ namespace myapp.Controllers
             if (!isITUser && string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
             {
                 ModelState.AddModelError(nameof(viewModel.NextResponsibleUserId), "Please select the next responsible user.");
+            }
+            if (isITUser && viewModel?.RequestType == RequestType.Routing && string.IsNullOrWhiteSpace(viewModel?.ITAssigneeUserId))
+            {
+                ModelState.AddModelError(nameof(viewModel.ITAssigneeUserId), "Please select an IT assignee.");
             }
 
             // Imported records are allowed to save with a lighter validation pass so users can correct data incrementally.
@@ -1419,23 +1913,41 @@ namespace myapp.Controllers
                     && string.Equals(currentUserFullName, requestItemForView.Requester?.Trim(), StringComparison.OrdinalIgnoreCase);
 
                 string? currentApproverUserId = null;
+                string? currentITAssigneeUserId = requestItemForView?.AssignedITUserId;
                 if (requestItemForView != null && !string.IsNullOrWhiteSpace(requestItemForView.NextApproverId))
                 {
                     var idParts = requestItemForView.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     currentApproverUserId = idParts.Length > 0 ? idParts[0] : requestItemForView.NextApproverId;
+                    if (string.IsNullOrWhiteSpace(currentITAssigneeUserId)
+                        && idParts.Length >= 3
+                        && string.Equals(idParts[2], "ITASSIGN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        currentITAssigneeUserId = idParts[1];
+                    }
                 }
 
                 var currentApproverUser = !string.IsNullOrWhiteSpace(currentApproverUserId)
                     ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == currentApproverUserId)
                     : null;
+                var currentITAssigneeUser = !string.IsNullOrWhiteSpace(currentITAssigneeUserId)
+                    ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == currentITAssigneeUserId)
+                    : null;
 
                 ViewBag.CurrentNextApproverName = currentApproverUser != null
                     ? $"{currentApproverUser.FirstName} {currentApproverUser.LastName}".Trim()
                     : "Current Responsible User";
+                ViewBag.CurrentITAssigneeName = currentITAssigneeUser != null
+                    ? $"{currentITAssigneeUser.FirstName} {currentITAssigneeUser.LastName}".Trim()
+                    : "Current IT Assignee";
                 ViewBag.IsRequesterEditor = isRequesterEditor;
                 ViewBag.CanReject = User.IsInRole("IT");
                 ViewBag.CurrentAttachmentFileName = requestItemForView?.AttachmentFileName ?? existingRequest.AttachmentFileName;
                 ViewBag.CurrentAttachmentPath = requestItemForView?.AttachmentPath ?? existingRequest.AttachmentPath;
+
+                if (string.IsNullOrWhiteSpace(viewModel.ITAssigneeUserId) && !string.IsNullOrWhiteSpace(currentITAssigneeUserId))
+                {
+                    viewModel.ITAssigneeUserId = currentITAssigneeUserId;
+                }
 
                 return View("Edit", viewModel);
             }
@@ -1460,7 +1972,8 @@ namespace myapp.Controllers
                  var requestItemToUpdate = await _context.RequestItems
                     .Include(r => r.BomComponents)
                     .Include(r => r.Routings)
-                          .Include(r => r.LicensePermissions)
+                      .Include(r => r.LicensePermissions)
+                      .Include(r => r.bomEditComponents)
                     .FirstOrDefaultAsync(r => r.Id == id);
 
                 if (requestItemToUpdate == null)
@@ -1468,11 +1981,31 @@ namespace myapp.Controllers
                     return NotFound();
                 }
 
+                if (!User.IsInRole("IT") && string.Equals(requestItemToUpdate.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["ErrorMessage"] = "Approved requests cannot be edited.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 try
                 {
                     var previousStatus = requestItemToUpdate.Status;
                     var previousNextApproverId = requestItemToUpdate.NextApproverId;
+                    var previousAssignedITUserId = requestItemToUpdate.AssignedITUserId;
                     var currentUser = await _userManager.GetUserAsync(User);
+                    var previousNextApproverParts = (previousNextApproverId ?? string.Empty)
+                        .Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    var isApproverRoleCompositeFlow = TryResolveRequestType(requestItemToUpdate.RequestType, out var currentRequestType)
+                        && (currentRequestType == RequestType.BOM
+                            || currentRequestType == RequestType.EditBOM
+                            || currentRequestType == RequestType.Routing)
+                        && previousNextApproverParts.Length >= 3;
+                    var storedApproverRoleUserId = isApproverRoleCompositeFlow ? previousNextApproverParts[0] : string.Empty;
+                    var storedRoutingUserId = isApproverRoleCompositeFlow ? previousNextApproverParts[1] : string.Empty;
+                    var storedRoutingId = isApproverRoleCompositeFlow ? previousNextApproverParts[2] : string.Empty;
+                    var isApproverRoleActingNow = isApproverRoleCompositeFlow
+                        && currentUser != null
+                        && string.Equals(currentUser.Id, storedApproverRoleUserId, StringComparison.OrdinalIgnoreCase);
                     var currentUserFullName = currentUser == null
                         ? string.Empty
                         : $"{currentUser.FirstName} {currentUser.LastName}".Trim();
@@ -1513,6 +2046,12 @@ namespace myapp.Controllers
                     requestItemToUpdate.UpdatedAt = DateTime.UtcNow;
                     requestItemToUpdate.UpdatedBy = User?.Identity?.Name ?? "Unknown";
 
+                    if (!string.IsNullOrWhiteSpace(viewModel?.ITAssigneeUserId))
+                    {
+                        // Persist IT assignee for every request type, not only Routing.
+                        requestItemToUpdate.AssignedITUserId = viewModel.ITAssigneeUserId;
+                    }
+
                     if (requestAttachment is { Length: > 0 } uploadedFile)
                     {
                         var uploadsRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -1532,9 +2071,51 @@ namespace myapp.Controllers
                         requestItemToUpdate.AttachmentPath = $"/uploads/requests/{storedFileName}";
                     }
 
-                    if (!string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
+                    if (isApproverRoleActingNow && !string.IsNullOrWhiteSpace(storedRoutingUserId))
                     {
-                        // เก็บค่าเต็ม userId|routingId
+                        // First approval hop for BOM/EditBOM/Routing: move from Approve Role to the saved Document Routing assignee.
+                        requestItemToUpdate.NextApproverId = string.IsNullOrWhiteSpace(storedRoutingId)
+                            || string.Equals(storedRoutingId, "ITASSIGN", StringComparison.OrdinalIgnoreCase)
+                            ? storedRoutingUserId
+                            : $"{storedRoutingUserId}|{storedRoutingId}";
+                    }
+                    else if (isITUser
+                        && viewModel?.RequestType == RequestType.Routing
+                        && !string.IsNullOrWhiteSpace(viewModel?.ITAssigneeUserId)
+                        && !string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
+                    {
+                        // IT Routing: NextResponsibleUserId is Approve-role user, ITAssigneeUserId is IT assignee.
+                        var approveRoleUserId = viewModel.NextResponsibleUserId!;
+                        var itAssigneeUserId = viewModel.ITAssigneeUserId!;
+                        requestItemToUpdate.NextApproverId = $"{approveRoleUserId}|{itAssigneeUserId}|ITASSIGN";
+                        requestItemToUpdate.AssignedITUserId = itAssigneeUserId;
+                    }
+                    else if (isITUser
+                        && viewModel?.RequestType == RequestType.Routing
+                        && !string.IsNullOrWhiteSpace(viewModel?.ApproverRoleUserId)
+                        && !string.IsNullOrWhiteSpace(viewModel?.NextResponsibleUserId))
+                    {
+                        // Backward compatibility if old form still posts ApproverRoleUserId as IT assignee.
+                        var approveRoleUserId = viewModel.NextResponsibleUserId!;
+                        var itAssigneeUserId = viewModel.ApproverRoleUserId!;
+                        requestItemToUpdate.NextApproverId = $"{approveRoleUserId}|{itAssigneeUserId}|ITASSIGN";
+                        requestItemToUpdate.AssignedITUserId = itAssigneeUserId;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(viewModel.ApproverRoleUserId) && !string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
+                    {
+                        // Keep both values for BOM/Routing/EditBOM so NextResponsibleUserId still follows Document Routing.
+                        var routingParts = viewModel.NextResponsibleUserId.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                        var routingUserId = routingParts.Length > 0 ? routingParts[0] : string.Empty;
+                        var routingId = routingParts.Length > 1 ? routingParts[1] : string.Empty;
+                        requestItemToUpdate.NextApproverId = $"{viewModel.ApproverRoleUserId}|{routingUserId}|{routingId}";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(viewModel.ApproverRoleUserId))
+                    {
+                        requestItemToUpdate.NextApproverId = viewModel.ApproverRoleUserId;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(viewModel.NextResponsibleUserId))
+                    {
+                        // เก็บค่าเต็ม userId|routingId สำหรับ request type อื่นๆ
                         requestItemToUpdate.NextApproverId = viewModel.NextResponsibleUserId;
                     }
                     requestItemToUpdate.ItemCode = viewModel.ItemCode;
@@ -1591,6 +2172,7 @@ namespace myapp.Controllers
                     _context.BomComponents.RemoveRange(requestItemToUpdate.BomComponents);
                     _context.Routings.RemoveRange(requestItemToUpdate.Routings);
                     _context.LicensePermissionItems.RemoveRange(requestItemToUpdate.LicensePermissions);
+                    _context.Set<BomEditComponent>().RemoveRange(requestItemToUpdate.bomEditComponents);
                     
                     requestItemToUpdate.BomComponents = (viewModel.Components ?? new List<BomComponentViewModel>()).Select(c => new BomComponent
                     {
@@ -1638,6 +2220,38 @@ namespace myapp.Controllers
                             TCode = lp.TCode
                         }).ToList();
 
+                    requestItemToUpdate.bomEditComponents = (viewModel.EditBOM ?? new List<BomEditComponentViewModel>())
+                        .Where(b =>
+                            !string.IsNullOrWhiteSpace(b.ItemCodeFrom)
+                            || !string.IsNullOrWhiteSpace(b.DescriptionFrom)
+                            || b.ItemQuantityFrom.HasValue
+                            || !string.IsNullOrWhiteSpace(b.UnitFrom)
+                            || !string.IsNullOrWhiteSpace(b.BomUsageFrom)
+                            || !string.IsNullOrWhiteSpace(b.SlocFrom)
+                            || !string.IsNullOrWhiteSpace(b.ItemCodeTo)
+                            || !string.IsNullOrWhiteSpace(b.DescriptionTo)
+                            || b.ItemQuantityTo.HasValue
+                            || !string.IsNullOrWhiteSpace(b.UnitTo)
+                            || !string.IsNullOrWhiteSpace(b.BomUsageTo)
+                            || !string.IsNullOrWhiteSpace(b.SlocTo)
+                            || !string.IsNullOrWhiteSpace(b.PlantTo))
+                        .Select(b => new BomEditComponent
+                        {
+                            ItemCodeFrom = b.ItemCodeFrom,
+                            DescriptionFrom = b.DescriptionFrom,
+                            ItemQuantityFrom = b.ItemQuantityFrom,
+                            UnitFrom = b.UnitFrom,
+                            BomUsageFrom = b.BomUsageFrom,
+                            SlocFrom = b.SlocFrom,
+                            ItemCodeTo = b.ItemCodeTo,
+                            DescriptionTo = b.DescriptionTo,
+                            ItemQuantityTo = b.ItemQuantityTo,
+                            UnitTo = b.UnitTo,
+                            BomUsageTo = b.BomUsageTo,
+                            SlocTo = b.SlocTo,
+                            PlantTo = b.PlantTo
+                        }).ToList();
+
                     await _context.SaveChangesAsync();
 
                     var rejectionRemarkDetails = string.Empty;
@@ -1651,7 +2265,7 @@ namespace myapp.Controllers
                         entityName: nameof(RequestItem),
                         entityId: requestItemToUpdate.Id.ToString(),
                         action: "Update",
-                        details: $"RequestType={requestItemToUpdate.RequestType}; Status:{previousStatus}->{requestItemToUpdate.Status}; NextApproverId:{previousNextApproverId}->{requestItemToUpdate.NextApproverId}{rejectionRemarkDetails}");
+                        details: $"RequestType={requestItemToUpdate.RequestType}; Status:{previousStatus}->{requestItemToUpdate.Status}; NextApproverId:{previousNextApproverId}->{requestItemToUpdate.NextApproverId}; AssignedITUserId:{previousAssignedITUserId}->{requestItemToUpdate.AssignedITUserId}{rejectionRemarkDetails}");
 
                     _logger.LogInformation(
                         "Edit POST succeeded for RequestId={RequestId} by {Actor}. RequestType={RequestType}, Status={Status}, NextApproverId={NextApproverId}",
@@ -1775,6 +2389,92 @@ namespace myapp.Controllers
         private bool RequestItemExists(int id)
         {
             return _context.RequestItems.Any(e => e.Id == id);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var requestItem = await _context.RequestItems.FirstOrDefaultAsync(r => r.Id == id);
+            if (requestItem == null)
+            {
+                TempData["ErrorMessage"] = "Request not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.Equals(requestItem.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ErrorMessage"] = "This request is already approved.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return Challenge();
+            }
+
+            var nextApproverUserId = string.IsNullOrWhiteSpace(requestItem.NextApproverId)
+                ? string.Empty
+                : requestItem.NextApproverId.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+
+            var nextApproverParts = (requestItem.NextApproverId ?? string.Empty)
+                .Split('|', StringSplitOptions.RemoveEmptyEntries);
+            var approverRoleUserId = nextApproverParts.Length >= 3
+                ? nextApproverParts[0]
+                : (nextApproverParts.Length == 1 ? nextApproverUserId : string.Empty);
+
+            var isApproverRoleAssignee = !string.IsNullOrWhiteSpace(approverRoleUserId)
+                && string.Equals(currentUser.Id, approverRoleUserId, StringComparison.OrdinalIgnoreCase);
+
+            if (!isApproverRoleAssignee)
+            {
+                TempData["ErrorMessage"] = "You are not allowed to approve this request.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var previousStatus = requestItem.Status;
+            var previousNextApproverId = requestItem.NextApproverId;
+
+            // Approve button must always move status to Approved immediately.
+            requestItem.Status = "Approved";
+
+            var routingUserId = nextApproverParts.Length >= 3 ? nextApproverParts[1] : string.Empty;
+            var routingId = nextApproverParts.Length >= 3 ? nextApproverParts[2] : string.Empty;
+            var hasRoutingContinuation = !string.IsNullOrWhiteSpace(routingUserId);
+
+                if (hasRoutingContinuation)
+            {
+                // First approval hop: move from Approve role assignee to the selected routing assignee.
+                requestItem.NextApproverId = string.IsNullOrWhiteSpace(routingId)
+                    || string.Equals(routingId, "ITASSIGN", StringComparison.OrdinalIgnoreCase)
+                    ? routingUserId
+                    : $"{routingUserId}|{routingId}";
+            }
+            else
+            {
+                // Final approval hop: no downstream routing assignee remains.
+                requestItem.NextApproverId = null;
+            }
+
+            requestItem.UpdatedAt = DateTime.UtcNow;
+            requestItem.UpdatedBy = User?.Identity?.Name ?? "Unknown";
+
+            await _context.SaveChangesAsync();
+
+            var nextStatusForAudit = requestItem.Status;
+            var nextApproverForAudit = requestItem.NextApproverId ?? "(none)";
+
+            await AddAuditLogAsync(
+                entityName: nameof(RequestItem),
+                entityId: requestItem.Id.ToString(),
+                action: "Approve",
+                details: $"Status:{previousStatus}->{nextStatusForAudit}; NextApproverId:{previousNextApproverId}->{nextApproverForAudit}");
+
+            TempData["SuccessMessage"] = hasRoutingContinuation
+                ? "Request approved and forwarded to next routing approver."
+                : "Request approved successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
         // Backfill legacy rows that were created before DocumentNumber generation was applied.
@@ -2469,6 +3169,52 @@ namespace myapp.Controllers
         {
             try
             {
+                var signedInUser = await _userManager.GetUserAsync(User);
+                var isITByDbRole = await IsITAssignedUserAsync(signedInUser);
+
+                if (isITByDbRole && requestType == RequestType.Routing)
+                {
+                    var normalizedRequesterName = (requesterName ?? string.Empty).Trim();
+                    var requesterUser = string.IsNullOrWhiteSpace(normalizedRequesterName)
+                        ? null
+                        : await _userManager.Users.FirstOrDefaultAsync(u =>
+                            ($"{u.FirstName} {u.LastName}").Trim() == normalizedRequesterName);
+                    var requesterDepartment = (requesterUser?.Department ?? signedInUser?.Department ?? string.Empty).Trim();
+
+                    if (string.IsNullOrWhiteSpace(requesterDepartment))
+                    {
+                        return Json(new List<object>());
+                    }
+
+                    var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
+                    HashSet<string>? itAssignedUserIdSet = null;
+                    if (IsITDepartmentName(requesterDepartment))
+                    {
+                        itAssignedUserIdSet = (await GetITAssignedUsersAsync())
+                            .Select(u => u.Id)
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    }
+
+                    var filteredApprovers = approverRoleUsers
+                        .Where(u => !string.IsNullOrWhiteSpace(u.Department)
+                            && u.Department.Trim().Equals(requesterDepartment, StringComparison.OrdinalIgnoreCase))
+                        .Where(u => itAssignedUserIdSet == null || itAssignedUserIdSet.Contains(u.Id))
+                        .OrderBy(u => u.FirstName)
+                        .ThenBy(u => u.LastName)
+                        .Select(u => new
+                        {
+                            Id = u.Id,
+                            Step = 0,
+                            Rule = $"Approve Role - {requesterDepartment}",
+                            FullName = $"{u.FirstName} {u.LastName}",
+                            IsCurrent = false,
+                            Disabled = false
+                        })
+                        .ToList<object>();
+
+                    return Json(filteredApprovers);
+                }
+
                 var requestTypeName = requestType.ToString();
                 var normalizedPlant = (plant ?? string.Empty).Trim();
                 var routings = await _context.DocumentRoutings
@@ -2492,12 +3238,7 @@ namespace myapp.Controllers
             }
 
             var allUsers = await _userManager.Users.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
-            // Filter to only users with Approve or admin role for next approver candidates
-            var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
-            var adminRoleUsers = await _userManager.GetUsersInRoleAsync("admin");
-            var allowedUserIds = new HashSet<string>(approverRoleUsers.Select(u => u.Id).Concat(adminRoleUsers.Select(u => u.Id)));
-            allUsers = allUsers.Where(u => allowedUserIds.Contains(u.Id)).ToList();
-            var stepCandidates = new List<(int Step, int RoutingId, string Rule, List<ApplicationUser> Users)>();
+            var stepCandidates = new List<(int Step, int RoutingId, string Rule, bool RequiresApproveRole, List<ApplicationUser> Users)>();
 
             foreach (var stepRouting in routings)
             {
@@ -2525,7 +3266,11 @@ namespace myapp.Controllers
                     var ruleForDisplay = $"Step {stepRouting.Step}: {departmentName}" + 
                                          (string.IsNullOrEmpty(sectionName) ? "" : $" / {sectionName}");
 
-                    stepCandidates.Add((stepRouting.Step, stepRouting.Id, ruleForDisplay, foundUsers));
+                    // Business rule: when the first workflow step is IT, only users with Approve role can be selected.
+                    var requiresApproveRole = stepRouting.Step == 1
+                        && IsITDepartmentName(departmentName);
+
+                    stepCandidates.Add((stepRouting.Step, stepRouting.Id, ruleForDisplay, requiresApproveRole, foundUsers));
                 }
             }
 
@@ -2558,10 +3303,10 @@ namespace myapp.Controllers
                 }
             }
 
-            if (currentUserStep == 0 && currentUser != null)
+            // Only fall back to current user's step in edit flow (when currentApproverId is provided).
+            // In create flow, always start from the first step so the requester can select the next approver.
+            if (currentUserStep == 0 && !string.IsNullOrWhiteSpace(currentApproverId) && currentUser != null)
             {
-                // If exact routing id is unavailable, use the earliest matched step
-                // to avoid skipping intermediate steps (e.g., step 2).
                 currentUserStep = stepCandidates
                     .Where(c => c.Users.Any(u => u.Id == currentUser.Id))
                     .Select(c => c.Step)
@@ -2581,17 +3326,47 @@ namespace myapp.Controllers
                 return Json(new List<object>());
             }
 
+            HashSet<string>? approveUserIdSet = null;
+            HashSet<string>? itAssignedUserIdSetForITStep = null;
+            if (stepCandidates.Any(c => c.Step == firstStepToShow && c.RequiresApproveRole))
+            {
+                var approveUsers = await _userManager.GetUsersInRoleAsync("Approve");
+                approveUserIdSet = approveUsers
+                    .Select(u => u.Id)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                itAssignedUserIdSetForITStep = (await GetITAssignedUsersAsync())
+                    .Select(u => u.Id)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            }
+
             var nextStepApprovers = stepCandidates
-                .Where(c => c.Step >= firstStepToShow)
-                .SelectMany(c => c.Users.Select(u => new
+                .Where(c => c.Step == firstStepToShow)
+                .SelectMany(c =>
                 {
-                    Id = $"{u.Id}|{c.RoutingId}",
-                    Step = c.Step,
-                    Rule = c.Rule,
-                    FullName = $"{u.FirstName} {u.LastName}",
-                    IsCurrent = false,
-                    Disabled = false
-                }))
+                    var users = c.Users.AsEnumerable();
+
+                    if (c.RequiresApproveRole && approveUserIdSet != null)
+                    {
+                        users = users.Where(u => approveUserIdSet.Contains(u.Id));
+                        if (itAssignedUserIdSetForITStep != null)
+                        {
+                            users = users.Where(u => itAssignedUserIdSetForITStep.Contains(u.Id));
+                        }
+                    }
+
+                     return users.Select(u => new
+                    {
+                        Id = $"{u.Id}|{c.RoutingId}",
+                        Step = c.Step,
+                        Rule = c.Rule,
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        IsCurrent = false,
+                        Disabled = false,
+                        HasITRole = u.IsIT,
+                        HasApproveRole = approveUserIdSet != null && approveUserIdSet.Contains(u.Id)
+                    });
+                })
                 .GroupBy(a => a.Id)
                 .Select(g => g.First())
                 .OrderBy(a => a.Step)
@@ -2605,13 +3380,17 @@ namespace myapp.Controllers
                 var userId = idParts[0];
                 var user = await _userManager.FindByIdAsync(userId);
                 var fullName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User";
+                var currentUserHasITRole = user != null && user.IsIT;
+                var currentUserHasApproveRole = user != null && approveUserIdSet != null && approveUserIdSet.Contains(user.Id);
                 nextStepApprovers.Insert(0, new {
                     Id = currentApproverId,
                     Step = 0,
                     Rule = "Current Approver",
                     FullName = fullName,
                     IsCurrent = true,
-                    Disabled = false
+                    Disabled = false,
+                    HasITRole = currentUserHasITRole,
+                    HasApproveRole = currentUserHasApproveRole
                 });
             }
 
@@ -2629,6 +3408,197 @@ namespace myapp.Controllers
                 // Return empty list to keep UI usable instead of surfacing a fetch error.
                 return Json(new List<object>());
             }
+        }
+
+        // Returns users with Approve role in the same department as the requester for BOM/Routing/EditBOM request types
+        [HttpGet]
+        public async Task<IActionResult> GetApproverRoleUsers(RequestType requestType, string? plant, string? requesterDepartment)
+        {
+            try
+            {
+                var normalizedDepartment = (requesterDepartment ?? string.Empty).Trim();
+                
+                if (string.IsNullOrWhiteSpace(normalizedDepartment))
+                {
+                    return Json(new List<object>());
+                }
+
+                // Get only users with Approve role
+                var approverRoleUsers = await _userManager.GetUsersInRoleAsync("Approve");
+
+                HashSet<string>? itAssignedUserIdSet = null;
+                if (IsITDepartmentName(normalizedDepartment))
+                {
+                    itAssignedUserIdSet = (await GetITAssignedUsersAsync())
+                        .Select(u => u.Id)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                }
+                
+                // Filter by same department as requester
+                var usersInSameDepartment = approverRoleUsers
+                    .Where(u => !string.IsNullOrEmpty(u.Department) && 
+                               u.Department.Trim().Equals(normalizedDepartment, StringComparison.OrdinalIgnoreCase))
+                    .Where(u => itAssignedUserIdSet == null || itAssignedUserIdSet.Contains(u.Id))
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
+                    .ToList();
+
+                if (!usersInSameDepartment.Any())
+                {
+                    return Json(new List<object>());
+                }
+
+                var nextStepApprovers = usersInSameDepartment
+                    .Select(u => new
+                    {
+                        Id = u.Id,
+                        Step = 0,
+                        Rule = $"Approve Role - {normalizedDepartment}",
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        IsCurrent = false,
+                        Disabled = false
+                    })
+                    .OrderBy(a => a.FullName)
+                    .ToList();
+
+                return Json(nextStepApprovers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetApproverRoleUsers failed. RequestType={RequestType}, Plant={Plant}, RequesterDepartment={RequesterDepartment}", 
+                    requestType, plant, requesterDepartment);
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetITUsers()
+        {
+            try
+            {
+                var itUsers = await GetITAssignedUsersAsync();
+                var results = itUsers
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
+                    .Select(u => new
+                    {
+                        Id = u.Id,
+                        Step = 0,
+                        Rule = "IT",
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        IsCurrent = false,
+                        Disabled = false
+                    })
+                    .ToList();
+
+                return Json(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetITUsers failed.");
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetITApproveUsers()
+        {
+            try
+            {
+                var itUsers = await GetITAssignedUsersAsync();
+                var approveUsers = await _userManager.GetUsersInRoleAsync("Approve");
+                var approveUserIdSet = approveUsers
+                    .Select(u => u.Id)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var results = itUsers
+                    .Where(u => approveUserIdSet.Contains(u.Id))
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
+                    .Select(u => new
+                    {
+                        Id = u.Id,
+                        Step = 0,
+                        Rule = "IT + Approve",
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        IsCurrent = false,
+                        Disabled = false
+                    })
+                    .ToList();
+
+                return Json(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetITApproveUsers failed.");
+                return Json(new List<object>());
+            }
+        }
+
+        private async Task<bool> IsITAssignedUserAsync(ApplicationUser? user)
+        {
+            if (user == null)
+            {
+                return false;
+            }
+
+            if (user.IsIT)
+            {
+                return true;
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return roles.Any(role =>
+                role.Equals("IT", StringComparison.OrdinalIgnoreCase)
+                || role.Contains("IT", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task<List<ApplicationUser>> GetITAssignedUsersAsync()
+        {
+            var allUsers = await _userManager.Users
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToListAsync();
+
+            var itAssignedUsers = new List<ApplicationUser>();
+            foreach (var user in allUsers)
+            {
+                if (await IsITAssignedUserAsync(user))
+                {
+                    itAssignedUsers.Add(user);
+                }
+            }
+
+            return itAssignedUsers;
+        }
+
+        private static bool IsITDepartmentName(string? departmentName)
+        {
+            if (string.IsNullOrWhiteSpace(departmentName))
+            {
+                return false;
+            }
+
+            var normalized = new string(departmentName
+                .Trim()
+                .ToLowerInvariant()
+                .Where(char.IsLetterOrDigit)
+                .ToArray());
+
+            if (normalized == "it"
+                || normalized.StartsWith("itdepartment", StringComparison.Ordinal)
+                || normalized.Contains("informationtechnology", StringComparison.Ordinal)
+                || normalized.Contains("dxtechnology", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            var tokens = departmentName
+                .Trim()
+                .ToLowerInvariant()
+                .Split(new[] { ' ', '-', '_', '/', '\\', '(', ')', '[', ']', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            return tokens.Any(t => t == "it");
         }
 
         // Import/export inputs are normalized so display names and compact template names still resolve to a valid enum value.

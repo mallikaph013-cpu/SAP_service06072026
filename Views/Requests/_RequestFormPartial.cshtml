@@ -1,0 +1,148 @@
+@model myapp.Models.ViewModels.CreateRequestViewModel
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+
+<h5>Requester Information</h5>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="form-group"><label asp-for="RequesterName" class="form-label"></label><input asp-for="RequesterName" class="form-control" readonly /></div></div>
+        <div class="col-md-3"><div class="form-group"><label asp-for="Department" class="form-label"></label><input asp-for="Department" class="form-control" readonly /></div></div>
+        <div class="col-md-2"><div class="form-group"><label asp-for="Section" class="form-label"></label><input asp-for="Section" class="form-control" readonly /></div></div>
+        <div class="col-md-3"><div class="form-group"><label asp-for="RequesterPlant" class="form-label"></label><input asp-for="RequesterPlant" class="form-control" readonly /></div></div>
+    </div>
+
+    <hr class="my-4">
+
+    <h5>Request Details</h5>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label asp-for="SapModule" class="form-label">SAP Module</label>
+                <select asp-for="SapModule" class="form-select">
+                    <option value="">-- Select SAP Module --</option>
+                    <option value="MM">MM Module</option>
+                    <option value="PP">PP Module</option>
+                    <option value="SD">SD Module</option>
+                    <option value="CO">CO Module</option>
+                    <option value="CR">Change Request</option>
+                </select>
+                <span asp-validation-for="SapModule" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="form-group">
+                <label asp-for="RequestType" class="form-label">Request Type</label>
+                <select asp-for="RequestType" id="RequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
+                    <option value="">-- Select Type --</option>
+                </select>
+                <span asp-validation-for="RequestType" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6" id="request-plant-container">
+            <div class="form-group">
+                <label asp-for="Plant" class="form-label"></label>
+                <select asp-for="Plant" id="RequestPlant" class="form-select">
+                    <option value="">-- Select Plant --</option>
+                    <option value="6021">6021</option>
+                    <option value="6031">6031</option>
+                    <option value="6051">6051</option>
+                    <option value="6081">6081</option>
+                    <option value="6090">6090</option>
+                </select>
+                <span asp-validation-for="Plant" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group mb-4" id="request-description-container">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Provide a detailed description of the request..."></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-4" id="request-upload-container">
+        <label for="RequestAttachment" class="form-label">Attachment</label>
+        <input class="form-control" type="file" id="RequestAttachment" name="requestAttachment">
+        <div class="form-text">You can attach any file type for request details.</div>
+        <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
+    </div>
+
+    <div id="license-permission-fields-container" style="display: none;">
+        <hr />
+        <h4>สิทธิ์การใช้งาน SAP</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="LicenseRequestOption" class="control-label">ประเภทคำร้องขอ</label>
+                    <select id="LicenseRequestOption" name="LicenseRequestOption" class="form-select">
+                        <option value="">-- กรุณาเลือก --</option>
+                        <option value="NewUsername">ขอ Username ใหม่</option>
+                        <option value="AddPermission">ขอเพิ่มสิทธิ์การใช้งาน</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="license-new-username-fields" style="display: none;">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="LicenseUsernameFrom" class="control-label">Username From</label>
+                        <input type="text" id="LicenseUsernameFrom" name="LicenseUsernameFrom" class="form-control" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="LicenseUsernameTo" class="control-label">Username To</label>
+                        <input type="text" id="LicenseUsernameTo" name="LicenseUsernameTo" class="form-control" autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="license-add-permission-fields" style="display: none;">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="LicensePrimaryUsername" class="control-label">Username SAP</label>
+                        <input type="text" id="LicensePrimaryUsername" class="form-control" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="col-md-6" id="license-secondary-username-wrapper">
+                    <div class="form-group">
+                        <label for="LicenseSecondaryUsername" class="control-label">Username SAP 2</label>
+                        <input type="text" id="LicenseSecondaryUsername" class="form-control" autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>T Code</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="license-permission-items-body">
+                        @if (Model.LicensePermissions != null)
+                        {
+                            @for (int i = 0; i < Model.LicensePermissions.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="hidden" class="license-permission-username" asp-for="LicensePermissions[i].SapUsername" />
+                                        <input asp-for="LicensePermissions[i].TCode" class="form-control" />
+                                    </td>
+                                    <td><button type="button" class="btn btn-danger btn-sm remove-license-permission-item">Remove</button></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-2">
+                <button type="button" class="btn btn-primary btn-sm" id="add-license-permission-item">+ Add Row</button>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_MaterialForms" model="Model" />

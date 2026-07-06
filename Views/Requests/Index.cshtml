@@ -4,7 +4,9 @@
     ViewData["Title"] = "Service Requests";
     var hideDeleteIdSet = ViewBag.HideDeleteIdSet as HashSet<int> ?? new HashSet<int>();
     var nextApproverNameByRequestId = ViewBag.NextApproverNameByRequestId as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var assignedNameByRequestId = ViewBag.AssignedNameByRequestId as Dictionary<int, string> ?? new Dictionary<int, string>();
     var currentUserFullName = (ViewBag.CurrentUserFullName as string ?? string.Empty).Trim();
+    var currentUserId = (ViewBag.CurrentUserId as string ?? string.Empty).Trim();
     var isITUser = User.IsInRole("IT");
 
     Func<string, string> GetBadgeClass = (status) => {
@@ -29,6 +31,11 @@
 }
 
 <style>
+    .requests-page {
+        width: 100%;
+        max-width: 1800px;
+    }
+
     .btn-action-xs {
         width: 2.2rem;
         height: 2.2rem;
@@ -43,7 +50,7 @@
     .requests-table {
         table-layout: auto;
         width: 100%;
-        min-width: 1100px;
+        min-width: 1400px;
     }
     .requests-table th,
     .requests-table td {
@@ -79,7 +86,9 @@
     .requests-table td:nth-child(5),
     .requests-table th:nth-child(5),
     .requests-table td:nth-child(6),
-    .requests-table th:nth-child(6) {
+    .requests-table th:nth-child(6),
+    .requests-table td:nth-child(7),
+    .requests-table th:nth-child(7) {
         min-width: 140px;
     }
     .requests-table td:last-child,
@@ -121,6 +130,7 @@
                                 <th class="py-3 ps-4">ICS Code</th>
                                 <th class="py-3">Requester</th>
                                 <th class="py-3">Next Approver</th>
+                                <th class="py-3">Assign To</th>
                                 <th class="py-3">Request Date</th>
                                 <th class="py-3 text-center">Status</th>
                                 <th class="py-3 text-center pe-4">Actions</th>
@@ -136,6 +146,7 @@
                                     <td class="ps-4">@Html.DisplayFor(modelItem => item.ItemCode)</td>
                                     <td>@Html.DisplayFor(modelItem => item.Requester)</td>
                                     <td>@(nextApproverNameByRequestId.TryGetValue(item.Id, out var nextApproverName) ? nextApproverName : "-")</td>
+                                    <td>@(assignedNameByRequestId.TryGetValue(item.Id, out var assignedName) ? assignedName : "-")</td>
                                     <td>@item.RequestDate.ToString("MMM dd, yyyy")</td>
                                     <td class="text-center">
                                         <span class="badge @GetBadgeClass(item.Status)">@Html.DisplayFor(modelItem => item.Status)</span>
@@ -144,17 +155,38 @@
                                         @{
                                             var isPending = string.Equals(item.Status, "Pending", StringComparison.OrdinalIgnoreCase);
                                             var isInprocess = string.Equals(item.Status, "Inprocess", StringComparison.OrdinalIgnoreCase);
+                                            var isApproved = string.Equals(item.Status, "Approved", StringComparison.OrdinalIgnoreCase);
+                                            var isComplete = string.Equals(item.Status, "Complete", StringComparison.OrdinalIgnoreCase);
                                             var isRejected = string.Equals(item.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
                                                 || string.Equals(item.Status, "Reject", StringComparison.OrdinalIgnoreCase);
                                             var isRejectedRequester = isRejected
                                                 && !string.IsNullOrWhiteSpace(currentUserFullName)
                                                 && string.Equals(item.Requester?.Trim(), currentUserFullName, StringComparison.OrdinalIgnoreCase);
-                                            var canEdit = isITUser || (!isInprocess && (isPending || isRejectedRequester));
+                                            var isTerminal = isApproved || isComplete || isRejected;
+                                            var nextApproverParts = (item.NextApproverId ?? string.Empty)
+                                                .Split('|', StringSplitOptions.RemoveEmptyEntries);
+                                            var approverRoleUserId = nextApproverParts.Length >= 3
+                                                ? nextApproverParts[0]
+                                                : (nextApproverParts.Length == 1 ? nextApproverParts[0] : string.Empty);
+                                            var isApproverRoleAssignee = !string.IsNullOrWhiteSpace(currentUserId)
+                                                && !string.IsNullOrWhiteSpace(approverRoleUserId)
+                                                && string.Equals(currentUserId, approverRoleUserId, StringComparison.OrdinalIgnoreCase);
+                                            var canApprove = !isTerminal && isApproverRoleAssignee;
+                                            var canEdit = isITUser || (!isApproved && !isInprocess && (isPending || isRejectedRequester));
                                             var canDelete = isITUser || (!isInprocess && ((isPending && !hideDeleteIdSet.Contains(item.Id)) || isRejectedRequester));
                                         }
                                         <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-action-xs btn-outline-secondary me-1" data-bs-toggle="tooltip" title="Details">
                                             <i class="fas fa-info-circle"></i>
                                         </a>
+                                        @if (canApprove)
+                                        {
+                                            <form asp-action="Approve" asp-route-id="@item.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-action-xs btn-success me-1" data-bs-toggle="tooltip" title="Approve">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        }
                                         @if (canEdit)
                                         {
                                             <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-action-xs btn-warning me-1" data-bs-toggle="tooltip" title="Edit">

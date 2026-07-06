@@ -45,8 +45,9 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Requests" asp-action="Index">
+                                <a class="nav-link d-flex align-items-center" asp-area="" asp-controller="Requests" asp-action="Index">
                                     <i class="fas fa-file-alt me-1"></i><span class="d-none d-lg-inline">Requests</span>
+                                    @await Component.InvokeAsync("RequestsBadge")
                                 </a>
                             </li>
 
@@ -81,6 +82,7 @@
                                         </a>
                                         <div class="dropdown-menu app-dropdown-menu" aria-labelledby="navbarDropdownReport">
                                             <a class="dropdown-item app-dropdown-item" asp-controller="Report" asp-action="SAPService">SAP Service Report</a>
+                                            <a class="dropdown-item app-dropdown-item" asp-controller="Report" asp-action="CaseTracking">Case Tracking Report</a>
                                         </div>
                                     </li>
                             }

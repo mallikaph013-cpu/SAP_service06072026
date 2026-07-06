@@ -1,12 +1,35 @@
+@model myapp.Models.ViewModels.CreateRequestViewModel
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
 
 @{
     ViewData["Title"] = "Edit Service Request";
 }
 
 <style>
+    .edit-request-page {
+        width: 100%;
+        background: #ffffff;
+        padding: 0.75rem 0.5rem 1.5rem;
+        padding-bottom: 6.5rem;
+    }
+
+    .edit-request-shell {
+        width: 100%;
+    }
+
     #create-form .form-control[readonly] {
         background-color: var(--bs-secondary-bg);
     }
+
+    #bom-edit-fields-container {
+        width: 100%;
+    }
+
+    #bom-edit-fields-container .table {
+        min-width: 1100px;
+    }
+
     .create-import-card {
         order: 1;
         margin-bottom: 3rem;
@@ -14,81 +37,58 @@
     .create-manual-card {
         order: 2;
     }
+
+    .edit-action-bar {
+        background: #ffffff;
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem 0 0.75rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.08);
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    #workflow-section.force-show-workflow-assignees .workflow-assignee-col {
+        display: block !important;
+    }
+
+    @@media (max-width: 767.98px) {
+        .edit-request-page {
+            padding: 0.5rem 0.2rem 1rem;
+        }
+    }
 </style>
 
-<div class="row justify-content-center">
-    <div class="col-lg-10 col-xl-9 d-flex flex-column">
+<div class="edit-request-page">
+    <div class="edit-request-shell d-flex flex-column">
+                @{
+                    var normalizedSapModule = new string((Model.SapModule ?? string.Empty)
+                        .Where(char.IsLetterOrDigit)
+                        .ToArray())
+                        .ToUpperInvariant();
+                    var showChangeRequestNoField = normalizedSapModule == "CR"
+                        || !string.IsNullOrWhiteSpace(Model.ChangeRequestNoG2U);
+                    var forceShowWorkflowAssigneesServer = ((ViewBag.IsCurrentUserNextResponsible as bool?) ?? false)
+                        || Model.RequestType == myapp.Models.RequestType.Request
+                        || Model.RequestType == myapp.Models.RequestType.EditCostCenter
+                        || !string.IsNullOrWhiteSpace(Model.ITAssigneeUserId)
+                        || !string.IsNullOrWhiteSpace(Model.NextResponsibleUserId);
+                }
                 <!-- Manual Edit Form (same as Create) -->
                 <div class="main-content-card mb-5 create-manual-card">
                     <div class="text-center mb-4">
                         <h2>Edit Service Request</h2>
                     </div>
+                        @{ ViewData["ShowChangeRequestG2U"] = false; }
                     <form id="create-form" asp-action="Edit" method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
-                        <h5>Requester Information</h5>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4"><div class="form-group"><label asp-for="RequesterName" class="form-label"></label><input asp-for="RequesterName" class="form-control" readonly /></div></div>
-                            <div class="col-md-3"><div class="form-group"><label asp-for="Department" class="form-label"></label><input asp-for="Department" class="form-control" readonly /></div></div>
-                            <div class="col-md-2"><div class="form-group"><label asp-for="Section" class="form-label"></label><input asp-for="Section" class="form-control" readonly /></div></div>
-                            <div class="col-md-3"><div class="form-group"><label asp-for="RequesterPlant" class="form-label"></label><input asp-for="RequesterPlant" class="form-control" readonly /></div></div>
-                        </div>
-                        <hr class="my-4">
-                        <h5>Request Details</h5>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="RequestType" class="form-label">Request Type</label>
-                                    <select asp-for="RequestType" id="RequestType" class="form-select" asp-items="Html.GetEnumSelectList<myapp.Models.RequestType>()">
-                                        <option value="">-- Select Type --</option>
-                                    </select>
-                                    <span asp-validation-for="RequestType" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6" id="request-plant-container">
-                                <div class="form-group">
-                                    <label asp-for="Plant" class="form-label"></label>
-                                    <select asp-for="Plant" id="RequestPlant" class="form-select">
-                                        <option value="">-- Select Plant --</option>
-                                        <option value="6021">6021</option>
-                                        <option value="6031">6031</option>
-                                        <option value="6051">6051</option>
-                                        <option value="6081">6081</option>
-                                        <option value="6090">6090</option>
-                                    </select>
-                                    <span asp-validation-for="Plant" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="SapModule" class="form-label">SAP Module</label>
-                                    <select asp-for="SapModule" class="form-select">
-                                        <option value="">-- Select SAP Module --</option>
-                                        <option value="MM">MM Module</option>
-                                        <option value="PP">PP Module</option>
-                                        <option value="SD">SD Module</option>
-                                        <option value="FI">FI Module</option>
-                                        <option value="CO">CO Module</option>
-                                        <option value="CR">Change Request</option>
-                                    </select>
-                                    <span asp-validation-for="SapModule" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group mb-4" id="request-description-container">
-                            <label asp-for="Description" class="form-label"></label>
-                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Provide a detailed description of the request..."></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
-                        <div class="form-group mb-4" id="change-request-no-container" style="display:none;">
+                        <input type="hidden" asp-for="Id" />
+                        <partial name="_RequestFormPartial" model="Model" />
+                        <div class="form-group mb-4" id="change-request-no-container" style="display:@(showChangeRequestNoField ? "block" : "none")">
                             <label asp-for="ChangeRequestNoG2U" class="form-label">Change Request No. (G2U)</label>
                             <input asp-for="ChangeRequestNoG2U" class="form-control" placeholder="Enter Change Request No. (G2U)" />
                             <span asp-validation-for="ChangeRequestNoG2U" class="text-danger"></span>
-                        </div>
-                        <div class="form-group mb-4" id="request-upload-container">
-                            <label for="RequestAttachment" class="form-label">Upload File</label>
-                            <input class="form-control" type="file" id="RequestAttachment" name="requestAttachment">
-                            <div class="form-text">Upload a new file here to replace the current attachment.</div>
-                            <span class="text-danger field-validation-valid" data-valmsg-for="requestAttachment" data-valmsg-replace="true"></span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(ViewBag.CurrentAttachmentPath as string))
                         {
@@ -101,65 +101,80 @@
                                 </div>
                             </div>
                         }
-                        <partial name="_MaterialForms" model="Model" />
-                        <div id="workflow-section">
+                        <div id="workflow-section" class="@(forceShowWorkflowAssigneesServer ? "force-show-workflow-assignees" : "")">
                             <hr class="my-4">
                             <h5>Work Flow</h5>
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
-                                        <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
+                        <div class="row mb-4">
+                            <div class="col-md-6 workflow-assignee-col" style="display:@(forceShowWorkflowAssigneesServer ? "block" : "")">
+                                <div class="form-group">
+                                    <label for="NextResponsibleUserId" class="form-label">ผู้รับผิดชอบลำดับถัดไป</label>
+                                    <select name="NextResponsibleUserId" id="NextResponsibleUserId" class="form-select">
+                                        @if (!string.IsNullOrWhiteSpace(Model.NextResponsibleUserId))
+                                        {
+                                            <option value="@Model.NextResponsibleUserId" selected>@(ViewBag.CurrentNextApproverName ?? "Current Responsible User")</option>
+                                        }
+                                        else
+                                        {
                                             <option value="">-- Please select a request type first --</option>
-                                        </select>
-                                        
-                                    </div>
+                                        }
+                                    </select>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="approver-role-container" style="display:none;">
+                                <div class="form-group">
+                                    <label for="ApproverRoleUserId" id="approver-role-label" class="form-label">ผู้รับผิดชอบลำดับถัดไป (มี Role Approve)</label>
+                                    <select name="ApproverRoleUserId" id="ApproverRoleUserId" class="form-select">
+                                        <option value="">-- Please select a request type first --</option>
+                                    </select>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-md-6 workflow-assignee-col" id="it-assignee-container" style="display:@(forceShowWorkflowAssigneesServer ? "block" : "none");">
+                                <div class="form-group">
+                                    <label for="ITAssigneeUserId" class="form-label">Assign ให้กับเจ้าหน้าที่ IT</label>
+                                    <select name="ITAssigneeUserId" id="ITAssigneeUserId" class="form-select">
+                                        <option value="">-- Please select IT staff --</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
-                        @if (User.IsInRole("IT"))
-                        {
+
+                         @* ส่วนนี้แสดงเฉพาะผู้ใช้บทบาท IT *@
+                    @if (SignInManager.IsSignedIn(User) && User.IsInRole("IT"))
+                    {
                             <hr class="my-4" />
                             <h5>DX Update Status</h5>
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label class="form-label">Status</label>
-                                        <select name="Status" id="CreateStatus" class="form-select">
-                                            @{
-                                                var statusList = new[]{"Pending","Inprocess","Run Standard Cost","Check and Confirm","Release","Input Price","Complete","Rejected"};
-                                                var optionsStatus = "";
-                                                foreach (var status in statusList)
-                                                {
-                                                    if (Model.Status == status)
-                                                        optionsStatus += $"<option value=\"{status}\" selected>{status}</option>";
-                                                    else
-                                                        optionsStatus += $"<option value=\"{status}\">{status}</option>";
-                                                }
-                                                @Html.Raw(optionsStatus)
-                                            }
+                                        <label asp-for="Status" class="form-label"></label>
+                                        <select asp-for="Status" id="CreateStatus" class="form-select">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Inprocess">Inprocess</option>
+                                            <option value="Run Standard Cost">Run Standard Cost</option>
+                                            <option value="Check and Confirm">Check and Confirm</option>
+                                            <option value="Release">Release</option>
+                                            <option value="Input Price">Input Price</option>
+                                            <option value="Complete">Complete</option>
+                                            <option value="Rejected">Rejected</option>
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6" id="rejection-remark-container" style="display:none;">
-                                    <div class="form-group">
-                                        <label asp-for="RejectionRemark" class="form-label">หมายเหตุ</label>
-                                        <textarea asp-for="RejectionRemark" id="RejectionRemark" class="form-control" rows="3" placeholder="กรอกเหตุผลหรือหมายเหตุสำหรับการ Rejected..."></textarea>
-                                        <span asp-validation-for="RejectionRemark" class="text-danger"></span>
                                     </div>
                                 </div>
                             </div>
                         }
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
-                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
-                                <i class="fas fa-arrow-left me-1"></i> Back to List
-                            </a>
-                            <button type="submit" id="create-submit-button" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Save Changes
-                            </button>
                         </div>
                     </form>
                 </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button type="submit" id="create-submit-button" class="btn btn-primary" form="create-form">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
             </div>
         </div>
 
@@ -171,14 +186,19 @@
                 const requestPlantSelect = document.getElementById('RequestPlant');
                 const requesterNameInput = document.querySelector('input[name="RequesterName"]');
                 const nextResponsibleUserSelect = document.getElementById('NextResponsibleUserId');
+                const approverRoleUserSelect = document.getElementById('ApproverRoleUserId');
+                const approverRoleContainer = document.getElementById('approver-role-container');
+                const itAssigneeUserSelect = document.getElementById('ITAssigneeUserId');
+                const itAssigneeContainer = document.getElementById('it-assignee-container');
                 const createForm = document.getElementById('create-form');
                 const workflowSection = document.getElementById('workflow-section');
                 const requestPlantContainer = document.getElementById('request-plant-container');
                 const materialFieldsContainer = document.getElementById('material-fields-container');
                 const allMaterialFields = document.querySelectorAll('[data-types]');
-                const bomContainer = document.getElementById('bom-container');
-                const routingContainer = document.getElementById('routing-container');
-                const licensePermissionContainer = document.getElementById('license-permission-container');
+                const bomContainer = document.getElementById('bom-fields-container');
+                const bomEditContainer = document.getElementById('bom-edit-fields-container');
+                const routingContainer = document.getElementById('routing-fields-container');
+                const licensePermissionContainer = document.getElementById('license-permission-fields-container');
                 const distributionChannelSelect = document.getElementById('DistributionChannel');
                 const sapModuleSelect = document.getElementById('SapModule');
                 const boiCodeContainer = document.getElementById('boi-code-container');
@@ -189,9 +209,13 @@
                 const rejectionRemarkInput = document.getElementById('RejectionRemark');
                 const changeRequestNoContainer = document.getElementById('change-request-no-container');
                 const changeRequestNoInput = document.getElementById('ChangeRequestNoG2U');
-                const isITCreator = @User.IsInRole("IT").ToString().ToLowerInvariant();
+                const isITCreator = @((((ViewBag.IsITByDbRole as bool?) ?? false) || User.IsInRole("IT")).ToString().ToLowerInvariant());
+                const isApproveRoleUser = @User.IsInRole("Approve").ToString().ToLowerInvariant();
+                const isITApproveCreator = isITCreator && isApproveRoleUser;
+                const currentUserId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
                 let lastSuccessfulApprovers = [];
                 let lastOldOption = null;
+                let lastSuccessfulApproverRoleUsers = [];
 
                 const typeMapping = {
                     '0': 'Request',
@@ -210,7 +234,25 @@
                     '13': 'CrossPlantPurchase',
                     '14': 'EditBOM',
                     '15': 'LicensePermission',
-                    '16': 'EditCostCenter'
+                    '16': 'EditCostCenter',
+                    // Also map enum name strings (used by Html.GetEnumSelectList) for direct lookup
+                    'Request': 'Request',
+                    'FG': 'FG',
+                    'SM': 'SM',
+                    'RM': 'RM',
+                    'ToolingB': 'ToolingB',
+                    'ToolingB_FG': 'ToolingBFG',
+                    'ToolingB_PU': 'ToolingBPU',
+                    'BOM': 'BOM',
+                    'Routing': 'Routing',
+                    'AddStorage': 'AddStorage',
+                    'DistributionChanel': 'DistributionChanel',
+                    'IPO': 'IPO',
+                    'Passthrough': 'Passthrough',
+                    'CrossPlantPurchase': 'CrossPlantPurchase',
+                    'EditBOM': 'EditBOM',
+                    'LicensePermission': 'LicensePermission',
+                    'EditCostCenter': 'EditCostCenter'
                 };
 
                 function toggleBoiCode() {
@@ -244,24 +286,80 @@
 
                 function toggleChangeRequestNoField() {
                     if (!changeRequestNoContainer || !sapModuleSelect) return;
-                    const isChangeRequestModule = (sapModuleSelect.value || '').trim().toUpperCase() === 'CR';
+                    const normalizeSapModule = (value) => (value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const isChangeRequestModule = normalizeSapModule(sapModuleSelect.value) === 'CR';
                     changeRequestNoContainer.style.display = isChangeRequestModule ? 'block' : 'none';
                     if (!isChangeRequestModule && changeRequestNoInput) {
                         changeRequestNoInput.value = '';
                     }
                 }
 
+                function collapseEmptyMaterialRows() {
+                    if (!materialFieldsContainer) return;
+
+                    const rows = materialFieldsContainer.querySelectorAll('.row');
+                    rows.forEach(row => {
+                        const columns = row.querySelectorAll('[data-types]');
+                        if (!columns.length) {
+                            row.style.display = '';
+                            return;
+                        }
+
+                        const hasVisibleColumn = Array.from(columns).some(col => col.style.display !== 'none');
+                        row.style.display = hasVisibleColumn ? '' : 'none';
+                    });
+                }
+
+                // Get the saved NextResponsibleUserId from the model (for initial load) - MUST BE BEFORE toggleMaterialFields
+                const savedNextResponsibleUserId = '@(Model.NextResponsibleUserId ?? "")';
+                const savedApproverRoleUserId = '@(Model.ApproverRoleUserId ?? "")';
+                const savedITAssigneeUserId = '@(Model.ITAssigneeUserId ?? "")';
+                const currentApproverName = '@(ViewBag.CurrentNextApproverName ?? "")';
+                const currentApproverRoleName = '@(ViewBag.CurrentApproverRoleName ?? "")';
+                const currentITAssigneeName = '@(ViewBag.CurrentITAssigneeName ?? "")';
+                const isCurrentUserNextResponsibleFromServer = @(((ViewBag.IsCurrentUserNextResponsible as bool?) ?? false).ToString().ToLowerInvariant());
+                const forceShowWorkflowAssigneesServer = @(forceShowWorkflowAssigneesServer.ToString().ToLowerInvariant());
+                const initialRequestTypeName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RequestType.ToString()));
+
+                function isCurrentUserAssignedAsNextResponsible() {
+                    const savedNextResponsibleUserIdPart = savedNextResponsibleUserId
+                        ? savedNextResponsibleUserId.split('|')[0]
+                        : '';
+
+                    const isMatchedByModel = !!currentUserId
+                        && !!savedNextResponsibleUserIdPart
+                        && currentUserId.toLowerCase() === savedNextResponsibleUserIdPart.toLowerCase();
+
+                    return isMatchedByModel || isCurrentUserNextResponsibleFromServer;
+                }
+
+                function ensureWorkflowSectionPlacement() {
+                    if (!workflowSection || !materialFieldsContainer) {
+                        return;
+                    }
+
+                    if (materialFieldsContainer.contains(workflowSection)) {
+                        const parent = materialFieldsContainer.parentNode;
+                        if (parent) {
+                            parent.insertBefore(workflowSection, materialFieldsContainer.nextSibling);
+                            console.log('Moved workflow section out of material-fields-container to keep it visible.');
+                        }
+                    }
+                }
+
                 function toggleMaterialFields() {
-                    if (!requestTypeSelect) return;
-                    const selectedValue = requestTypeSelect.value;
+                    const selectedValue = requestTypeSelect ? requestTypeSelect.value : '';
                     // support enum value as numeric string or as name (e.g. "6" or "BOM")
                     let selectedTypeName = '';
                     if (selectedValue) {
                         selectedTypeName = typeMapping[selectedValue] || selectedValue;
                     }
+                    const effectiveTypeName = selectedTypeName || initialRequestTypeName || '';
                     //Treat EditBOM like BOM for field visibility
-                    if (selectedTypeName === 'EditBOM' || selectedTypeName === 'แก้ BOM') {
+                    if (effectiveTypeName === 'EditBOM' || effectiveTypeName === 'แก้ BOM') {
                         selectedTypeName = 'EditBOM';
+                    } else {
+                        selectedTypeName = effectiveTypeName;
                     }
                     const isSimpleRequest = selectedTypeName === 'Request'
                         || selectedTypeName === 'ร้องขอ'
@@ -296,14 +394,61 @@
                         });
                     }
 
+                    collapseEmptyMaterialRows();
+
                     const isBom = selectedTypeName === 'BOM';
                     const isEditBom = selectedTypeName === 'EditBOM';
+                    const isRouting = selectedTypeName === 'Routing';
                     const isLicensePermission = selectedTypeName === 'LicensePermission';
+                    const forceShowWorkflowAssignees = forceShowWorkflowAssigneesServer
+                        || (isSimpleRequest && (!!selectedValue || !!initialRequestTypeName));
 
-                    //��� block �����ʴ� UI �ͧ BOM EditBom Routing
+                    // Always show Next Responsible User dropdown when there's a request type selected or saved value exists
+                    const nextResponsibleContainer = nextResponsibleUserSelect ? nextResponsibleUserSelect.closest('.col-md-6') : null;
+                    const hasSavedNextResponsible = !!savedNextResponsibleUserId;
+                    const isCurrentUserTheNextResponsible = isCurrentUserAssignedAsNextResponsible();
+                    if (nextResponsibleContainer && (selectedValue || hasSavedNextResponsible || forceShowWorkflowAssignees)) {
+                        nextResponsibleContainer.style.display = 'block';
+                    }
 
-                    if (bomContainer) bomContainer.style.display = (isEditBom) ? 'block' : 'none';
-                    if (routingContainer) routingContainer.style.display = selectedTypeName === 'Routing' ? 'block' : 'none';
+                    // Show/hide approver role dropdown for BOM, EditBOM, and Routing
+                    const showApproverRoleDropdown = isBom || isEditBom || (isRouting && !isITCreator);
+                    if (approverRoleContainer) {
+                        approverRoleContainer.style.display = showApproverRoleDropdown ? 'block' : 'none';
+                    }
+
+                    if (itAssigneeContainer) {
+                        const hasSavedITAssigneeValue = !!savedITAssigneeUserId
+                            || !!(itAssigneeUserSelect && itAssigneeUserSelect.value);
+                        const showITAssigneeDropdown = forceShowWorkflowAssignees || ((!!selectedValue && isITApproveCreator) || hasSavedITAssigneeValue || isCurrentUserTheNextResponsible);
+                        console.log('toggleMaterialFields - IT Assignee:', { selectedValue, isITApproveCreator, hasSavedITAssigneeValue, isCurrentUserTheNextResponsible, forceShowWorkflowAssignees, showITAssigneeDropdown });
+                        itAssigneeContainer.style.display = showITAssigneeDropdown ? 'block' : 'none';
+                    }
+                    
+                    // CRITICAL: If current user is the assigned next responsible, FORCE show both dropdowns
+                    // This ensures they remain visible even after subsequent toggleMaterialFields calls
+                    const isCurrentUserTheNextResponsibleFinal = isCurrentUserAssignedAsNextResponsible();
+                    
+                    if (isCurrentUserTheNextResponsibleFinal) {
+                        console.log('CRITICAL: User is assigned next responsible - forcing dropdowns visible');
+                        // Force show Next Responsible User dropdown
+                        if (nextResponsibleUserSelect) {
+                            const nextResponsibleContainerFinal = nextResponsibleUserSelect.closest('.col-md-6');
+                            if (nextResponsibleContainerFinal) {
+                                nextResponsibleContainerFinal.style.display = 'block';
+                            }
+                        }
+                        // Force show IT Assignee dropdown
+                        if (itAssigneeContainer) {
+                            itAssigneeContainer.style.display = 'block';
+                        }
+                    }
+
+                    // Show/hide BOM, EditBOM, Routing, and LicensePermission containers
+
+                    if (bomContainer) bomContainer.style.display = isBom ? 'block' : 'none';
+                    if (bomEditContainer) bomEditContainer.style.display = isEditBom ? 'block' : 'none';
+                    if (routingContainer) routingContainer.style.display = isRouting ? 'block' : 'none';
                     if (licensePermissionContainer) licensePermissionContainer.style.display = isLicensePermission ? 'block' : 'none';
 
                     // After toggling all fields, specifically check for BOI code visibility
@@ -330,11 +475,63 @@
                         }
                     }
                 }
-
-                // Get the saved NextResponsibleUserId from the model (for initial load)
-                const savedNextResponsibleUserId = '@(Model.NextResponsibleUserId ?? "")';
-                const currentApproverName = '@(ViewBag.CurrentNextApproverName ?? "")';
                 const getNextApproversUrl = '@Url.Action("GetNextApprovers", "Requests")';
+                const getApproverRoleUsersUrl = '@Url.Action("GetApproverRoleUsers", "Requests")';
+                const getITUsersUrl = '@Url.Action("GetITUsers", "Requests")';
+                const getITApproveUsersUrl = '@Url.Action("GetITApproveUsers", "Requests")';
+                const approverRoleLabel = document.getElementById('approver-role-label');
+                let lastApproverRoleOldOption = null;
+                let lastITAssigneeOldOption = null;
+
+                function parseJsonArrayResponse(response) {
+                    if (!response || !response.ok) {
+                        return Promise.resolve([]);
+                    }
+
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    if (!contentType.includes('application/json')) {
+                        return Promise.resolve([]);
+                    }
+
+                    return response.json().then(data => Array.isArray(data) ? data : []).catch(() => []);
+                }
+
+                function getSelectedTypeName() {
+                    const selectedValue = requestTypeSelect ? requestTypeSelect.value : '';
+                    return selectedValue ? (typeMapping[selectedValue] || selectedValue) : '';
+                }
+
+                function isRoutingRequestType() {
+                    const normalizedType = (getSelectedTypeName() || '')
+                        .replace(/[_\s-]/g, '')
+                        .toLowerCase();
+                    return normalizedType === 'routing';
+                }
+
+                function setWorkflowLabelsForCurrentMode() {
+                    if (!approverRoleLabel) return;
+                    approverRoleLabel.textContent = 'ผู้รับผิดชอบลำดับถัดไป (มี Role Approve)';
+                }
+
+                function showSavedOptionForReadonly(selectElement, savedValue, displayName, emptyLabel) {
+                    if (!selectElement) return;
+
+                    selectElement.innerHTML = '';
+                    selectElement.add(new Option(emptyLabel, ''));
+
+                    if (savedValue) {
+                        const label = displayName || savedValue;
+                        const savedOption = new Option(label, savedValue);
+                        savedOption.selected = true;
+                        selectElement.add(savedOption);
+                        selectElement.value = savedValue;
+                    }
+
+                    // Keep value submittable: do not disable select, lock interaction via pointer-events.
+                    selectElement.disabled = false;
+                    selectElement.style.pointerEvents = 'none';
+                    selectElement.setAttribute('aria-readonly', 'true');
+                }
 
                 function renderOldOptionIfNeeded(found) {
                     // Remove any previous old option
@@ -351,16 +548,126 @@
                     }
                 }
 
-                // Initial toggle
-                toggleMaterialFields();
-                toggleBoiCode();
-                toggleEditBomFgInput();
-                toggleRejectionRemark();
-                toggleChangeRequestNoField();
+                function renderApproverRoleOldOptionIfNeeded(found) {
+                    if (!approverRoleUserSelect) return;
+
+                    if (lastApproverRoleOldOption) {
+                        approverRoleUserSelect.removeChild(lastApproverRoleOldOption);
+                        lastApproverRoleOldOption = null;
+                    }
+
+                    if (savedApproverRoleUserId && !found && currentApproverRoleName) {
+                        const oldOption = new Option(currentApproverRoleName, savedApproverRoleUserId);
+                        oldOption.selected = true;
+                        approverRoleUserSelect.add(oldOption);
+                        lastApproverRoleOldOption = oldOption;
+                    }
+                }
+
+                function renderITAssigneeOldOptionIfNeeded(found) {
+                    if (!itAssigneeUserSelect) return;
+
+                    if (lastITAssigneeOldOption) {
+                        itAssigneeUserSelect.removeChild(lastITAssigneeOldOption);
+                        lastITAssigneeOldOption = null;
+                    }
+
+                    if (savedITAssigneeUserId && !found && currentITAssigneeName) {
+                        const oldOption = new Option(currentITAssigneeName, savedITAssigneeUserId);
+                        oldOption.selected = true;
+                        itAssigneeUserSelect.add(oldOption);
+                        lastITAssigneeOldOption = oldOption;
+                    }
+                }
+
+                // IMMEDIATE: Show workflow fields if user is the assigned next responsible (before any delays)
+                (function immediateVisibilityCheck() {
+                    ensureWorkflowSectionPlacement();
+
+                    const isCurrentUserTheNextResponsible = isCurrentUserAssignedAsNextResponsible();
+                    
+                    console.log('IMMEDIATE CHECK:', {
+                        savedNextResponsibleUserId: savedNextResponsibleUserId,
+                        currentUserId: currentUserId,
+                        isCurrentUserNextResponsibleFromServer: isCurrentUserNextResponsibleFromServer,
+                        isCurrentUserTheNextResponsible: isCurrentUserTheNextResponsible,
+                        requestTypeSelectValue: requestTypeSelect ? requestTypeSelect.value : 'null',
+                        nextResponsibleUserSelectExists: !!nextResponsibleUserSelect,
+                        nextResponsibleContainerExists: !!(nextResponsibleUserSelect && nextResponsibleUserSelect.closest('.col-md-6'))
+                    });
+                    
+                    if (isCurrentUserTheNextResponsible) {
+                        console.log('IMMEDIATE: User is assigned next responsible - showing dropdowns');
+                        if (nextResponsibleUserSelect) {
+                            const nextResponsibleContainer = nextResponsibleUserSelect.closest('.col-md-6');
+                            if (nextResponsibleContainer) {
+                                nextResponsibleContainer.style.display = 'block';
+                                console.log('IMMEDIATE: Set Next Responsible container to block');
+                            } else {
+                                console.log('IMMEDIATE: Next Responsible container not found');
+                            }
+                        } else {
+                            console.log('IMMEDIATE: Next Responsible User select not found');
+                        }
+                        if (itAssigneeContainer) {
+                            itAssigneeContainer.style.display = 'block';
+                            console.log('IMMEDIATE: Set IT Assignee container to block');
+                        }
+                    } else {
+                        console.log('IMMEDIATE: User is NOT the assigned next responsible');
+                    }
+                })();
+                
+                // Initial toggle - delay to ensure DOM is fully ready
+                setTimeout(function() {
+                    ensureWorkflowSectionPlacement();
+                    toggleMaterialFields();
+                    setWorkflowLabelsForCurrentMode();
+                    toggleBoiCode();
+                    toggleEditBomFgInput();
+                    toggleRejectionRemark();
+                    toggleChangeRequestNoField();
+                }, 100);
+
+                // Force show dropdowns after initial load if user is the assigned next responsible
+                setTimeout(function() {
+                    ensureWorkflowSectionPlacement();
+                    const isCurrentUserTheNextResponsible = isCurrentUserAssignedAsNextResponsible();
+                    
+                    console.log('Initial load check:', { 
+                        savedNextResponsibleUserId, 
+                        currentUserId, 
+                        isCurrentUserNextResponsibleFromServer,
+                        isCurrentUserTheNextResponsible,
+                        requestTypeValue: requestTypeSelect ? requestTypeSelect.value : 'null'
+                    });
+                    
+                    if (isCurrentUserTheNextResponsible) {
+                        // Force show Next Responsible User dropdown
+                        if (nextResponsibleUserSelect) {
+                            const nextResponsibleContainer = nextResponsibleUserSelect.closest('.col-md-6');
+                            if (nextResponsibleContainer) {
+                                nextResponsibleContainer.style.display = 'block';
+                            }
+                        }
+                        
+                        // Force show IT Assignee dropdown
+                        if (itAssigneeContainer) {
+                            itAssigneeContainer.style.display = 'block';
+                        }
+                        
+                        // Re-fetch data to populate dropdowns
+                        fetchNextApprovers();
+                        fetchITAssigneeUsers();
+                    }
+                }, 300);
 
                 // Add event listener to request type select
                 if (requestTypeSelect) {
-                    requestTypeSelect.addEventListener('change', toggleMaterialFields);
+                    requestTypeSelect.addEventListener('change', function () {
+                        toggleMaterialFields();
+                        setWorkflowLabelsForCurrentMode();
+                    });
                 }
 
                 // Add event listener to distribution channel select
@@ -386,21 +693,55 @@
                     const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
                     const requesterNameValue = requesterNameInput ? requesterNameInput.value : '';
                     const currentApproverId = savedNextResponsibleUserId;
+                    const currentSelectedNextResponsibleId = nextResponsibleUserSelect.value || savedNextResponsibleUserId;
+                    const currentSelectedNextResponsibleOption = nextResponsibleUserSelect.options[nextResponsibleUserSelect.selectedIndex];
+                    const currentSelectedNextResponsibleLabel = currentSelectedNextResponsibleOption
+                        ? currentSelectedNextResponsibleOption.text
+                        : currentApproverName;
 
-                    if (isITCreator === 'true') {
-                        nextResponsibleUserSelect.innerHTML = '';
-                        nextResponsibleUserSelect.disabled = true;
-                        return;
+                    console.log('fetchNextApprovers called with:', { requestTypeValue, selectedPlant, requesterNameValue, currentApproverId, isITCreator, isRoutingRequestType: isRoutingRequestType() });
+
+                    // Always enable and load the dropdown
+                    nextResponsibleUserSelect.disabled = false;
+                    nextResponsibleUserSelect.style.pointerEvents = '';
+                    nextResponsibleUserSelect.removeAttribute('aria-readonly');
+                    if (!nextResponsibleUserSelect.options.length) {
+                        nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+                    }
+                    
+                    // Show the container
+                    const nextResponsibleContainer = nextResponsibleUserSelect.closest('.col-md-6');
+                    if (nextResponsibleContainer) {
+                        nextResponsibleContainer.style.display = 'block';
                     }
 
-                    nextResponsibleUserSelect.disabled = false;
-                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+                    const keepCurrentSelection = () => {
+                        if (!currentSelectedNextResponsibleId) {
+                            return false;
+                        }
+
+                        const existingOption = Array.from(nextResponsibleUserSelect.options)
+                            .find(option => option.value === currentSelectedNextResponsibleId);
+
+                        if (existingOption) {
+                            nextResponsibleUserSelect.value = currentSelectedNextResponsibleId;
+                            return true;
+                        }
+
+                        const fallbackLabel = currentSelectedNextResponsibleLabel || currentApproverName || currentSelectedNextResponsibleId;
+                        const fallbackOption = new Option(fallbackLabel, currentSelectedNextResponsibleId);
+                        fallbackOption.selected = true;
+                        nextResponsibleUserSelect.add(fallbackOption);
+                        nextResponsibleUserSelect.value = currentSelectedNextResponsibleId;
+                        return true;
+                    };
 
                     const renderApproverOptions = (data) => {
                         nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a responsible user by flow --</option>';
                         let found = false;
                         const savedUserId = savedNextResponsibleUserId.split('|')[0];
                         let matchedValue = null;
+                        let matchedCurrentValue = null;
                         data.forEach(user => {
                             const stepPrefix = user.step ? `Step ${user.step} - ` : '';
                             const ruleSuffix = user.rule ? ` (${user.rule})` : '';
@@ -410,46 +751,84 @@
                                 found = true;
                                 matchedValue = user.id;
                             }
+                            if (currentSelectedNextResponsibleId && (user.id === currentSelectedNextResponsibleId || userId === currentSelectedNextResponsibleId.split('|')[0])) {
+                                matchedCurrentValue = user.id;
+                            }
                             nextResponsibleUserSelect.add(option);
                         });
-                        // If the saved userId matches, select the first matching option
-                        if (savedNextResponsibleUserId && found && matchedValue) {
+                        // Keep current selected value whenever possible.
+                        if (matchedCurrentValue) {
+                            nextResponsibleUserSelect.value = matchedCurrentValue;
+                        } else if (savedNextResponsibleUserId && found && matchedValue) {
                             nextResponsibleUserSelect.value = matchedValue;
                         } else if (data.length === 1) {
                             nextResponsibleUserSelect.value = data[0].id;
+                        } else {
+                            keepCurrentSelection();
                         }
                         renderOldOptionIfNeeded(found);
                         lastSuccessfulApprovers = data;
                     };
 
                     if (requestTypeValue) {
-                        // Always send currentApproverId for Edit
+                        // For IT creators on Routing, show only IT users with Approve role
+                        if (isITCreator && isRoutingRequestType()) {
+                            fetch(getITApproveUsersUrl)
+                                .then(parseJsonArrayResponse)
+                                .then(data => {
+                                    if (data && data.length > 0) {
+                                        renderApproverOptions(data);
+                                    } else {
+                                        if (!keepCurrentSelection()) {
+                                            nextResponsibleUserSelect.innerHTML = '<option value="">-- No IT approve-role users found --</option>';
+                                            renderOldOptionIfNeeded(false);
+                                        }
+                                    }
+                                    toggleMaterialFields();
+                                })
+                                .catch(() => {
+                                    if (!keepCurrentSelection()) {
+                                        nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                        renderOldOptionIfNeeded(false);
+                                    }
+                                    toggleMaterialFields();
+                                });
+                            return;
+                        }
+
+                        // For all other cases (including IT creators on non-Routing types), load the normal approver list
                         fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterName=${encodeURIComponent(requesterNameValue)}&currentApproverId=${encodeURIComponent(currentApproverId)}`)
-                            .then(response => response.json())
+                            .then(parseJsonArrayResponse)
                             .then(data => {
                                 if (data && data.length > 0) {
                                     renderApproverOptions(data);
                                 } else {
                                     // Fallback: retry without plant filter
                                     fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&requesterName=${encodeURIComponent(requesterNameValue)}&currentApproverId=${encodeURIComponent(currentApproverId)}`)
-                                        .then(r => r.json())
+                                        .then(parseJsonArrayResponse)
                                         .then(fallbackData => {
                                             if (fallbackData && fallbackData.length > 0) {
                                                 renderApproverOptions(fallbackData);
                                             } else if (lastSuccessfulApprovers.length > 0) {
                                                 renderApproverOptions(lastSuccessfulApprovers);
                                             } else {
-                                                nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
-                                                renderOldOptionIfNeeded(false);
+                                                if (!keepCurrentSelection()) {
+                                                    nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                                    renderOldOptionIfNeeded(false);
+                                                }
                                             }
+                                            toggleMaterialFields();
                                         })
                                         .catch(() => {
                                             if (lastSuccessfulApprovers.length > 0) {
                                                 renderApproverOptions(lastSuccessfulApprovers);
                                             } else {
-                                                nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
-                                                renderOldOptionIfNeeded(false);
+                                                if (!keepCurrentSelection()) {
+                                                    nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                                    renderOldOptionIfNeeded(false);
+                                                }
                                             }
+                                            toggleMaterialFields();
                                         });
                                 }
                             })
@@ -458,22 +837,291 @@
                                 if (lastSuccessfulApprovers.length > 0) {
                                     renderApproverOptions(lastSuccessfulApprovers);
                                 } else {
-                                    nextResponsibleUserSelect.innerHTML = '<option value="">-- Error loading data --</option>';
-                                    renderOldOptionIfNeeded(false);
+                                    if (!keepCurrentSelection()) {
+                                        nextResponsibleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                        renderOldOptionIfNeeded(false);
+                                    }
                                 }
+                                toggleMaterialFields();
                             });
                     } else {
-                        nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
-                        renderOldOptionIfNeeded(false);
+                        if (!keepCurrentSelection()) {
+                            nextResponsibleUserSelect.innerHTML = '<option value="">-- Please select a request type first --</option>';
+                            renderOldOptionIfNeeded(false);
+                        }
+                        toggleMaterialFields();
                     }
                 }
 
-                // Initial population
-                fetchNextApprovers();
+                function fetchApproverRoleUsers() {
+                    const requestTypeValue = requestTypeSelect.value;
+                    const selectedPlant = requestPlantSelect ? requestPlantSelect.value : '';
+                    const requesterDepartment = document.querySelector('input[name="Department"]') ? document.querySelector('input[name="Department"]').value : '';
+                    
+                    if (!requestTypeValue || !approverRoleUserSelect) {
+                        return;
+                    }
 
-                requestTypeSelect.addEventListener('change', fetchNextApprovers);
+                    // For IT creators, show readonly (they can't change approver role)
+                    if (isITCreator) {
+                        showSavedOptionForReadonly(
+                            approverRoleUserSelect,
+                            savedApproverRoleUserId,
+                            currentApproverRoleName,
+                            '-- No approver role user --'
+                        );
+                        return;
+                    }
+
+                    approverRoleUserSelect.disabled = false;
+                    approverRoleUserSelect.style.pointerEvents = '';
+                    approverRoleUserSelect.removeAttribute('aria-readonly');
+                    approverRoleUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                    // Fetch users with Approve role in the same department as requester
+                    fetch(`${getApproverRoleUsersUrl}?requestType=${encodeURIComponent(requestTypeValue)}&plant=${encodeURIComponent(selectedPlant)}&requesterDepartment=${encodeURIComponent(requesterDepartment)}`)
+                        .then(parseJsonArrayResponse)
+                        .then(data => {
+                            if (data && data.length > 0) {
+                                approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                let found = false;
+                                data.forEach(user => {
+                                    const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                    const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                    const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                    if (savedApproverRoleUserId && user.id === savedApproverRoleUserId) {
+                                        found = true;
+                                    }
+                                    approverRoleUserSelect.add(option);
+                                });
+                                if (savedApproverRoleUserId && found) {
+                                    approverRoleUserSelect.value = savedApproverRoleUserId;
+                                } else if (data.length === 1) {
+                                    approverRoleUserSelect.value = data[0].id;
+                                }
+                                renderApproverRoleOldOptionIfNeeded(found);
+                                lastSuccessfulApproverRoleUsers = data;
+                            } else {
+                                // Fallback: retry without plant filter
+                                fetch(`${getNextApproversUrl}?requestType=${encodeURIComponent(requestTypeValue)}&currentApproverId=`)
+                                    .then(parseJsonArrayResponse)
+                                    .then(fallbackData => {
+                                        if (fallbackData && fallbackData.length > 0) {
+                                            approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                            let found = false;
+                                            fallbackData.forEach(user => {
+                                                const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                                const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                                const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                                if (savedApproverRoleUserId && user.id === savedApproverRoleUserId) {
+                                                    found = true;
+                                                }
+                                                approverRoleUserSelect.add(option);
+                                            });
+                                            if (savedApproverRoleUserId && found) {
+                                                approverRoleUserSelect.value = savedApproverRoleUserId;
+                                            } else if (fallbackData.length === 1) {
+                                                approverRoleUserSelect.value = fallbackData[0].id;
+                                            }
+                                            renderApproverRoleOldOptionIfNeeded(found);
+                                            lastSuccessfulApproverRoleUsers = fallbackData;
+                                        } else {
+                                            approverRoleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                            renderApproverRoleOldOptionIfNeeded(false);
+                                            lastSuccessfulApproverRoleUsers = [];
+                                        }
+                                    })
+                                    .catch(() => {
+                                        if (lastSuccessfulApproverRoleUsers.length > 0) {
+                                            approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                            let found = false;
+                                            lastSuccessfulApproverRoleUsers.forEach(user => {
+                                                const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                                const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                                const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                                if (savedApproverRoleUserId && user.id === savedApproverRoleUserId) {
+                                                    found = true;
+                                                }
+                                                approverRoleUserSelect.add(option);
+                                            });
+                                            if (savedApproverRoleUserId && found) {
+                                                approverRoleUserSelect.value = savedApproverRoleUserId;
+                                            } else if (lastSuccessfulApproverRoleUsers.length === 1) {
+                                                approverRoleUserSelect.value = lastSuccessfulApproverRoleUsers[0].id;
+                                            }
+                                            renderApproverRoleOldOptionIfNeeded(found);
+                                        } else {
+                                            approverRoleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                            renderApproverRoleOldOptionIfNeeded(false);
+                                        }
+                                    });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching approver role users:', error);
+                            if (lastSuccessfulApproverRoleUsers.length > 0) {
+                                approverRoleUserSelect.innerHTML = '<option value="">-- Please select a responsible user --</option>';
+                                let found = false;
+                                lastSuccessfulApproverRoleUsers.forEach(user => {
+                                    const stepPrefix = user.step ? `Step ${user.step} - ` : '';
+                                    const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                    const option = new Option(`${stepPrefix}${user.fullName}${ruleSuffix}`, user.id);
+                                    if (savedApproverRoleUserId && user.id === savedApproverRoleUserId) {
+                                        found = true;
+                                    }
+                                    approverRoleUserSelect.add(option);
+                                });
+                                if (savedApproverRoleUserId && found) {
+                                    approverRoleUserSelect.value = savedApproverRoleUserId;
+                                } else if (lastSuccessfulApproverRoleUsers.length === 1) {
+                                    approverRoleUserSelect.value = lastSuccessfulApproverRoleUsers[0].id;
+                                }
+                                renderApproverRoleOldOptionIfNeeded(found);
+                            } else {
+                                approverRoleUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                                renderApproverRoleOldOptionIfNeeded(false);
+                            }
+                        });
+                }
+
+                function fetchITAssigneeUsers() {
+                    if (!itAssigneeUserSelect) {
+                        return;
+                    }
+
+                    const currentSelectedITAssigneeId = itAssigneeUserSelect.value;
+                    const currentSelectedOption = itAssigneeUserSelect.options[itAssigneeUserSelect.selectedIndex];
+                    const currentSelectedITAssigneeName = currentSelectedOption ? currentSelectedOption.text : currentITAssigneeName;
+
+                    const isCurrentUserTheNextResponsible = isCurrentUserAssignedAsNextResponsible();
+
+                    // Load data if: IT+Approve creator with request type selected, OR if current user is the assigned next responsible
+                    const shouldLoadITUsers = (isITApproveCreator && requestTypeSelect && requestTypeSelect.value) || isCurrentUserTheNextResponsible;
+
+                    if (!shouldLoadITUsers) {
+                        // For non-IT users or users who are not the assigned next responsible, show readonly
+                        if (currentSelectedITAssigneeId) {
+                            showSavedOptionForReadonly(
+                                itAssigneeUserSelect,
+                                currentSelectedITAssigneeId,
+                                currentSelectedITAssigneeName,
+                                '-- No IT assignee --'
+                            );
+                        }
+                        else if (savedITAssigneeUserId) {
+                            showSavedOptionForReadonly(
+                                itAssigneeUserSelect,
+                                savedITAssigneeUserId,
+                                currentITAssigneeName,
+                                '-- No IT assignee --'
+                            );
+                        }
+                        else
+                        {
+                            itAssigneeUserSelect.innerHTML = '<option value="">-- Please select IT staff --</option>';
+                            itAssigneeUserSelect.disabled = true;
+                        }
+                        return;
+                    }
+
+                    itAssigneeUserSelect.disabled = false;
+                    itAssigneeUserSelect.style.pointerEvents = '';
+                    itAssigneeUserSelect.removeAttribute('aria-readonly');
+                    itAssigneeUserSelect.innerHTML = '<option value="">-- Loading...--</option>';
+
+                    fetch(getITUsersUrl)
+                        .then(parseJsonArrayResponse)
+                        .then(data => {
+                            if (data && data.length > 0) {
+                                itAssigneeUserSelect.innerHTML = '<option value="">-- Please select IT staff --</option>';
+                                let found = false;
+
+                                data.forEach(user => {
+                                    const ruleSuffix = user.rule ? ` (${user.rule})` : '';
+                                    const option = new Option(`${user.fullName}${ruleSuffix}`, user.id);
+                                    if (savedITAssigneeUserId && user.id === savedITAssigneeUserId) {
+                                        found = true;
+                                    }
+                                    itAssigneeUserSelect.add(option);
+                                });
+
+                                const hasCurrentSelection = !!currentSelectedITAssigneeId && data.some(user => user.id === currentSelectedITAssigneeId);
+                                if (hasCurrentSelection) {
+                                    itAssigneeUserSelect.value = currentSelectedITAssigneeId;
+                                } else if (savedITAssigneeUserId && found) {
+                                    itAssigneeUserSelect.value = savedITAssigneeUserId;
+                                } else if (data.length === 1) {
+                                    itAssigneeUserSelect.value = data[0].id;
+                                }
+
+                                renderITAssigneeOldOptionIfNeeded(found);
+                            } else {
+                                itAssigneeUserSelect.innerHTML = '<option value="">-- No IT staff found --</option>';
+                                renderITAssigneeOldOptionIfNeeded(false);
+                            }
+                        })
+                        .catch(() => {
+                            itAssigneeUserSelect.innerHTML = '<option value="">-- No users found --</option>';
+                            renderITAssigneeOldOptionIfNeeded(false);
+                        });
+                }
+
+                // Initial population
+                try {
+                    fetchNextApprovers();
+                    fetchApproverRoleUsers();
+                    fetchITAssigneeUsers();
+                } catch (error) {
+                    console.error('Error during initial population:', error);
+                }
+
+                // Re-evaluate dropdown visibility after data is loaded
+                // Use multiple timeouts to ensure the DOM has updated after all fetch calls complete
+                setTimeout(function() {
+                    toggleMaterialFields();
+                }, 200);
+                
+                // Additional check after all async operations should be complete
+                setTimeout(function() {
+                    console.log('Final toggleMaterialFields call');
+                    ensureWorkflowSectionPlacement();
+                    toggleMaterialFields();
+                    
+                    // Force show dropdowns for assigned user
+                    const isCurrentUserTheNextResponsible = isCurrentUserAssignedAsNextResponsible();
+                    
+                    if (isCurrentUserTheNextResponsible && nextResponsibleUserSelect) {
+                        const nextResponsibleContainer = nextResponsibleUserSelect.closest('.col-md-6');
+                        if (nextResponsibleContainer) {
+                            nextResponsibleContainer.style.display = 'block';
+                            console.log('Force showing Next Responsible User dropdown for assigned user');
+                        }
+                    }
+                    
+                    if (isCurrentUserTheNextResponsible && itAssigneeUserSelect) {
+                        const itAssigneeContainer = itAssigneeUserSelect.closest('.col-md-6');
+                        if (itAssigneeContainer) {
+                            itAssigneeContainer.style.display = 'block';
+                            console.log('Force showing IT Assignee dropdown for assigned user');
+                        }
+                    }
+                }, 500);
+
+                if (requestTypeSelect) {
+                    requestTypeSelect.addEventListener('change', function() {
+                        setWorkflowLabelsForCurrentMode();
+                        fetchNextApprovers();
+                        fetchApproverRoleUsers();
+                        fetchITAssigneeUsers();
+                    });
+                }
                 if (requestPlantSelect) {
-                    requestPlantSelect.addEventListener('change', fetchNextApprovers);
+                    requestPlantSelect.addEventListener('change', function() {
+                        setWorkflowLabelsForCurrentMode();
+                        fetchNextApprovers();
+                        fetchApproverRoleUsers();
+                        fetchITAssigneeUsers();
+                    });
                 }
 
                 // BOM Components
@@ -593,7 +1241,17 @@
 
                 // Sync selected value to form on submit
                 createForm.addEventListener('submit', function(event) {
-                    // No hidden input needed, value is posted by select name
+                    // Disabled selects are not posted by browser; re-enable ones with values so assignments persist.
+                    const disabledWorkflowSelects = [
+                        nextResponsibleUserSelect,
+                        approverRoleUserSelect,
+                        itAssigneeUserSelect
+                    ].filter(select => select && select.disabled && select.value);
+
+                    disabledWorkflowSelects.forEach(select => {
+                        select.disabled = false;
+                    });
+
                     let isValid = true;
 
                     if (hasBlankRequiredRequestFields()) {
@@ -618,4 +1276,3 @@
             });
             </script>
         }
-@model myapp.Models.ViewModels.CreateRequestViewModel

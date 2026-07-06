@@ -24,6 +24,27 @@
             </div>
         }
     };
+
+    var requestTypeName = (Model.RequestType ?? string.Empty).Trim();
+    var isRequestType = string.Equals(requestTypeName, "Request", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(requestTypeName, "ร้องขอ", StringComparison.OrdinalIgnoreCase);
+    var isFG = string.Equals(requestTypeName, "FG", StringComparison.OrdinalIgnoreCase);
+    var isSM = string.Equals(requestTypeName, "SM", StringComparison.OrdinalIgnoreCase);
+    var isRM = string.Equals(requestTypeName, "RM", StringComparison.OrdinalIgnoreCase);
+    var isToolingB = string.Equals(requestTypeName, "ToolingB", StringComparison.OrdinalIgnoreCase);
+    var isToolingBFG = string.Equals(requestTypeName, "ToolingB_FG", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(requestTypeName, "ToolingBFG", StringComparison.OrdinalIgnoreCase);
+    var isToolingBPU = string.Equals(requestTypeName, "ToolingB_PU", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(requestTypeName, "ToolingBPU", StringComparison.OrdinalIgnoreCase);
+    var isBOM = string.Equals(requestTypeName, "BOM", StringComparison.OrdinalIgnoreCase);
+    var isRouting = string.Equals(requestTypeName, "Routing", StringComparison.OrdinalIgnoreCase);
+    var isAddStorage = string.Equals(requestTypeName, "AddStorage", StringComparison.OrdinalIgnoreCase);
+    var isDistributionChannel = string.Equals(requestTypeName, "DistributionChanel", StringComparison.OrdinalIgnoreCase);
+    var isIPO = string.Equals(requestTypeName, "IPO", StringComparison.OrdinalIgnoreCase);
+    var isPassthrough = string.Equals(requestTypeName, "Passthrough", StringComparison.OrdinalIgnoreCase);
+    var isCrossPlantPurchase = string.Equals(requestTypeName, "CrossPlantPurchase", StringComparison.OrdinalIgnoreCase);
+    var isEditBOM = string.Equals(requestTypeName, "EditBOM", StringComparison.OrdinalIgnoreCase);
+    var isLicensePermission = string.Equals(requestTypeName, "LicensePermission", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="row justify-content-center">
@@ -52,19 +73,25 @@
 
             <hr class="my-4">
 
-            <!-- Request Details -->
+            <hr class="my-4">
             <div class="mb-4">
                 <h5 class="mb-3">Request Details</h5>
-                @if (!string.IsNullOrWhiteSpace(Model.SapModule))
-                {
-                    <p><strong>SAP Module:</strong> <span class="text-secondary">@Model.SapModule</span></p>
-                }
+                <div class="row g-3">
+                    @{
+                        RenderDetailField("SAP Module", Model.SapModule);
+                        RenderDetailField("Change Request No. (G2U)", Model.ChangeRequestG2U);
+                        RenderDetailField("Next Responsible User", (string?)ViewBag.NextResponsibleUserName);
+                        RenderDetailField("IT Assignee", (string?)ViewBag.AssignedITUserName);
+                    }
+                </div>
                 @if (!string.IsNullOrWhiteSpace(Model.Description))
                 {
-                    <p class="description-box">@Html.Raw(Model.Description.Replace("\n", "<br />"))</p>
+                    <div class="mt-3">
+                        <p class="description-box">@Html.Raw(Model.Description.Replace("\n", "<br />"))</p>
+                    </div>
                 }
 
-                @if ((Model.RequestType == "Request" || Model.RequestType == "ร้องขอ") && !string.IsNullOrWhiteSpace(Model.AttachmentPath))
+                @if (!string.IsNullOrWhiteSpace(Model.AttachmentPath))
                 {
                     <div class="mt-3">
                         <strong>Attachment:</strong>
@@ -75,39 +102,216 @@
                 }
             </div>
 
-            <!-- Material Info -->
-            @if (Model.RequestType != "BOM" && Model.RequestType != "Routing")
+            @if (!isRequestType && !isBOM && !isRouting && !isEditBOM && !isLicensePermission)
             {
                 <hr class="my-4">
                 <div class="mb-4">
                     <h5 class="mb-3">Material Information</h5>
                     <div class="row g-3">
-                        @{
-                            var requestType = Model.RequestType;
-                            
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isDistributionChannel || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
                             RenderDetailField("Item Code", Model.ItemCode);
-                            RenderDetailField("English Mat/Description", Model.EnglishMatDescription);
+                        }
 
-                            if (requestType == "FG" || requestType == "RM" || requestType == "ToolingB" || requestType == "IPO") { RenderDetailField("Model Name", Model.ModelName); }
-                            if (requestType != "AddStorage") { RenderDetailField("Base Unit", Model.BaseUnit); }
-                            if (requestType != "AddStorage") { RenderDetailField("Material Group", Model.MaterialGroup); }
-                            if (requestType != "AddStorage") { RenderDetailField("External Material Group", Model.ExternalMaterialGroup); }
-                            if (requestType == "FG" || requestType == "SM" || requestType == "RM" || requestType == "ToolingB" || requestType == "DistributionChanel" || requestType == "IPO") { RenderDetailField("Division", Model.DivisionCode); }
-                            if (requestType != "AddStorage") { RenderDetailField("Profit Center", Model.ProfitCenter); }
-                            if (requestType == "FG" || requestType == "SM" || requestType == "RM" || requestType == "IPO") { RenderDetailField("MRP Controller", Model.MrpController); }
-                            if (requestType == "FG" || requestType == "SM" || requestType == "RM" || requestType == "AddStorage" || requestType == "IPO") { RenderDetailField("Storage Location", Model.StorageLocation); }
-                            if (requestType == "FG" || requestType == "RM" || requestType == "IPO") { RenderDetailField("Valuation Class", Model.ValClass); }
-                            if (requestType == "RM" || requestType == "ToolingB" || requestType == "IPO") { RenderDetailField("Price", Model.Price?.ToString("C")); }
-                            if (requestType == "RM" || requestType == "ToolingB" || requestType == "IPO") { RenderDetailField("Purchasing Group", Model.PurchasingGroup); }
-                            if (requestType == "FG" || requestType == "DistributionChanel" || requestType == "IPO") { RenderDetailField("Distribution Channel", Model.DistributionChannel); }
-                            if (requestType == "IPO") { RenderDetailField("Tariff Code", Model.TariffCode); }
-                            if (requestType == "IPO") { RenderDetailField("Planner", Model.Planner); }
+                        @if (isSM)
+                        {
+                            RenderDetailField("Current ICS", Model.CurrentICS);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isDistributionChannel || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("English Mat/Description", Model.EnglishMatDescription);
+                        }
+
+                        @if (isFG || isRM || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Model Name", Model.ModelName);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Base Unit", Model.BaseUnit);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Material Group", Model.MaterialGroup);
+                        }
+
+                        @if (isRM || isCrossPlantPurchase || isPassthrough)
+                        {
+                            RenderDetailField("Boi Description", Model.BoiDescription);
+                        }
+
+                        @if (isFG || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("External Material Group", Model.ExternalMaterialGroup);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isDistributionChannel || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Division Code", Model.DivisionCode);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Profit Center", Model.ProfitCenter);
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("MRP Controller", Model.MrpController);
+                        }
+
+                        @if (isFG || isSM || isRM || isAddStorage || isToolingB || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Storage Location", Model.StorageLocation);
+                        }
+
+                        @if (isToolingB || isToolingBFG || isToolingBPU || isIPO || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Storage Location EP", Model.StorageLocationEP);
+                            RenderDetailField("Storage Location B1", Model.StorageLocationB1);
+                        }
+
+                        @if (isToolingB || isIPO || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Commercial Code / Tariff Code", Model.CommCodeTariffCode);
+                            RenderDetailField("Traffic Code Percentage", Model.TraffCodePercentage?.ToString());
+                            RenderDetailField("Standard Pack", Model.StandardPack);
+                            RenderDetailField("Device Plant", Model.DevicePlant);
+                            RenderDetailField("Assembly Plant", Model.AssemblyPlant);
+                            RenderDetailField("ASI Of Plant", Model.AsiOfPlant);
+                        }
+
+                        @if (isFG || isRM || isIPO || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Valuation Class", Model.ValClass);
+                        }
+
+                        @if (isFG || isSM || isToolingBFG || isToolingBPU || isDistributionChannel || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Distribution Channel", Model.DistributionChannel);
+                        }
+
+                        @if (isFG || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Boi Code", Model.BoiCode);
+                        }
+
+                        @if (isFG || isSM || isRM || isIPO || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Production Supervisor", Model.ProductionSupervisor);
+                            RenderDetailField("Costing Lot Size", Model.CostingLotSize?.ToString());
+                        }
+
+                        @if (isFG || isSM || isRM || isToolingBFG || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Price", Model.Price?.ToString("N2"));
+                        }
+
+                        @if (isRM || isToolingB || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Purchasing Group", Model.PurchasingGroup);
+                        }
+
+                        @if (isRM || isToolingB || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Maker Mfr Part Number", Model.MakerMfrPartNumber);
+                        }
+
+                        @if (isRM || isToolingB || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Supplier Code", Model.SupplierCode);
+                        }
+
+                        @if (isRM || isToolingB || isToolingBPU || isIPO || isPassthrough || isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Price Control", Model.PriceControl);
+                            RenderDetailField("Currency", Model.Currency);
+                        }
+
+                        @if (isToolingB)
+                        {
+                            RenderDetailField("Material Type", Model.MaterialType);
+                            RenderDetailField("Price Unit", Model.PriceUnit?.ToString());
+                            RenderDetailField("Quotation No.", Model.QuotationNumber);
+                            RenderDetailField("NO.P/O", Model.PoNumber);
+                            RenderDetailField("STATUS IN ASI", Model.StatusInA);
+                            RenderDetailField("Section", Model.ToolingBSection);
+                            RenderDetailField("Tooling B Model", Model.ToolingBModel);
+                        }
+
+                        @if (isToolingBFG)
+                        {
+                            RenderDetailField("Material Type", Model.MaterialType);
+                            RenderDetailField("Price Unit", Model.PriceUnit?.ToString());
+                        }
+
+                        @if (isToolingBPU)
+                        {
+                            RenderDetailField("Price Unit", Model.PriceUnit?.ToString());
+                        }
+
+                        @if (isDistributionChannel)
+                        {
+                            RenderDetailField("Account Assignment", Model.AccountAssignment);
+                        }
+
+                        @if (isAddStorage)
+                        {
+                            RenderDetailField("Storage Location", Model.StorageLocation);
+                        }
+
+                        @if (isIPO)
+                        {
+                            RenderDetailField("Tariff Code", Model.TariffCode);
+                            RenderDetailField("Planner", Model.Planner);
+                            RenderDetailField("Price Unit", Model.PriceUnit?.ToString());
+                        }
+
+                        @if (isCrossPlantPurchase)
+                        {
+                            RenderDetailField("Change Request No. (G2U)", Model.ChangeRequestG2U);
                         }
                     </div>
                 </div>
             }
 
-            <!-- BOM Components Table -->
+            @if (Model.EditBomFg != null || Model.EditBomAllFg || (Model.bomEditComponents != null && Model.bomEditComponents.Any()))
+            {
+                <hr class="my-4">
+                <div class="mb-4">
+                    <h5 class="mb-3">Edit BOM</h5>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6"><strong>FG:</strong> <span class="text-secondary">@(string.IsNullOrWhiteSpace(Model.EditBomFg) ? "-" : Model.EditBomFg)</span></div>
+                        <div class="col-md-6"><strong>All FG:</strong> <span class="text-secondary">@(Model.EditBomAllFg ? "Yes" : "No")</span></div>
+                    </div>
+                    @if (Model.bomEditComponents != null && Model.bomEditComponents.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ItemCode From</th><th>Description From</th><th>Qty From</th><th>Unit From</th><th>BOM Usage From</th><th>Sloc From</th>
+                                        <th>ItemCode To</th><th>Description To</th><th>Qty To</th><th>Unit To</th><th>BOM Usage To</th><th>Sloc To</th><th>Plant To</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.bomEditComponents)
+                                    {
+                                        <tr>
+                                            <td>@item.ItemCodeFrom</td><td>@item.DescriptionFrom</td><td>@item.ItemQuantityFrom</td><td>@item.UnitFrom</td><td>@item.BomUsageFrom</td><td>@item.SlocFrom</td>
+                                            <td>@item.ItemCodeTo</td><td>@item.DescriptionTo</td><td>@item.ItemQuantityTo</td><td>@item.UnitTo</td><td>@item.BomUsageTo</td><td>@item.SlocTo</td><td>@item.PlantTo</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+
             @if (Model.BomComponents != null && Model.BomComponents.Any())
             {
                 <hr class="my-4">
@@ -133,106 +337,68 @@
                 </div>
             }
 
-            <!-- Routings Table -->
             @if (Model.Routings != null && Model.Routings.Any())
             {
-                 <hr class="my-4">
+                <hr class="my-4">
                 <div class="mb-4">
                     <h5 class="mb-3">Routings</h5>
-                     <div class="table-responsive">
+                    <div class="table-responsive">
                         <table class="table table-sm table-bordered table-striped">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Counter</th>
-                                    <th>Plant</th>
-                                    <th>Material</th>
-                                    <th>Material Description</th>
-                                    <th>Work Center</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Base Qty</th>
-                                    <th>Unit</th>
-                                    <th>Direct Labor Cost</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Direct Expenses</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Allocation Expense</th>
-                                    <th></th>
-                                    <th>Production Version</th>
-                                    <th>Version</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Valid From</th>
-                                    <th>Valid To</th>
-                                    <th></th>
-                                    <th>Maximum Lot Size</th>
-                                    <th>Unit</th>
-                                    <th>Alternative</th>
-                                    <th>Bom Usage</th>
-                                    <th></th>
-                                    <th>Group</th>
-                                    <th>Group Counter</th>
-                                    <th>Action</th>
+                                    <th>Counter</th><th>Plant</th><th>Material</th><th>Description</th><th>Work Center</th><th>Base Qty</th><th>Unit</th><th>Direct Labor</th><th>Direct Expenses</th><th>Allocation</th><th>Production Version</th><th>Version</th><th>Valid From</th><th>Valid To</th><th>Max Lot</th><th>Alt</th><th>BOM Usage</th><th>Group</th><th>Group Counter</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var item in Model.Routings)
                                 {
                                     <tr>
-                                       <td>@item.Counter</td>
-                                       <td>@item.Plant</td>
-                                       <td>@item.Material</td>
-                                       <td>@item.Description</td>
-                                       <td>@item.WorkCenter</td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td>@item.BaseQty</td>
-                                       <td>@item.Unit</td>
-                                       <td>@item.DirectLaborCosts</td>
-                                       <td></td>
-                                       <td></td>
-                                       <td>@item.DirectExpenses</td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td>@item.AllocationExpense</td>
-                                       <td></td>
-                                       <td>@item.ProductionVersionCode</td>
-                                       <td>@item.Version</td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td></td>
-                                       <td>@item.ValidFrom?.ToString("yyyy-MM-dd")</td>
-                                       <td>@item.ValidTo?.ToString("yyyy-MM-dd")</td>
-                                       <td></td>
-                                       <td>@item.MaximumLotSize</td>
-                                       <td>@(string.IsNullOrWhiteSpace(item.Unit) ? item.BomUsage : item.Unit)</td>
-                                       <td>@item.Alternative</td>
-                                       <td>@(string.IsNullOrWhiteSpace(item.BomUsage) ? "1" : item.BomUsage)</td>
-                                       <td></td>
-                                       <td>@item.Group</td>
-                                       <td>@item.GroupCounter</td>
-                                       <td></td>
+                                        <td>@item.Counter</td>
+                                        <td>@item.Plant</td>
+                                        <td>@item.Material</td>
+                                        <td>@item.Description</td>
+                                        <td>@item.WorkCenter</td>
+                                        <td>@item.BaseQty</td>
+                                        <td>@item.Unit</td>
+                                        <td>@item.DirectLaborCosts</td>
+                                        <td>@item.DirectExpenses</td>
+                                        <td>@item.AllocationExpense</td>
+                                        <td>@item.ProductionVersionCode</td>
+                                        <td>@item.Version</td>
+                                        <td>@item.ValidFrom?.ToString("yyyy-MM-dd")</td>
+                                        <td>@item.ValidTo?.ToString("yyyy-MM-dd")</td>
+                                        <td>@item.MaximumLotSize</td>
+                                        <td>@item.Alternative</td>
+                                        <td>@(string.IsNullOrWhiteSpace(item.BomUsage) ? "1" : item.BomUsage)</td>
+                                        <td>@item.Group</td>
+                                        <td>@item.GroupCounter</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            @if (Model.LicensePermissions != null && Model.LicensePermissions.Any())
+            {
+                <hr class="my-4">
+                <div class="mb-4">
+                    <h5 class="mb-3">License Permissions</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>SAP Username</th>
+                                    <th>T Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.LicensePermissions)
+                                {
+                                    <tr>
+                                        <td>@item.SapUsername</td>
+                                        <td>@item.TCode</td>
                                     </tr>
                                 }
                             </tbody>
@@ -258,7 +424,7 @@
                         </li>
                     </ul>
                 </div>
-                @if (string.Equals(Model.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                @if (User.IsInRole("IT") || string.Equals(Model.Status, "Pending", StringComparison.OrdinalIgnoreCase))
                 {
                     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
                         <i class="fas fa-pencil-alt me-2"></i>Edit Request

@@ -778,6 +778,10 @@ namespace myapp.Migrations
                     b.Property<string>("NextApproverId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AssignedITUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PlanDelTime")
                         .HasColumnType("TEXT");
 
