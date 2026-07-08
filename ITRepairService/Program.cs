@@ -1,5 +1,6 @@
 using ITRepairService.Data;
 using ITRepairService.Models;
+using ITRepairService.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,6 +50,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
+
+// Register LDAP authentication service
+builder.Services.Configure<LdapSettings>(builder.Configuration.GetSection("LDAP"));
+builder.Services.AddSingleton<ILdapAuthenticationService, LdapAuthenticationService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

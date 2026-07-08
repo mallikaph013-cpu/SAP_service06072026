@@ -7,12 +7,6 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
-    <!-- Kill any running instance before build to avoid file-lock errors (MSB3021/MSB3027). -->
-    <Target Name="KillRunningInstance" BeforeTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
-      <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\scripts\kill-itrepairservice-processes.ps1&quot;"
-        IgnoreExitCode="true" />
-    </Target>
-
   <ItemGroup>
     <Compile Remove="obj\**\*.cs" />
     <Compile Remove="bin\**\*.cs" />
@@ -24,6 +18,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.4" />
+    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
   </ItemGroup>
 
 </Project>

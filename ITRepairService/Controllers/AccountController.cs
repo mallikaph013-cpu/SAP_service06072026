@@ -1,4 +1,5 @@
 using ITRepairService.Models;
+using ITRepairService.Services;
 using ITRepairService.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,10 +9,12 @@ namespace ITRepairService.Controllers;
 
 public class AccountController(
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager) : Controller
+    SignInManager<ApplicationUser> signInManager,
+    ILdapAuthenticationService ldapAuthService) : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+    private readonly ILdapAuthenticationService _ldapAuthService = ldapAuthService;
 
     [AllowAnonymous]
     [HttpGet]
@@ -30,6 +33,49 @@ public class AccountController(
             return View(model);
         }
 
+        // 1. Try AD/LDAP authentication first
+        var ldapResult = _ldapAuthService.Authenticate(model.UserName, model.Password);
+        if (ldapResult is not null)
+        {
+            // Check if user exists locally; if not, auto-create
+            var user = await _userManager.FindByNameAsync(ldapResult.Username);
+            if (user is null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = ldapResult.Username,
+                    Email = ldapResult.Email,
+                    FullName = ldapResult.DisplayName,
+                    EmailConfirmed = true,
+                    CreatedByName = ldapResult.DisplayName,
+                    UpdatedByName = ldapResult.DisplayName,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                // Create with a random password (user will authenticate via AD)
+                var createResult = await _userManager.CreateAsync(user, Guid.NewGuid().ToString("N") + "Aa1!");
+                if (createResult.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(user, AppRoles.User);
+                }
+            }
+
+            if (user is not null)
+            {
+                // Bypass password check and sign in using the external/AD identity
+                await _signInManager.SignInAsync(user, isPersistent: model.RememberMe);
+
+                if (user.MustChangePassword)
+                {
+                    return RedirectToAction("ChangePassword", "Account");
+                }
+
+                return RedirectToLocal(model.ReturnUrl);
+            }
+        }
+
+        // 2. Fallback: try local Identity authentication (for locally registered users)
         var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
