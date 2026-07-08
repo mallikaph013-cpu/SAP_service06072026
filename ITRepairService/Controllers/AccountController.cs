@@ -35,7 +35,7 @@ public class AccountController(
 
         // 1. Try AD/LDAP authentication first
         var ldapResult = _ldapAuthService.Authenticate(model.UserName, model.Password);
-        if (ldapResult is not null)
+        if (ldapResult is not null && ldapResult.IsSuccess)
         {
             // Check if user exists locally; if not, auto-create
             var user = await _userManager.FindByNameAsync(ldapResult.Username);
