@@ -1,16 +1,11 @@
-using System.Text;
+using System.DirectoryServices.Protocols;
 using ITRepairService.Models;
 using Microsoft.Extensions.Options;
-using Novell.Directory.Ldap;
 
 namespace ITRepairService.Services;
 
 public interface ILdapAuthenticationService
 {
-    /// <summary>
-    /// Authenticates a user against Active Directory using the provided username and password.
-    /// Returns the user's details if successful, null otherwise.
-    /// </summary>
     LdapAuthenticationResult? Authenticate(string username, string password);
 }
 
@@ -20,10 +15,6 @@ public class LdapAuthenticationResult
     public string Username { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Stores any error message when authentication fails.
-    /// </summary>
     public string? ErrorMessage { get; set; }
 
     public static LdapAuthenticationResult Success(string username, string displayName, string email) =>
@@ -47,184 +38,131 @@ public class LdapAuthenticationService : ILdapAuthenticationService
     public LdapAuthenticationResult? Authenticate(string username, string password)
     {
         if (string.IsNullOrWhiteSpace(username))
-        {
-            _logger.LogWarning("LDAP auth failed: username is empty");
-            return new LdapAuthenticationResult { ErrorMessage = "Username is required." };
-        }
+            return LdapAuthenticationResult.Failure("Username is required.");
         if (string.IsNullOrWhiteSpace(password))
-        {
-            _logger.LogWarning("LDAP auth failed: password is empty for user {Username}", username);
-            return new LdapAuthenticationResult { ErrorMessage = "Password is required." };
-        }
+            return LdapAuthenticationResult.Failure("Password is required.");
 
-        LdapConnection? connection = null;
         try
         {
-            connection = new LdapConnection { SecureSocketLayer = _settings.UseSSL };
+            // 1. Search for the user in AD using anonymous bind first
+            string? distinguishedName = null;
+            string sAMAccountName = username;
+            string displayName = username;
+            string email = $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
 
-            // Connect to the LDAP server
-            _logger.LogInformation("Connecting to LDAP server {Server}:{Port} (SSL={UseSSL})", 
-                _settings.Server, _settings.Port, _settings.UseSSL);
-            connection.Connect(_settings.Server, _settings.Port);
-
-            // Try multiple bind formats for Active Directory compatibility
-            bool bound = TryBind(connection, username, password);
-
-            if (!bound)
+            using (var searchConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port)))
             {
-                _logger.LogWarning("LDAP bind failed for user {Username} with all formats", username);
-                return new LdapAuthenticationResult { ErrorMessage = "Invalid username or password." };
+                searchConnection.AuthType = AuthType.Basic;
+
+                // Try to search with the user's credentials directly
+                string userPrincipal = $@"{_settings.Domain}\{username}";
+                searchConnection.Bind(new System.Net.NetworkCredential(userPrincipal, password));
+
+                _logger.LogInformation("Bound to AD as {User}", userPrincipal);
+
+                // Search for user details
+                string searchFilter = _settings.SearchFilter.Replace("{0}", EscapeLdapFilter(username));
+                var searchRequest = new SearchRequest(
+                    _settings.SearchBase,
+                    searchFilter,
+                    SearchScope.Subtree,
+                    "sAMAccountName", "displayName", "mail", "cn", "distinguishedName"
+                );
+
+                var searchResponse = (SearchResponse)searchConnection.SendRequest(searchRequest);
+
+                if (searchResponse.Entries.Count == 0)
+                {
+                    _logger.LogWarning("User {Username} not found in AD", username);
+                    return LdapAuthenticationResult.Failure("Invalid username or password.");
+                }
+
+                var entry = searchResponse.Entries[0];
+                distinguishedName = GetAttributeValue(entry, "distinguishedName");
+                sAMAccountName = GetAttributeValue(entry, "sAMAccountName") ?? username;
+                displayName = GetAttributeValue(entry, "displayName")
+                              ?? GetAttributeValue(entry, "cn")
+                              ?? username;
+                email = GetAttributeValue(entry, "mail")
+                        ?? $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
+
+                _logger.LogInformation("Found AD user: {DN}", distinguishedName ?? "(none)");
             }
 
-            _logger.LogInformation("LDAP bind succeeded for user {Username}", username);
-
-            // Search for user details using the bound connection
-            string searchFilter = _settings.SearchFilter.Replace("{0}", EscapeLdapSearchFilter(username));
-            _logger.LogDebug("LDAP search filter: {Filter}, base: {Base}", searchFilter, _settings.SearchBase);
-
-            var searchResults = connection.Search(
-                _settings.SearchBase,
-                LdapConnection.ScopeSub,
-                searchFilter,
-                new[] { "sAMAccountName", "displayName", "mail", "cn", "givenName", "sn" },
-                false // typesOnly = false
-            );
-
-            if (!searchResults.HasMore())
+            // 2. Now verify with the user's DN to be absolutely certain
+            if (!string.IsNullOrEmpty(distinguishedName))
             {
-                _logger.LogWarning("LDAP search returned no entries for user {Username}", username);
-                return new LdapAuthenticationResult { ErrorMessage = "User not found in directory." };
+                using var verifyConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port));
+                verifyConnection.AuthType = AuthType.Basic;
+                verifyConnection.Bind(new System.Net.NetworkCredential(distinguishedName, password));
+
+                _logger.LogInformation("Password fully verified for {Username}", username);
             }
 
-            var entry = searchResults.Next();
-            var attributes = entry.GetAttributeSet();
-
-            var result = LdapAuthenticationResult.Success(
-                GetAttributeValue(attributes, "sAMAccountName") ?? username,
-                GetAttributeValue(attributes, "displayName")
-                    ?? GetAttributeValue(attributes, "cn")
-                    ?? GetAttributeValue(attributes, "givenName")
-                    ?? username,
-                GetAttributeValue(attributes, "mail")
-                    ?? $"{username}@{_settings.Domain.ToLowerInvariant()}.local"
-            );
-
-            _logger.LogInformation("LDAP authentication successful for {Username} -> displayName: {DisplayName}, email: {Email}",
-                result.Username, result.DisplayName, result.Email);
-
-            return result;
+            return LdapAuthenticationResult.Success(sAMAccountName, displayName, email);
+        }
+        catch (DirectoryOperationException ex)
+        {
+            _logger.LogWarning("LDAP directory operation error for {Username}: {Message}", username, ex.Message);
+            string errorMsg = ParseLdapError(ex.Message);
+            return LdapAuthenticationResult.Failure(errorMsg);
         }
         catch (LdapException ex)
         {
-            _logger.LogError(ex, "LDAP exception during authentication for user {Username}", username);
-            
-            string errorMsg = ex.LdapErrorMessage switch
-            {
-                string msg when msg.Contains("data 52e", StringComparison.OrdinalIgnoreCase) => "Invalid username or password.",
-                string msg when msg.Contains("data 525", StringComparison.OrdinalIgnoreCase) => "User not found.",
-                string msg when msg.Contains("data 531", StringComparison.OrdinalIgnoreCase) => "Account is disabled.",
-                string msg when msg.Contains("data 532", StringComparison.OrdinalIgnoreCase) => "Account has expired.",
-                string msg when msg.Contains("data 533", StringComparison.OrdinalIgnoreCase) => "Account is locked out.",
-                string msg when msg.Contains("data 701", StringComparison.OrdinalIgnoreCase) => "Account has expired.",
-                string msg when msg.Contains("data 773", StringComparison.OrdinalIgnoreCase) => "Password has expired.",
-                string msg when msg.Contains("data 775", StringComparison.OrdinalIgnoreCase) => "Account is locked.",
-                _ => $"LDAP error: {ex.Message}"
-            };
-
-            return new LdapAuthenticationResult { ErrorMessage = errorMsg };
+            _logger.LogWarning("LDAP error for {Username}: {Message}", username, ex.Message);
+            string errorMsg = ParseLdapError(ex.Message);
+            return LdapAuthenticationResult.Failure(errorMsg);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during LDAP authentication for user {Username}", username);
-            return new LdapAuthenticationResult { ErrorMessage = $"Connection error: {ex.Message}" };
-        }
-        finally
-        {
-            connection?.Disconnect();
-            connection?.Dispose();
+            _logger.LogError(ex, "Unexpected LDAP error for {Username}", username);
+            return LdapAuthenticationResult.Failure($"Authentication error: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Try to bind using different username formats for AD compatibility.
-    /// Returns true if any format succeeds.
-    /// </summary>
-    private bool TryBind(LdapConnection connection, string username, string password)
+    private static string GetAttributeValue(SearchResultEntry entry, string name)
     {
-        // Format 1: DOMAIN\username (down-level logon name)
-        string format1 = $@"{_settings.Domain}\{username}";
-        if (BindWithFormat(connection, format1, password))
+        if (entry.Attributes.Contains(name))
         {
-            _logger.LogDebug("LDAP bind succeeded with format: DOMAIN\\username");
-            return true;
+            var values = entry.Attributes[name];
+            if (values is { Count: > 0 })
+                return values[0]?.ToString() ?? string.Empty;
         }
-
-        // Format 2: username@domain (UPN format)
-        string format2 = $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
-        if (BindWithFormat(connection, format2, password))
-        {
-            _logger.LogDebug("LDAP bind succeeded with format: user@domain");
-            return true;
-        }
-
-        // Format 3: Just username (sometimes works with simple AD setups)
-        if (BindWithFormat(connection, username, password))
-        {
-            _logger.LogDebug("LDAP bind succeeded with format: username only");
-            return true;
-        }
-
-        return false;
+        return string.Empty;
     }
 
-    private bool BindWithFormat(LdapConnection connection, string dn, string password)
+    private static string EscapeLdapFilter(string value)
     {
-        try
-        {
-            connection.Bind(dn, password);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return value
+            .Replace("\\", "\\5c")
+            .Replace("*", "\\2a")
+            .Replace("(", "\\28")
+            .Replace(")", "\\29")
+            .Replace("/", "\\2f");
     }
 
-    private static string? GetAttributeValue(LdapAttributeSet attributes, string attributeName)
+    private static string ParseLdapError(string? message)
     {
-        try
-        {
-            var attr = attributes.GetAttribute(attributeName);
-            return attr?.StringValue;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+        if (message is null) return "Invalid username or password.";
 
-    /// <summary>
-    /// Escapes special characters in LDAP search filter values.
-    /// </summary>
-    private static string EscapeLdapSearchFilter(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-            return value;
-
-        var sb = new StringBuilder(value.Length);
-        foreach (char c in value)
-        {
-            sb.Append(c switch
-            {
-                '*' => "\\2a",
-                '(' => "\\28",
-                ')' => "\\29",
-                '\\' => "\\5c",
-                '/' => "\\2f",
-                '\0' => "\\00",
-                _ => c
-            });
-        }
-        return sb.ToString();
+        if (message.Contains("52e", StringComparison.OrdinalIgnoreCase))
+            return "Invalid username or password.";
+        if (message.Contains("525", StringComparison.OrdinalIgnoreCase))
+            return "User not found.";
+        if (message.Contains("52d", StringComparison.OrdinalIgnoreCase))
+            return "Invalid username or password.";
+        if (message.Contains("531", StringComparison.OrdinalIgnoreCase))
+            return "Account is disabled.";
+        if (message.Contains("532", StringComparison.OrdinalIgnoreCase))
+            return "Account has expired.";
+        if (message.Contains("533", StringComparison.OrdinalIgnoreCase))
+            return "Account is locked.";
+        if (message.Contains("701", StringComparison.OrdinalIgnoreCase))
+            return "Account has expired.";
+        if (message.Contains("773", StringComparison.OrdinalIgnoreCase))
+            return "Password has expired.";
+        if (message.Contains("775", StringComparison.OrdinalIgnoreCase))
+            return "Account is locked.";
+        return "Invalid username or password.";
     }
 }
