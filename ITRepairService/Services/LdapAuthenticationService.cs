@@ -15,10 +15,34 @@ public class LdapAuthenticationResult
     public string Username { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public string Manager { get; set; } = string.Empty;
+    public string TelephoneNumber { get; set; } = string.Empty;
+    public string EmployeeID { get; set; } = string.Empty;
+    public List<string> MemberOf { get; set; } = new();
     public string? ErrorMessage { get; set; }
 
-    public static LdapAuthenticationResult Success(string username, string displayName, string email) =>
-        new() { IsSuccess = true, Username = username, DisplayName = displayName, Email = email };
+    public static LdapAuthenticationResult Success(
+        string username, string displayName, string email,
+        string department, string title, string company,
+        string manager, string telephoneNumber, string employeeID,
+        List<string> memberOf) =>
+        new()
+        {
+            IsSuccess = true,
+            Username = username,
+            DisplayName = displayName,
+            Email = email,
+            Department = department,
+            Title = title,
+            Company = company,
+            Manager = manager,
+            TelephoneNumber = telephoneNumber,
+            EmployeeID = employeeID,
+            MemberOf = memberOf ?? new List<string>()
+        };
 
     public static LdapAuthenticationResult Failure(string errorMessage) =>
         new() { IsSuccess = false, ErrorMessage = errorMessage };
@@ -44,29 +68,36 @@ public class LdapAuthenticationService : ILdapAuthenticationService
 
         try
         {
-            // 1. Search for the user in AD using anonymous bind first
             string? distinguishedName = null;
             string sAMAccountName = username;
             string displayName = username;
             string email = $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
+            string department = string.Empty;
+            string title = string.Empty;
+            string company = string.Empty;
+            string manager = string.Empty;
+            string telephoneNumber = string.Empty;
+            string employeeID = string.Empty;
+            var memberOf = new List<string>();
 
             using (var searchConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port)))
             {
                 searchConnection.AuthType = AuthType.Basic;
 
-                // Try to search with the user's credentials directly
                 string userPrincipal = $@"{_settings.Domain}\{username}";
                 searchConnection.Bind(new System.Net.NetworkCredential(userPrincipal, password));
 
                 _logger.LogInformation("Bound to AD as {User}", userPrincipal);
 
-                // Search for user details
+                // Search for user details with all required attributes
                 string searchFilter = _settings.SearchFilter.Replace("{0}", EscapeLdapFilter(username));
                 var searchRequest = new SearchRequest(
                     _settings.SearchBase,
                     searchFilter,
                     SearchScope.Subtree,
-                    "sAMAccountName", "displayName", "mail", "cn", "distinguishedName"
+                    "sAMAccountName", "displayName", "mail", "cn", "distinguishedName",
+                    "department", "title", "company", "manager", "telephoneNumber",
+                    "employeeID", "memberOf"
                 );
 
                 var searchResponse = (SearchResponse)searchConnection.SendRequest(searchRequest);
@@ -85,33 +116,43 @@ public class LdapAuthenticationService : ILdapAuthenticationService
                               ?? username;
                 email = GetAttributeValue(entry, "mail")
                         ?? $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
+                department = GetAttributeValue(entry, "department");
+                title = GetAttributeValue(entry, "title");
+                company = GetAttributeValue(entry, "company");
+                manager = GetAttributeValue(entry, "manager");
+                telephoneNumber = GetAttributeValue(entry, "telephoneNumber");
+                employeeID = GetAttributeValue(entry, "employeeID");
+                memberOf = GetAttributeValues(entry, "memberOf");
 
-                _logger.LogInformation("Found AD user: {DN}", distinguishedName ?? "(none)");
+                _logger.LogInformation("Found AD user: {DN}, department={Dept}, title={Title}, company={Company}",
+                    distinguishedName ?? "(none)", department, title, company);
             }
 
-            // 2. Now verify with the user's DN to be absolutely certain
+            // 2. Verify with user's DN
             if (!string.IsNullOrEmpty(distinguishedName))
             {
                 using var verifyConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port));
                 verifyConnection.AuthType = AuthType.Basic;
                 verifyConnection.Bind(new System.Net.NetworkCredential(distinguishedName, password));
-
                 _logger.LogInformation("Password fully verified for {Username}", username);
             }
 
-            return LdapAuthenticationResult.Success(sAMAccountName, displayName, email);
+            return LdapAuthenticationResult.Success(
+                sAMAccountName, displayName, email,
+                department, title, company,
+                manager, telephoneNumber, employeeID,
+                memberOf
+            );
         }
         catch (DirectoryOperationException ex)
         {
             _logger.LogWarning("LDAP directory operation error for {Username}: {Message}", username, ex.Message);
-            string errorMsg = ParseLdapError(ex.Message);
-            return LdapAuthenticationResult.Failure(errorMsg);
+            return LdapAuthenticationResult.Failure(ParseLdapError(ex.Message));
         }
         catch (LdapException ex)
         {
             _logger.LogWarning("LDAP error for {Username}: {Message}", username, ex.Message);
-            string errorMsg = ParseLdapError(ex.Message);
-            return LdapAuthenticationResult.Failure(errorMsg);
+            return LdapAuthenticationResult.Failure(ParseLdapError(ex.Message));
         }
         catch (Exception ex)
         {
@@ -131,6 +172,25 @@ public class LdapAuthenticationService : ILdapAuthenticationService
         return string.Empty;
     }
 
+    private static List<string> GetAttributeValues(SearchResultEntry entry, string name)
+    {
+        var result = new List<string>();
+        if (entry.Attributes.Contains(name))
+        {
+            var values = entry.Attributes[name];
+            if (values != null)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    var val = values[i]?.ToString();
+                    if (!string.IsNullOrEmpty(val))
+                        result.Add(val);
+                }
+            }
+        }
+        return result;
+    }
+
     private static string EscapeLdapFilter(string value)
     {
         return value
@@ -145,12 +205,11 @@ public class LdapAuthenticationService : ILdapAuthenticationService
     {
         if (message is null) return "Invalid username or password.";
 
-        if (message.Contains("52e", StringComparison.OrdinalIgnoreCase))
+        if (message.Contains("52e", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("52d", StringComparison.OrdinalIgnoreCase))
             return "Invalid username or password.";
         if (message.Contains("525", StringComparison.OrdinalIgnoreCase))
             return "User not found.";
-        if (message.Contains("52d", StringComparison.OrdinalIgnoreCase))
-            return "Invalid username or password.";
         if (message.Contains("531", StringComparison.OrdinalIgnoreCase))
             return "Account is disabled.";
         if (message.Contains("532", StringComparison.OrdinalIgnoreCase))

@@ -8,6 +8,11 @@ public class ApplicationUser : IdentityUser
     public string FullName { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
     public string Section { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public string Manager { get; set; } = string.Empty;
+    public string TelephoneNumber { get; set; } = string.Empty;
+    public string EmployeeID { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 
     public bool MustChangePassword { get; set; } = false;
