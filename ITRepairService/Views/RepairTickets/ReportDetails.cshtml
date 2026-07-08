@@ -1,0 +1,300 @@
+@model ITRepairService.Models.RepairTicket
+@using ITRepairService.Models
+
+@{
+    ViewData["Title"] = "IT Service Details";
+    var canEditTicket = ViewData["CanEditTicket"] as bool? ?? false;
+    var statusTimeline = ViewData["StatusTimeline"] as List<RepairTicketStatusHistory>
+        ?? new List<RepairTicketStatusHistory>();
+    var createdByDisplay = !string.IsNullOrWhiteSpace(Model.CreatedByName)
+        ? Model.CreatedByName
+        : (!string.IsNullOrWhiteSpace(Model.RequesterName) ? Model.RequesterName : "-");
+    var approverDisplay = string.IsNullOrWhiteSpace(Model.ApproverName) ? "-" : Model.ApproverName;
+    var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+        || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
+    var statusDisplay = !canSeeInProgress && Model.Status == ITRepairService.Models.TicketStatus.InProgress
+        ? "-"
+        : Model.Status == ITRepairService.Models.TicketStatus.Approved && !string.IsNullOrWhiteSpace(Model.ApproverName)
+            ? $"Approved ({Model.ApproverName})"
+            : Model.Status.ToString();
+    var statusClass = Model.Status switch
+    {
+        ITRepairService.Models.TicketStatus.Open => "status-open",
+        ITRepairService.Models.TicketStatus.InProgress => "status-inprogress",
+        ITRepairService.Models.TicketStatus.Approved => "status-approved",
+        ITRepairService.Models.TicketStatus.Rejected => "status-rejected",
+        ITRepairService.Models.TicketStatus.Closed => "status-closed",
+        ITRepairService.Models.TicketStatus.Complete => "status-complete",
+        _ => string.Empty
+    };
+    if (!canSeeInProgress && Model.Status == ITRepairService.Models.TicketStatus.InProgress)
+    {
+        statusClass = "status-restricted";
+    }
+
+    string FormatStatus(ITRepairService.Models.TicketStatus? status)
+    {
+        if (!status.HasValue)
+        {
+            return "-";
+        }
+
+        return !canSeeInProgress && status.Value == ITRepairService.Models.TicketStatus.InProgress
+            ? "-"
+            : status.Value.ToString();
+    }
+
+}
+
+<style>
+    .details-key {
+        font-size: 0.78rem;
+        color: #6c7a89;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .badge-soft {
+        font-weight: 600;
+        border: 1px solid transparent;
+        padding: 0.45rem 0.65rem;
+    }
+
+    .status-open {
+        background-color: #1d4ed8;
+        color: #ffffff;
+        border-color: #1e40af;
+    }
+
+    .status-inprogress {
+        background-color: #c2410c;
+        color: #ffffff;
+        border-color: #9a3412;
+    }
+
+    .status-approved {
+        background-color: #166534;
+        color: #ffffff;
+        border-color: #14532d;
+    }
+
+    .status-rejected {
+        background-color: #b91c1c;
+        color: #ffffff;
+        border-color: #991b1b;
+    }
+
+    .status-closed {
+        background-color: #334155;
+        color: #ffffff;
+        border-color: #1e293b;
+    }
+
+    .status-complete {
+        background-color: #0f766e;
+        color: #ffffff;
+        border-color: #115e59;
+    }
+
+    .status-restricted {
+        background-color: #4b5563;
+        color: #ffffff;
+        border-color: #374151;
+    }
+
+    .section-card {
+        border: 1px solid #e9eef3;
+    }
+
+    .description-box {
+        white-space: pre-wrap;
+        line-height: 1.55;
+    }
+
+    .timeline-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .timeline-list li {
+        border-left: 2px solid #d7e3f3;
+        padding-left: 0.9rem;
+        margin-left: 0.35rem;
+        padding-bottom: 0.9rem;
+        position: relative;
+    }
+
+    .timeline-list li:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-list li::before {
+        content: "";
+        position: absolute;
+        left: -0.45rem;
+        top: 0.2rem;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background: #0d6efd;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 1px #b6cef3;
+    }
+</style>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h1 class="h2 fw-bold mb-1">
+                        <i class="fas fa-file-alt me-2"></i>IT Service Details
+                    </h1>
+                    <p class="mb-0 opacity-90">Request #@Model.Id</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge badge-soft @statusClass">@statusDisplay</span>
+                    <a asp-action="Report" class="btn btn-light fw-semibold">
+                        <i class="fas fa-arrow-left me-1"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-7">
+        <div class="card section-card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3 fw-bold">Request Information</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.RequesterName)</div>
+                        <div class="fw-semibold">@Model.RequesterName</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.Department)</div>
+                        <div class="fw-semibold">@Model.Department</div>
+                    </div>
+                    @* <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.DeviceName)</div>
+                        <div class="fw-semibold">@Model.DeviceName</div>
+                    </div> *@
+                    <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.RepairType)</div>
+                        <div class="fw-semibold">@Model.RepairType</div>
+                    </div>
+                    @* <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.Priority)</div>
+                        <div class="fw-semibold">@Model.Priority</div>
+                    </div> *@
+                    <div class="col-md-6">
+                        <div class="details-key mb-1">@Html.DisplayNameFor(model => model.Status)</div>
+                        <span class="badge badge-soft @statusClass">@statusDisplay</span>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <h3 class="h6 mb-2 fw-bold">@Html.DisplayNameFor(model => model.IssueDescription)</h3>
+                <div class="p-3 bg-light rounded border description-box">@Model.IssueDescription</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <div class="card section-card shadow-sm mb-3">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3 fw-bold">Approver</h2>
+                <div class="mb-3">
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.ApproverName)</div>
+                    <div class="fw-semibold">@approverDisplay</div>
+                </div>
+                <div>
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.ApproverDepartment)</div>
+                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.ApproverDepartment) ? "-" : Model.ApproverDepartment)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card section-card shadow-sm mb-3">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3 fw-bold">ผู้รับผิดชอบ (IT)</h2>
+                <div>
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.AssignedItName)</div>
+                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.AssignedItName) ? "-" : Model.AssignedItName)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card section-card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3 fw-bold">Audit Trail</h2>
+                <div class="mb-3">
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.CreatedAt)</div>
+                    <div class="fw-semibold">@Model.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+                </div>
+                <div class="mb-3">
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.CreatedByName)</div>
+                    <div class="fw-semibold">@createdByDisplay</div>
+                </div>
+                <div class="mb-3">
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.UpdatedAt)</div>
+                    <div class="fw-semibold">@(Model.UpdatedAt.HasValue ? Model.UpdatedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "-")</div>
+                </div>
+                <div>
+                    <div class="details-key mb-1">@Html.DisplayNameFor(model => model.UpdatedByName)</div>
+                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.UpdatedByName) ? "-" : Model.UpdatedByName)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card section-card shadow-sm mt-3">
+            <div class="card-body p-4">
+                <h2 class="h6 mb-3 fw-bold">Status Timeline</h2>
+                @if (!statusTimeline.Any())
+                {
+                    <div class="text-secondary">No status history yet.</div>
+                }
+                else
+                {
+                    <ul class="timeline-list">
+                        @foreach (var item in statusTimeline)
+                        {
+                            var timelineLabel = !item.FromStatus.HasValue
+                                ? FormatStatus(item.ToStatus)
+                                : item.FromStatus == item.ToStatus
+                                    ? $"{FormatStatus(item.ToStatus)} (Saved)"
+                                    : $"{FormatStatus(item.FromStatus)} → {FormatStatus(item.ToStatus)}";
+                            <li>
+                                <div class="fw-semibold">
+                                    @timelineLabel
+                                </div>
+                                <div class="small text-secondary">
+                                    @item.Action by @(string.IsNullOrWhiteSpace(item.ChangedByName) ? "System" : item.ChangedByName)
+                                    on @item.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(item.Remark))
+                                {
+                                    <div class="small mt-1">@item.Remark</div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mt-4">
+    @if (canEditTicket)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-pen me-1"></i>Edit
+        </a>
+    }
+    <a asp-action="Report" class="btn btn-secondary">Back to List</a>
+</div>

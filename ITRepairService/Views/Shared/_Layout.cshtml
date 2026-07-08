@@ -1,0 +1,189 @@
+﻿@using ITRepairService.Data
+@using ITRepairService.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - IT Service</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ITRepairService.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
+</head>
+<body class="app-shell bg-light d-flex flex-column">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
+            <div class="container-lg">
+                @{
+                    var canSeeItAdminMenus = User.IsInRole(ITRepairService.Models.AppRoles.Admin) || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
+                    var currentUser = await UserManager.GetUserAsync(User);
+                    var currentUserId = currentUser?.Id;
+                    var currentUserFullName = currentUser?.FullName?.Trim();
+                    var currentUserUserName = currentUser?.UserName?.Trim();
+                    var currentUserEmail = currentUser?.Email?.Trim();
+                    var nextStepCount = 0;
+
+                    if (currentUser is not null)
+                    {
+                        var openNextStepCount = await DbContext.RepairTickets
+                            .AsNoTracking()
+                            .CountAsync(ticket =>
+                                ticket.Status == TicketStatus.Open
+                                && (
+                                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.ApproverUserId == currentUserId)
+                                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.ApproverName == currentUserFullName)
+                                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.ApproverName == currentUserUserName)
+                                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.ApproverName == currentUserEmail)
+                                ));
+
+                        var rejectedOwnerTicketIds = await DbContext.RepairTickets
+                            .AsNoTracking()
+                            .Where(ticket =>
+                                ticket.Status == TicketStatus.Rejected
+                                && (
+                                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
+                                    || (string.IsNullOrWhiteSpace(ticket.RequesterUserId)
+                                        && (
+                                            (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.RequesterName == currentUserFullName)
+                                            || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.RequesterName == currentUserUserName)
+                                            || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.RequesterName == currentUserEmail)
+                                            || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.CreatedByName == currentUserFullName)
+                                            || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.CreatedByName == currentUserUserName)
+                                            || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.CreatedByName == currentUserEmail)
+                                        ))
+                                ))
+                            .Select(ticket => ticket.Id)
+                            .ToListAsync();
+
+                        var rejectedUnreadCount = 0;
+                        if (rejectedOwnerTicketIds.Count > 0)
+                        {
+                            var rejectedAndReadEvents = await DbContext.RepairTicketStatusHistories
+                                .AsNoTracking()
+                                .Where(history =>
+                                    rejectedOwnerTicketIds.Contains(history.RepairTicketId)
+                                    && (
+                                        history.ToStatus == TicketStatus.Rejected
+                                        || (history.Action == "RejectedRead" && history.ChangedByUserId == currentUserId)
+                                    ))
+                                .OrderBy(history => history.ChangedAt)
+                                .ThenBy(history => history.Id)
+                                .ToListAsync();
+
+                            foreach (var eventsByTicket in rejectedAndReadEvents.GroupBy(history => history.RepairTicketId))
+                            {
+                                var latestRejectedAt = eventsByTicket
+                                    .Where(history => history.ToStatus == TicketStatus.Rejected)
+                                    .Select(history => (DateTime?)history.ChangedAt)
+                                    .Max();
+
+                                if (!latestRejectedAt.HasValue)
+                                {
+                                    continue;
+                                }
+
+                                var hasReadAfterLatestReject = eventsByTicket.Any(history =>
+                                    history.Action == "RejectedRead"
+                                    && history.ChangedByUserId == currentUserId
+                                    && history.ChangedAt >= latestRejectedAt.Value);
+
+                                if (!hasReadAfterLatestReject)
+                                {
+                                    rejectedUnreadCount++;
+                                }
+                            }
+                        }
+
+                        nextStepCount = openNextStepCount + rejectedUnreadCount;
+                    }
+                }
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-tools me-2"></i>IT Service
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" asp-area="" asp-controller="RepairTickets" asp-action="Index">
+                                <i class="fas fa-ticket-alt me-1"></i>IT Service
+                                @if (nextStepCount > 0)
+                                {
+                                    <span class="badge rounded-pill bg-danger ms-2">@nextStepCount</span>
+                                }
+                            </a>
+                        </li>
+                        @if (canSeeItAdminMenus)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-white" asp-area="" asp-controller="News" asp-action="Index">
+                                    <i class="fas fa-newspaper me-1"></i>News
+                                </a>
+                            </li>
+                        }
+                        @if (canSeeItAdminMenus)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-white" asp-area="" asp-controller="RepairTickets" asp-action="Report">
+                                    <i class="fas fa-chart-line me-1"></i>Report
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole(ITRepairService.Models.AppRoles.Admin))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" id="masterMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-layer-group me-1"></i>Master
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="masterMenu">
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="AdminUsers" asp-action="Index">
+                                            <i class="fas fa-users me-2"></i>Users
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="AdminUsers" asp-action="DepartmentSections">
+                                            <i class="fas fa-sitemap me-2"></i>Department &amp; Section
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container-lg py-4 flex-grow-1 d-flex flex-column">
+        <main role="main" class="pb-3 flex-grow-1">
+            <partial name="_Toasts" />
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="app-footer mt-auto">
+        <div class="container-lg py-4">
+            <p class="text-muted mb-0">&copy; 2026 - ASI IT Service. All rights reserved.</p>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

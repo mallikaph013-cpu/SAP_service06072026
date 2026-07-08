@@ -1,0 +1,32 @@
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstats
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# NuGet
+.nuget/
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# dotnet
+*.userprefs
+*.dotnet

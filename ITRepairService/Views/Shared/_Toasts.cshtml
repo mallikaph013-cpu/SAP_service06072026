@@ -1,0 +1,45 @@
+@{
+    string? GetMessage(params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (TempData[key] is string value && !string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    var toastItems = new List<(string Title, string Message, string Type, string Icon)>
+    {
+        ("Success", GetMessage("Success", "SuccessMessage") ?? string.Empty, "success", "fa-circle-check"),
+        ("Warning", GetMessage("Warning") ?? string.Empty, "warning", "fa-triangle-exclamation"),
+        ("Error", GetMessage("Error") ?? string.Empty, "danger", "fa-circle-xmark"),
+        ("Info", GetMessage("Info") ?? string.Empty, "info", "fa-circle-info")
+    }
+    .Where(item => !string.IsNullOrWhiteSpace(item.Message))
+    .ToList();
+}
+
+@if (toastItems.Any())
+{
+    <div class="toast-stack position-fixed top-0 end-0 p-3">
+        @for (var index = 0; index < toastItems.Count; index++)
+        {
+            var toast = toastItems[index];
+            <div class="toast app-toast border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+                <div class="toast-header border-0 bg-white">
+                    <span class="toast-badge toast-@toast.Type me-2"><i class="fas @toast.Icon"></i></span>
+                    <strong class="me-auto">@toast.Title</strong>
+                    <small class="text-muted">just now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body bg-white">
+                    @toast.Message
+                </div>
+            </div>
+        }
+    </div>
+}

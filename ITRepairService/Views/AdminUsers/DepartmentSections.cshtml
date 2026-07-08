@@ -1,0 +1,225 @@
+@model ITRepairService.ViewModels.AdminUsers.DepartmentSectionManagementViewModel
+
+@{
+    ViewData["Title"] = "Department & Section Management";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4">
+                <h1 class="h2 fw-bold mb-1">
+                    <i class="fas fa-sitemap me-2"></i>Department &amp; Section Management
+                </h1>
+                <p class="mb-0 opacity-90">จัดการชื่อหน่วยงานให้เป็นมาตรฐานเดียวกันในระบบ</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h2 class="h5 fw-bold mb-1 text-primary">
+                    <i class="fas fa-plus-circle me-2"></i>เพิ่ม Department ใหม่
+                </h2>
+                <p class="text-muted small mb-0">สร้างรายการใหม่สำหรับใช้งานในระบบ</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form asp-action="CreateDepartment" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-500" for="CreateDepartment_Name">Department ใหม่</label>
+                        <input id="CreateDepartment_Name" name="CreateDepartment.Name" class="form-control" placeholder="เช่น IT Infrastructure" />
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>เพิ่ม Department
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h2 class="h5 fw-bold mb-1 text-primary">
+                    <i class="fas fa-plus-square me-2"></i>เพิ่ม Section ใหม่
+                </h2>
+                <p class="text-muted small mb-0">สร้างรายการใหม่สำหรับใช้งานในระบบ</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form asp-action="CreateSection" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-500" for="CreateSection_Department">Department</label>
+                        <select id="CreateSection_Department" name="CreateSection.Department" class="form-select" @(Model.AvailableDepartments.Any() ? null : "disabled")>
+                            <option value="">-- เลือก Department --</option>
+                            @foreach (var department in Model.AvailableDepartments)
+                            {
+                                <option value="@department">@department</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500" for="CreateSection_Name">Section ใหม่</label>
+                        <input id="CreateSection_Name" name="CreateSection.Name" class="form-control" placeholder="เช่น Support Team" />
+                    </div>
+                    @if (!Model.AvailableDepartments.Any())
+                    {
+                        <p class="text-warning small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>ยังไม่มี Department ที่ Active กรุณาเพิ่มหรือเปิดใช้งาน Department ก่อน
+                        </p>
+                    }
+                    <button type="submit" class="btn btn-success" @(Model.AvailableDepartments.Any() ? null : "disabled")>
+                        <i class="fas fa-plus me-1"></i>เพิ่ม Section
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h5 fw-bold mb-0 text-primary">
+                    <i class="fas fa-list-ul me-2"></i>รายการ Department ที่ใช้งาน
+                </h2>
+                <span class="badge bg-primary-subtle text-primary">@Model.Departments.Count รายการ</span>
+            </div>
+            <div class="card-body pt-2 px-4 pb-4">
+                @if (!Model.Departments.Any())
+                {
+                    <p class="text-muted mb-0">ยังไม่มีข้อมูล Department ในระบบ</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th style="width: 130px;">สถานะ</th>
+                                    <th style="width: 220px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Departments)
+                                {
+                                    <tr>
+                                        <td class="fw-500">@item.Name</td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <a asp-action="EditDepartment" asp-route-name="@item.Name" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-pen me-1"></i>แก้ไข
+                                                </a>
+                                                <form asp-action="ToggleDepartmentActive" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="name" value="@item.Name" />
+                                                    <button type="submit" class="btn btn-sm @(item.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                                        <i class="fas @(item.IsActive ? "fa-toggle-off" : "fa-toggle-on") me-1"></i>@(item.IsActive ? "Inactive" : "Active")
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h5 fw-bold mb-0 text-primary">
+                    <i class="fas fa-stream me-2"></i>รายการ Section ที่ใช้งาน
+                </h2>
+                <span class="badge bg-primary-subtle text-primary">@Model.Sections.Count รายการ</span>
+            </div>
+            <div class="card-body pt-2 px-4 pb-4">
+                @if (!Model.Sections.Any())
+                {
+                    <p class="text-muted mb-0">ยังไม่มีข้อมูล Section ในระบบ</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Section</th>
+                                    <th style="width: 130px;">สถานะ</th>
+                                    <th style="width: 220px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Sections)
+                                {
+                                    <tr>
+                                        <td class="text-muted">@(string.IsNullOrWhiteSpace(item.Department) ? "-" : item.Department)</td>
+                                        <td class="fw-500">@item.Name</td>
+                                        <td>
+                                            @if (item.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <a asp-action="EditSection" asp-route-name="@item.Name" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-pen me-1"></i>แก้ไข
+                                                </a>
+                                                <form asp-action="ToggleSectionActive" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="name" value="@item.Name" />
+                                                    <button type="submit" class="btn btn-sm @(item.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                                        <i class="fas @(item.IsActive ? "fa-toggle-off" : "fa-toggle-on") me-1"></i>@(item.IsActive ? "Inactive" : "Active")
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .fw-500 {
+        font-weight: 500;
+    }
+
+    .table thead th {
+        color: #0066cc;
+        font-weight: 600;
+        background-color: #f8fbff;
+        border-bottom-width: 1px;
+    }
+</style>

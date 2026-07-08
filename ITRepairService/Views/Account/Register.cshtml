@@ -1,0 +1,97 @@
+@model ITRepairService.ViewModels.Account.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_LayoutPublic";
+}
+
+<div class="auth-container mx-auto">
+    <div class="card auth-card border-0">
+        <div class="auth-header">
+            <h3><i class="fas fa-user-plus me-2"></i>Create Account</h3>
+            <p>Join IT Repair Service</p>
+        </div>
+        
+        <div class="card-body p-4">
+            <form asp-action="Register" method="post">
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label fw-500">Full Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0" style="color: #0066cc;">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input asp-for="FullName" class="form-control border-start-0" placeholder="Enter your full name" />
+                    </div>
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-500">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0" style="color: #0066cc;">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <input asp-for="Email" class="form-control border-start-0" placeholder="Enter your email" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-500">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0" style="color: #0066cc;">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input asp-for="Password" class="form-control border-start-0" placeholder="Enter your password" />
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="ConfirmPassword" class="form-label fw-500">Confirm Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0" style="color: #0066cc;">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input asp-for="ConfirmPassword" class="form-control border-start-0" placeholder="Confirm your password" />
+                    </div>
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 fw-500 mb-3">
+                    <i class="fas fa-user-plus me-2"></i>Create Account
+                </button>
+            </form>
+
+            <div class="text-center pt-3 border-top">
+                <p class="text-muted mb-0">Already have an account?
+                    <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none fw-500" style="color: #0066cc;">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        padding: 2rem 1rem;
+    }
+    
+    .input-group-text {
+        border: 1.5px solid #dee2e6;
+        padding: 0.625rem 0.875rem;
+    }
+    
+    .fw-500 {
+        font-weight: 500;
+    }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

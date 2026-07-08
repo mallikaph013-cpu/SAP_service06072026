@@ -1,0 +1,534 @@
+@model ITRepairService.ViewModels.RepairTickets.RepairTicketReportViewModel
+
+@{
+    ViewData["Title"] = "Report";
+    var isPrintMode = ViewData["PrintMode"] as bool? == true;
+    var printTicket = isPrintMode && Model.Items.Count == 1 ? Model.Items[0] : null;
+    var printTimeline = ViewData["PrintTimeline"] as List<ITRepairService.Models.RepairTicketStatusHistory>
+        ?? new List<ITRepairService.Models.RepairTicketStatusHistory>();
+
+    ITRepairService.Models.RepairTicketStatusHistory? FirstTimelineEvent(Func<ITRepairService.Models.RepairTicketStatusHistory, bool> predicate)
+    {
+        return printTimeline.FirstOrDefault(predicate);
+    }
+
+    ITRepairService.Models.RepairTicketStatusHistory? LastTimelineEvent(Func<ITRepairService.Models.RepairTicketStatusHistory, bool> predicate)
+    {
+        return printTimeline.LastOrDefault(predicate);
+    }
+
+    int GetProgressPercent(ITRepairService.Models.TicketStatus status)
+    {
+        return status switch
+        {
+            ITRepairService.Models.TicketStatus.Open => 20,
+            ITRepairService.Models.TicketStatus.Approved => 45,
+            ITRepairService.Models.TicketStatus.InProgress => 70,
+            ITRepairService.Models.TicketStatus.Complete => 90,
+            ITRepairService.Models.TicketStatus.Closed => 100,
+            ITRepairService.Models.TicketStatus.Rejected => 15,
+            _ => 0
+        };
+    }
+
+    string StatusBadge(ITRepairService.Models.TicketStatus status)
+    {
+        return status switch
+        {
+            ITRepairService.Models.TicketStatus.Open => "bg-primary text-white border border-primary-subtle",
+            ITRepairService.Models.TicketStatus.Approved => "bg-success text-white border border-success-subtle",
+            ITRepairService.Models.TicketStatus.InProgress => "bg-warning text-dark border border-warning-subtle",
+            ITRepairService.Models.TicketStatus.Complete => "bg-success text-white border border-success-subtle",
+            ITRepairService.Models.TicketStatus.Closed => "bg-dark text-white border border-dark-subtle",
+            ITRepairService.Models.TicketStatus.Rejected => "bg-danger text-white border border-danger-subtle",
+            _ => "bg-light text-dark"
+        };
+    }
+
+    var statuses = Enum.GetValues(typeof(ITRepairService.Models.TicketStatus))
+        .Cast<ITRepairService.Models.TicketStatus>()
+        .ToList();
+
+    string FormatThaiShortDate(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return "-";
+        }
+
+        var local = value.Value.ToLocalTime().AddYears(543);
+        return local.ToString("dd/MM/yy");
+    }
+}
+
+<style>
+    .btn {
+        border-radius: 999px;
+    }
+
+    .print-sheet {
+        max-width: 760px;
+        margin: 0 auto;
+        background: #fff;
+        color: #111;
+        padding: 20px;
+        border: 1px solid #d9d9d9;
+    }
+
+    .print-title {
+        font-size: 2rem;
+        font-weight: 800;
+        border: 2px solid #5c2fd6;
+        display: inline-block;
+        padding: 0.15rem 0.45rem;
+        margin-bottom: 0.8rem;
+        letter-spacing: 0.02em;
+    }
+
+    .print-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        border-top: 3px solid #1c1c1c;
+        border-bottom: 3px solid #1c1c1c;
+        padding: 0.2rem 0;
+        margin: 0.8rem 0 0.5rem;
+    }
+
+    .print-row {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .print-row-label {
+        min-width: 120px;
+        font-weight: 600;
+    }
+
+    .print-row-value {
+        flex: 1;
+        border-bottom: 1px dotted #444;
+        min-height: 1.25rem;
+    }
+
+    .print-summary-box {
+        border: 2px solid #333;
+        min-height: 190px;
+        padding: 0.75rem;
+        background: #f0f0f0;
+        white-space: pre-wrap;
+    }
+
+    .print-approvals {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .print-approval-name {
+        font-weight: 700;
+        margin-top: 2rem;
+    }
+
+    .print-approval-role,
+    .print-approval-date {
+        font-size: 0.85rem;
+    }
+
+    .report-table-card {
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .report-table {
+        margin-bottom: 0;
+    }
+
+    .report-table thead th {
+        background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+        color: #1f3b66;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid #d8e4f3;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        white-space: nowrap;
+    }
+
+    .report-table tbody tr {
+        transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .report-table tbody tr:hover {
+        background-color: #f7fbff;
+    }
+
+    .report-table tbody td {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        vertical-align: middle;
+        border-color: #edf2f7;
+    }
+
+    .report-table .doc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #0f4ea8;
+        font-weight: 700;
+        font-size: 0.92rem;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+
+    .report-table .requester-cell {
+        min-width: 220px;
+    }
+
+    .report-table .description-cell {
+        max-width: 340px;
+    }
+
+    .report-table .description-text {
+        color: #425466;
+        line-height: 1.5;
+    }
+
+    .report-table .progress {
+        height: 0.8rem;
+        border-radius: 999px;
+        background: #e9eef6;
+        overflow: hidden;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .report-table .progress-bar {
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0051ba 0%, #0a74d1 100%);
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .report-table .badge {
+        padding: 0.45rem 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .report-table .action-buttons .btn {
+        border-radius: 999px;
+        padding: 0.22rem 0.65rem;
+        font-size: 0.76rem;
+        line-height: 1.2;
+    }
+
+    .report-table .last-update {
+        line-height: 1.45;
+    }
+
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        .print-sheet {
+            border: none;
+            padding: 0;
+            max-width: none;
+        }
+
+        .card,
+        .table {
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+@if (printTicket is not null)
+{
+    var requesterEvent = FirstTimelineEvent(item => item.Action == "Created")
+        ?? FirstTimelineEvent(item => !item.FromStatus.HasValue);
+    var approverEvent = FirstTimelineEvent(item => item.ToStatus == ITRepairService.Models.TicketStatus.Approved)
+        ?? LastTimelineEvent(item => item.ToStatus == ITRepairService.Models.TicketStatus.Rejected);
+    var itSupportEvent = LastTimelineEvent(item => item.ToStatus == ITRepairService.Models.TicketStatus.Complete)
+        ?? LastTimelineEvent(item => item.ToStatus == ITRepairService.Models.TicketStatus.InProgress);
+    var itApproverEvent = LastTimelineEvent(item => item.Action == "Closed")
+        ?? LastTimelineEvent(item => item.ToStatus == ITRepairService.Models.TicketStatus.Closed);
+
+    var requesterName = !string.IsNullOrWhiteSpace(requesterEvent?.ChangedByName)
+        ? requesterEvent.ChangedByName
+        : printTicket.RequesterName;
+    var requesterDate = requesterEvent?.ChangedAt ?? printTicket.CreatedAt;
+
+    var approverName = !string.IsNullOrWhiteSpace(approverEvent?.ChangedByName)
+        ? approverEvent.ChangedByName
+        : (string.IsNullOrWhiteSpace(printTicket.ApproverName) ? "-" : printTicket.ApproverName);
+    var approverDate = approverEvent?.ChangedAt ?? (printTicket.UpdatedAt ?? printTicket.CreatedAt);
+    var isDriveAccessTicket = printTicket.RepairType == ITRepairService.Models.RepairType.DriveAccessPermission;
+    var nextStepApproverName = !string.IsNullOrWhiteSpace(printTicket.ApproverName)
+        ? printTicket.ApproverName
+        : approverName;
+
+    var itSupportName = !string.IsNullOrWhiteSpace(itSupportEvent?.ChangedByName)
+        ? itSupportEvent.ChangedByName
+        : (string.IsNullOrWhiteSpace(printTicket.AssignedItName) ? "-" : printTicket.AssignedItName);
+    var itSupportDate = itSupportEvent?.ChangedAt ?? (printTicket.UpdatedAt ?? printTicket.CreatedAt);
+
+    var preferredItApproverName = ViewData["PrintItApproverName"]?.ToString();
+    var preferredItApproverDate = ViewData["PrintItApproverDate"] is DateTime changedAt
+        ? changedAt
+        : (DateTime?)null;
+
+    var itApproverName = itSupportName;
+    var itApproverDate = itSupportDate;
+
+    <div class="no-print mb-3 d-flex gap-2 justify-content-end" style="max-width:760px;margin:0 auto;">
+        <button type="button" onclick="downloadTicketPdf()" class="btn btn-danger">
+            <i class="fas fa-file-pdf me-1"></i>บันทึก PDF
+        </button>
+        <button onclick="window.close()" class="btn btn-outline-secondary">ปิด</button>
+    </div>
+    <div class="print-sheet" id="ticketPdfContent">
+        <div class="print-title">IT Service Required</div>
+        <div><strong>Document No.</strong> @printTicket.DocumentNo</div>
+
+        <div class="print-section-title">รายละเอียดผู้แจ้งซ่อม</div>
+        <div class="print-row">
+            <div class="print-row-label">ชื่อ:</div>
+            <div class="print-row-value">@printTicket.RequesterName</div>
+        </div>
+        <div class="print-row">
+            <div class="print-row-label">ฝ่าย:</div>
+            <div class="print-row-value">@printTicket.Department</div>
+        </div>
+        <div class="print-row">
+            <div class="print-row-label">แผนก:</div>
+            <div class="print-row-value">@printTicket.Department</div>
+        </div>
+    
+
+        <div class="print-section-title">รายละเอียดการแจ้งซ่อม</div>
+        <div class="print-row"><div class="print-row-label">ประเภท:</div><div class="print-row-value">@printTicket.RepairType</div></div>
+       
+        <div class="print-row"><div class="print-row-label">สถานะปัจจุบัน:</div><div class="print-row-value">@printTicket.Status</div></div>
+        <div class="print-row"><div class="print-row-label">ผู้รับผิดชอบ:</div><div class="print-row-value">@itSupportName</div></div>
+
+        <div class="print-section-title">รายละเอียด</div>
+        <div class="print-summary-box">@printTicket.IssueDescription</div>
+
+        <div class="print-section-title">การอนุมัติ</div>
+        <div class="print-approvals">
+            <div>
+                <div class="print-approval-name">@requesterName</div>
+                <div class="print-approval-role">ผู้แจ้งซ่อม</div>
+                <div class="print-approval-date">@FormatThaiShortDate(requesterDate)</div>
+            </div>
+            <div>
+                <div class="print-approval-name">@approverName</div>
+                <div class="print-approval-role">ผู้อนุมัติ</div>
+                @if (isDriveAccessTicket)
+                {
+                    <div class="print-approval-role">ผู้อนุมัติ: @nextStepApproverName</div>
+                }
+                <div class="print-approval-date">@FormatThaiShortDate(approverDate)</div>
+            </div>
+            <div>
+                <div class="print-approval-name">@itSupportName</div>
+                <div class="print-approval-role">เจ้าหน้าที่ IT</div>
+                <div class="print-approval-date">@FormatThaiShortDate(itSupportDate)</div>
+            </div>
+            <div>
+                <div class="print-approval-name">@itApproverName</div>
+                <div class="print-approval-role">ผู้อนุมัติ IT</div>
+                <div class="print-approval-date">@FormatThaiShortDate(itApproverDate)</div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <h1 class="h3 fw-bold mb-1"><i class="fas fa-chart-line me-2"></i>IT Service Report</h1>
+                    <p class="mb-0 opacity-75">ติดตามรายการแจ้งซ่อมทั้งหมดและสถานะการทำงานล่าสุด</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge text-bg-light text-primary fs-6 px-3 py-2">@Model.Items.Count รายการ</span>
+                    <a asp-action="PerformanceReport" class="btn btn-light no-print">
+                        <i class="fas fa-gauge-high me-1"></i>IT Performance
+                    </a>
+                    <a asp-action="ExportReportExcel" class="btn btn-success no-print">
+                        <i class="fas fa-file-excel me-1"></i>Export Excel (All)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (var status in statuses)
+    {
+        var count = Model.StatusCounts.TryGetValue(status, out var total) ? total : 0;
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <div class="small text-secondary">@status</div>
+                    <div class="h4 fw-bold mb-0">@count</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold mb-1">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    @foreach (var status in statuses)
+                    {
+                        if (string.Equals(Model.CurrentStatus, status.ToString(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@status" selected>@status</option>
+                        }
+                        else
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold mb-1">Keyword</label>
+                <input type="text" class="form-control" name="keyword" value="@Model.Keyword" placeholder="ชื่อผู้แจ้ง, ฝ่าย, อุปกรณ์, รายละเอียด" />
+            </div>
+            
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm report-table-card">
+    <div class="table-responsive">
+        <table class="table report-table align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-nowrap" style="width: 70px;">#</th>
+                    <th class="text-nowrap" style="width: 190px;">Document No</th>
+                    <th style="width: 220px;">Requester</th>
+                    <th>Description</th>
+                    <th style="width: 150px;">Status</th>
+                    <th style="width: 200px;">Progress</th>
+                    <th style="width: 190px;">Last Update</th>
+                    <th class="no-print text-end" style="width: 140px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-secondary">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        var percent = GetProgressPercent(item.Status);
+                        <tr>
+                            <td class="fw-semibold">@item.Id</td>
+                            <td class="text-nowrap">
+                                <span class="doc-pill">
+                                    <i class="fas fa-file-alt"></i>
+                                    @(string.IsNullOrWhiteSpace(item.DocumentNo) ? "-" : item.DocumentNo)
+                                </span>
+                            </td>
+                            <td class="requester-cell">
+                                <div class="fw-semibold">@item.RequesterName</div>
+                                <div class="small text-secondary">@item.Department</div>
+                            </td>
+                            <td class="description-cell">
+                                @* <div class="fw-semibold">@item.DeviceName</div> *@
+                                <div class="description-text text-truncate">@item.IssueDescription</div>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill @StatusBadge(item.Status)">@item.Status</span>
+                                <div class="small text-secondary mt-1">IT: @(string.IsNullOrWhiteSpace(item.AssignedItName) ? "-" : item.AssignedItName)</div>
+                            </td>
+                            <td style="min-width: 180px;">
+                                <div class="progress" role="progressbar" aria-label="Ticket progress" aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width: @percent%">@percent%</div>
+                                </div>
+                            </td>
+                            <td class="last-update">
+                                <div class="fw-semibold">@(string.IsNullOrWhiteSpace(item.LastAction) ? "-" : item.LastAction)</div>
+                                <div class="small text-secondary">@(!string.IsNullOrWhiteSpace(item.LastChangedByName) ? item.LastChangedByName : "-")</div>
+                                <div class="small text-secondary">@(item.LastChangedAt.HasValue ? item.LastChangedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "-")</div>
+                            </td>
+                            <td class="text-end no-print action-buttons">
+                                <div class="d-inline-flex gap-1">
+                                    <a asp-action="ReportDetails" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                                    <a asp-action="ExportTicketPdf"
+                                       target="_blank"
+                                       rel="noopener"
+                                       asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-file-pdf me-1"></i>PDF
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+}
+
+@section Scripts {
+    @if (printTicket is not null)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script>
+            function downloadTicketPdf() {
+                const element = document.getElementById('ticketPdfContent');
+                if (!element || typeof html2pdf === 'undefined') {
+                    return;
+                }
+
+                const documentNo = '@(printTicket.DocumentNo ?? "Ticket")'.trim().replace(/[^a-zA-Z0-9-_]/g, '_');
+                const options = {
+                    margin: [8, 8, 8, 8],
+                    filename: `${documentNo}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(options).from(element).save();
+            }
+        </script>
+    }
+}
+
+

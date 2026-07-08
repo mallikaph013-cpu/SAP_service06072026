@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - IT Repair Service</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ITRepairService.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
+</head>
+<body class="app-shell bg-light d-flex flex-column">
+    <div class="flex-grow-1 d-flex align-items-center justify-content-center py-4">
+        <main role="main" class="w-100 d-flex flex-column">
+            <partial name="_Toasts" />
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="app-footer mt-auto">
+        <div class="container-lg py-2 py-sm-3">
+            <p class="text-muted mb-0 text-center">&copy; 2026 - IT Repair Service</p>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

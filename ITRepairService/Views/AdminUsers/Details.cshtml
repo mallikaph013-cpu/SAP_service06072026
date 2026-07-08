@@ -1,0 +1,155 @@
+@model ITRepairService.ViewModels.AdminUsers.UserDetailsViewModel
+
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 fw-bold mb-1">
+                            <i class="fas fa-user me-3"></i>User Details
+                        </h1>
+                        <p class="mb-0 opacity-90">@Model.FullName</p>
+                    </div>
+                    <a asp-action="Index" class="btn btn-light fw-500">
+                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-600" style="color: #0066cc;">
+                    <i class="fas fa-id-card me-2"></i>Account Information
+                </h5>
+            </div>
+            <div class="card-body p-4">
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Username</div>
+                    <div class="col-sm-8 fw-600">@Model.UserName</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Email</div>
+                    <div class="col-sm-8">@Model.Email</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Full Name</div>
+                    <div class="col-sm-8 fw-600">@Model.FullName</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Department</div>
+                    <div class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Department) ? "-" : Model.Department)</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Section</div>
+                    <div class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Section) ? "-" : Model.Section)</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Status</div>
+                    <div class="col-sm-8">
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Roles</div>
+                    <div class="col-sm-8">
+                        @if (Model.Roles.Count > 0)
+                        {
+                            @foreach (var role in Model.Roles)
+                            {
+                                <span class="badge bg-primary me-1">@role</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-600" style="color: #0066cc;">
+                    <i class="fas fa-history me-2"></i>Audit Information
+                </h5>
+            </div>
+            <div class="card-body p-4">
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Created By</div>
+                    <div class="col-sm-8">@(Model.CreatedByName ?? "-")</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Created At</div>
+                    <div class="col-sm-8">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Updated By</div>
+                    <div class="col-sm-8">@(Model.UpdatedByName ?? "-")</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted fw-500">Updated At</div>
+                    <div class="col-sm-8">
+                        @(Model.UpdatedAt.HasValue ? Model.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm") : "-")
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="avatar-lg mb-3 mx-auto d-flex align-items-center justify-content-center"
+                     style="width: 80px; height: 80px; background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); border-radius: 50%; color: white; font-size: 2rem; font-weight: bold;">
+                    @(Model.UserName.FirstOrDefault().ToString().ToUpper())
+                </div>
+                <h5 class="fw-600">@Model.FullName</h5>
+                <p class="text-muted mb-3">@Model.UserName</p>
+                <div class="d-grid gap-2">
+                    <a asp-action="EditRoles" asp-route-id="@Model.UserId" class="btn btn-primary fw-500">
+                        <i class="fas fa-edit me-2"></i>Edit User
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary fw-500">
+                        <i class="fas fa-arrow-left me-2"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .fw-500 { font-weight: 500; }
+    .fw-600 { font-weight: 600; }
+</style>

@@ -1,0 +1,789 @@
+@model ITRepairService.Models.RepairTicket
+
+@{
+    ViewData["Title"] = "Edit IT Service";
+    var approverDepartments = ViewData["ApproverDepartments"] as Microsoft.AspNetCore.Mvc.Rendering.SelectList
+        ?? new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Enumerable.Empty<string>());
+    var approverUsers = ViewData["ApproverUsers"] as List<ITRepairService.Models.ApplicationUser>
+        ?? new List<ITRepairService.Models.ApplicationUser>();
+    var selectedApproverUserId = ViewData["SelectedApproverUserId"]?.ToString() ?? Model.ApproverUserId;
+    var currentUserDisplayName = ViewData["CurrentUserDisplayName"]?.ToString()
+        ?? User.Identity?.Name
+        ?? string.Empty;
+    var itSupportUsers = ViewData["ItSupportUsers"] as List<ITRepairService.Models.ApplicationUser>
+        ?? new List<ITRepairService.Models.ApplicationUser>();
+    var selectedItSupportUserId = ViewData["SelectedItSupportUserId"]?.ToString() ?? Model.AssignedItUserId;
+    var requesterEditMode = ViewData["RequesterEditMode"] as bool? ?? false;
+    var additionalApprovalStatuses = ViewData["ApprovalStatuses"] as List<ITRepairService.Models.TicketStatus>
+        ?? new List<ITRepairService.Models.TicketStatus>();
+    var flowPrimaryStatus = ViewData["FlowPrimaryStatus"] is ITRepairService.Models.TicketStatus statusFromFlow
+        ? statusFromFlow
+        : Model.Status;
+    var showInitialOpenStatus = ViewData["ShowInitialOpenStatus"] as bool? ?? false;
+    var hasPriorStatusSteps = (ViewData["HasPriorStatusSteps"] as bool? ?? false) || additionalApprovalStatuses.Count > 0;
+    var isCurrentStatusApproved = Model.Status == ITRepairService.Models.TicketStatus.Approved;
+    var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+        || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
+    var canMarkCompleteByAssignee = ViewData["CanMarkCompleteByAssignee"] as bool? ?? false;
+    var canEditStatus = User.IsInRole(ITRepairService.Models.AppRoles.Approve) || canMarkCompleteByAssignee;
+    var assigneeCompleteOnlyMode = canMarkCompleteByAssignee && !User.IsInRole(ITRepairService.Models.AppRoles.Approve);
+    var isApproveUser = User.IsInRole(ITRepairService.Models.AppRoles.Approve)
+        && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
+    var currentUserId = ViewData["CurrentUserId"]?.ToString() ?? string.Empty;
+    var canEditStatusByUser = ViewData["CanEditStatusByUser"] as bool? ?? true;
+    var lockPrimaryStatusSelection = !assigneeCompleteOnlyMode && (hasPriorStatusSteps || !canEditStatusByUser);
+
+    Model.Status = flowPrimaryStatus;
+
+    string GetTicketStatusBaseDisplayName(ITRepairService.Models.TicketStatus status)
+    {
+        var displayAttribute = status.GetType()
+            .GetField(status.ToString())?
+            .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault();
+
+        return displayAttribute?.GetName() ?? status.ToString();
+    }
+
+    string GetTicketStatusTimelineDisplayName(ITRepairService.Models.TicketStatus status, ITRepairService.Models.TicketStatus? previousStatus = null)
+    {
+        var currentLabel = GetTicketStatusBaseDisplayName(status);
+        if (!previousStatus.HasValue)
+        {
+            return currentLabel;
+        }
+
+        if (previousStatus.Value == status)
+        {
+            return $"{currentLabel} (Saved)";
+        }
+
+        return $"{GetTicketStatusBaseDisplayName(previousStatus.Value)} -> {currentLabel}";
+    }
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 fw-bold mb-1">
+                        <i class="fas fa-edit me-2"></i>Edit IT Service
+                    </h1>
+                    <p class="mb-0 opacity-90">Update IT repair request #@Model.Id</p>
+                </div>
+                <a asp-action="Index" class="btn btn-light fw-semibold">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 col-lg-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Edit">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedAt" />
+                    <input type="hidden" asp-for="Priority" />
+                    <input type="hidden" asp-for="DeviceName" />
+                    <input type="hidden" asp-for="ApproverName" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    @if (requesterEditMode)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-rotate-left me-1"></i>เมื่อบันทึก ระบบจะส่งรายการกลับเป็นสถานะ <strong>Open</strong> อัตโนมัติ
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="RequesterName" class="form-label"></label>
+                        <input asp-for="RequesterName" class="form-control" readonly />
+                        <span asp-validation-for="RequesterName" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Department" class="form-label"></label>
+                        <input asp-for="Department" class="form-control" />
+                        <span asp-validation-for="Department" class="text-danger"></span>
+                    </div>
+
+                    @* <div class="mb-3">
+                        <label asp-for="DeviceName" class="form-label"></label>
+                        <input asp-for="DeviceName" class="form-control" readonly />
+                        <span asp-validation-for="DeviceName" class="text-danger"></span>
+                    </div> *@
+
+                    <div class="mb-3">
+                        <label asp-for="RepairType" class="form-label"></label>
+                        <select asp-for="RepairType" class="form-select" asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>()"></select>
+                        <span asp-validation-for="RepairType" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="IssueDescription" class="form-label"></label>
+                        <textarea asp-for="IssueDescription" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="IssueDescription" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ฝ่ายสำหรับ step ถัดไป</label>
+                        @if (requesterEditMode)
+                        {
+                            <input asp-for="ApproverDepartment" class="form-control" readonly />
+                        }
+                        else
+                        {
+                            <select asp-for="ApproverDepartment" class="form-select" asp-items="approverDepartments" id="approverDepartmentSelect" disabled="@(!canEditStatusByUser ? "disabled" : null)">
+                                <option value="">Select approver department</option>
+                            </select>
+                            @if (!canEditStatusByUser)
+                            {
+                                <input type="hidden" asp-for="ApproverDepartment" />
+                            }
+                        }
+                        <div class="form-text">ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด</div>
+                        <span asp-validation-for="ApproverDepartment" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ผู้รับ step ถัดไป</label>
+                        @if (requesterEditMode)
+                        {
+                            var selectedApprover = approverUsers.FirstOrDefault(user => user.Id == selectedApproverUserId);
+                            var selectedApproverText = selectedApprover is null
+                                ? (string.IsNullOrWhiteSpace(Model.ApproverName) ? "-" : Model.ApproverName)
+                                : (!string.IsNullOrWhiteSpace(selectedApprover.FullName)
+                                    ? selectedApprover.FullName
+                                    : (selectedApprover.UserName ?? selectedApprover.Email ?? "Unknown User"));
+                            <input class="form-control" value="@selectedApproverText" readonly />
+                            <input type="hidden" asp-for="ApproverUserId" />
+                        }
+                        else
+                        {
+                            <select asp-for="ApproverUserId"
+                                    class="form-select"
+                                    id="approverUserSelect"
+                                    disabled="@(!canEditStatusByUser ? "disabled" : null)"
+                                    data-current-user-id="@currentUserId"
+                                    data-is-approve-user="@(isApproveUser ? "true" : "false")">
+                                <option value="">Select approver</option>
+                                @foreach (var approver in approverUsers)
+                                {
+                                    var displayName = !string.IsNullOrWhiteSpace(approver.FullName)
+                                        ? approver.FullName
+                                        : (approver.UserName ?? approver.Email ?? "Unknown User");
+                                    var userNameForDisplay = !string.IsNullOrWhiteSpace(approver.UserName)
+                                        ? approver.UserName
+                                        : approver.Email;
+                                    var departmentValue = approver.Department?.Trim() ?? string.Empty;
+
+                                    if (selectedApproverUserId == approver.Id)
+                                    {
+                                        <option value="@approver.Id" data-department="@departmentValue" selected>@displayName (@userNameForDisplay)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@approver.Id" data-department="@departmentValue">@displayName (@userNameForDisplay)</option>
+                                    }
+                                }
+                            </select>
+                            <div class="form-text">เลือกคนที่ระบบจะส่งงานต่อไปให้ ไม่ได้ผูกกับสถานะของรายการ</div>
+                            <div id="selfApproverAlert" class="alert alert-warning mt-2 py-2 px-3" style="display:none;">
+                                ผู้รับ step ถัดไปไม่สามารถเป็นผู้ใช้คนเดียวกับผู้ที่กำลังอนุมัติ กรุณาเลือกผู้รับคนอื่น
+                            </div>
+                            @if (!canEditStatusByUser)
+                            {
+                                <input type="hidden" asp-for="ApproverUserId" />
+                            }
+                        }
+                        <span asp-validation-for="ApproverUserId" class="text-danger"></span>
+                    </div>
+
+                    @if (requesterEditMode || !canEditStatus)
+                    {
+                        <input type="hidden" asp-for="Status" />
+                        @if (!requesterEditMode)
+                        {
+                            if (!canEditStatus)
+                            {
+                                <div class="alert alert-info">
+                                    <i class="fas fa-lock me-1"></i>เฉพาะผู้ใช้ที่มีสิทธิ์ <strong>Approve</strong> หรือผู้ที่ได้รับมอบหมายงานเท่านั้นที่แก้ไขสถานะได้
+                                </div>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label asp-for="Status" class="form-label"></label>
+                            @{
+                                var canSeeComplete = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
+                                    || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+                                    || canMarkCompleteByAssignee;
+                            }
+                            @if (showInitialOpenStatus)
+                            {
+                                <div class="mb-2">
+                                    <input class="form-control" value="@GetTicketStatusTimelineDisplayName(flowPrimaryStatus, ITRepairService.Models.TicketStatus.Open)" readonly disabled />
+                                  
+                                </div>
+                            }
+                            @if (lockPrimaryStatusSelection)
+                            {
+                                <select asp-for="Status" class="form-select" id="statusSelect" disabled>
+                                    @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
+                                    {
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Open)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Closed)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (assigneeCompleteOnlyMode && statusVal != ITRepairService.Models.TicketStatus.Complete)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
+                                        {
+                                            continue;
+                                        }
+                                        <option value="@statusVal" selected="@(flowPrimaryStatus == statusVal ? "selected" : null)">@GetTicketStatusTimelineDisplayName(statusVal)</option>
+                                    }
+                                </select>
+                                <input type="hidden" asp-for="Status" />
+                            }
+                            else
+                            {
+                                <select asp-for="Status" class="form-select" id="statusSelect">
+                                    @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
+                                    {
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Open)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Closed)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (assigneeCompleteOnlyMode && statusVal != ITRepairService.Models.TicketStatus.Complete)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
+                                        {
+                                            continue;
+                                        }
+                                        <option value="@statusVal" selected="@(flowPrimaryStatus == statusVal ? "selected" : null)">@GetTicketStatusTimelineDisplayName(statusVal)</option>
+                                    }
+                                </select>
+                            }
+                            @if (!canEditStatusByUser)
+                            {
+                                <div class="form-text text-warning mt-1">
+                                    ไม่สามารถแก้ไขสถานะก่อนหน้าได้ เพราะสถานะล่าสุดถูกบันทึกโดยผู้ใช้อื่น แต่สามารถเพิ่มลำดับถัดไปผ่านปุ่ม Add dropdown ได้
+                                </div>
+                            }
+                            @if (isCurrentStatusApproved)
+                            {
+                                <input type="hidden" asp-for="Status" />
+                            }
+
+                            @if (!assigneeCompleteOnlyMode)
+                            {
+                                <div id="additionalStatusSteps" class="mt-2">
+                                    @for (var i = 0; i < additionalApprovalStatuses.Count; i++)
+                                    {
+                                        <div class="input-group mt-2 status-step-row existing-step-row">
+                                            <select name="approvalStatuses" class="form-select status-step-select existing-step-select" disabled>
+                                                <option value="">Select next status step</option>
+                                                @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
+                                                {
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Open)
+                                                    {
+                                                        continue;
+                                                    }
+
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed)
+                                                    {
+                                                        continue;
+                                                    }
+
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
+                                                    {
+                                                        continue;
+                                                    }
+
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
+                                                    {
+                                                        continue;
+                                                    }
+
+                                                    var previousStatus = i == 0
+                                                        ? flowPrimaryStatus
+                                                        : additionalApprovalStatuses[i - 1];
+
+                                                    if (additionalApprovalStatuses[i] == statusVal)
+                                                    {
+                                                        <option value="@statusVal" selected>@GetTicketStatusTimelineDisplayName(statusVal, previousStatus)</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@statusVal">@GetTicketStatusTimelineDisplayName(statusVal, previousStatus)</option>
+                                                    }
+                                                }
+                                            </select>
+                                            <input type="hidden" name="approvalStatuses" value="@additionalApprovalStatuses[i]" class="existing-step-hidden" />
+                                            <button type="button" class="btn btn-outline-danger remove-status-step existing-step-remove" disabled>Remove</button>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addStatusStepBtn">
+                                        <i class="fas fa-plus me-1"></i>Add dropdown
+                                    </button>
+                                    <small class="text-muted d-block mt-1" id="statusStepHint">เพิ่ม Status เป็นลำดับต่อจากช่องหลักได้</small>
+                                </div>
+                            }
+
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3" id="itAssignContainer" style="display: none;">
+                            <label asp-for="AssignedItUserId" class="form-label"></label>
+                            <select asp-for="AssignedItUserId" class="form-select" id="itAssignSelect">
+                                <option value="">Select IT assignee</option>
+                                @foreach (var itUser in itSupportUsers)
+                                {
+                                    var displayName = !string.IsNullOrWhiteSpace(itUser.FullName)
+                                        ? itUser.FullName
+                                        : (itUser.UserName ?? itUser.Email ?? "Unknown User");
+                                    var userNameForDisplay = !string.IsNullOrWhiteSpace(itUser.UserName)
+                                        ? itUser.UserName
+                                        : itUser.Email;
+
+                                    if (selectedItSupportUserId == itUser.Id)
+                                    {
+                                        <option value="@itUser.Id" selected>@displayName (@userNameForDisplay)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@itUser.Id">@displayName (@userNameForDisplay)</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="AssignedItUserId" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4 p-3 border border-danger rounded bg-danger bg-opacity-10" id="rejectRemarkContainer" style="display: none;">
+                            <label for="rejectRemark" class="form-label fw-semibold text-danger">
+                                <i class="fas fa-exclamation-circle me-1"></i>หมายเหตุการตีกลับ
+                            </label>
+                            <textarea id="rejectRemark" name="rejectRemark" class="form-control" rows="3" maxlength="250" placeholder="ระบุเหตุผลที่ตีกลับ...">@ViewData["RejectRemark"]</textarea>
+                            <span class="text-danger small" data-valmsg-for="rejectRemark" data-valmsg-replace="true"></span>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-info-circle me-1"></i>สถานะจะยังคงเป็น <strong>Rejected</strong> จนกว่าผู้แจ้งจะแก้ไขและบันทึกใหม่
+                            </small>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        (function () {
+            // Approver department/user filter
+            const departmentSelect = document.getElementById('approverDepartmentSelect');
+            const approverSelect = document.getElementById('approverUserSelect');
+            const statusSelect = document.getElementById('statusSelect');
+            const additionalStatusSteps = document.getElementById('additionalStatusSteps');
+            const selfApproverAlert = document.getElementById('selfApproverAlert');
+            const editForm = document.querySelector('form[asp-action="Edit"]') || document.querySelector('form');
+
+            function isSelfApproverSelection() {
+                if (!approverSelect) {
+                    return false;
+                }
+
+                const isApproveUser = approverSelect.dataset.isApproveUser === 'true';
+                const currentUserId = (approverSelect.dataset.currentUserId || '').trim();
+                const selectedApproverId = (approverSelect.value || '').trim();
+
+                return isApproveUser
+                    && currentUserId.length > 0
+                    && selectedApproverId.length > 0
+                    && selectedApproverId === currentUserId;
+            }
+
+            function toggleSelfApproverAlert() {
+                if (!selfApproverAlert) {
+                    return;
+                }
+
+                selfApproverAlert.style.display = isSelfApproverSelection() ? 'block' : 'none';
+            }
+
+            function getStatusBaseLabel(statusValue) {
+                if (!statusValue) {
+                    return '';
+                }
+
+                const option = statusSelect
+                    ? Array.from(statusSelect.options).find(item => item.value === statusValue)
+                    : null;
+
+                if (option && option.dataset.baseLabel) {
+                    return option.dataset.baseLabel;
+                }
+
+                return statusValue;
+            }
+
+            function formatTimelineLabel(previousStatusValue, currentStatusValue) {
+                const currentLabel = getStatusBaseLabel(currentStatusValue);
+                if (!previousStatusValue) {
+                    return currentLabel;
+                }
+
+                if (previousStatusValue === currentStatusValue) {
+                    return `${currentLabel} (Saved)`;
+                }
+
+                return `${getStatusBaseLabel(previousStatusValue)} -> ${currentLabel}`;
+            }
+
+            function updateStatusStepLabels() {
+                if (!statusSelect) {
+                    return;
+                }
+
+                Array.from(statusSelect.options).forEach(option => {
+                    if (!option.value) {
+                        return;
+                    }
+
+                    if (!option.dataset.baseLabel) {
+                        option.dataset.baseLabel = option.textContent;
+                    }
+
+                    option.textContent = formatTimelineLabel('', option.value);
+                });
+
+                let previousStatusValue = statusSelect.value;
+
+                if (!additionalStatusSteps) {
+                    return;
+                }
+
+                const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
+                stepSelects.forEach(selectElement => {
+                    Array.from(selectElement.options).forEach(option => {
+                        if (!option.value) {
+                            return;
+                        }
+
+                        option.textContent = formatTimelineLabel(previousStatusValue, option.value);
+                    });
+
+                    if (selectElement.value) {
+                        previousStatusValue = selectElement.value;
+                    }
+                });
+            }
+
+            if (departmentSelect && approverSelect) {
+                const allApproverOptions = Array.from(approverSelect.querySelectorAll('option'))
+                    .filter(option => option.value !== '');
+
+                function renderApproverOptions() {
+                    const selectedDepartment = departmentSelect.value;
+                    const selectedApprover = approverSelect.value;
+
+                    approverSelect.innerHTML = '';
+
+                    const placeholder = document.createElement('option');
+                    placeholder.value = '';
+                    placeholder.textContent = 'Select approver';
+                    approverSelect.appendChild(placeholder);
+
+                    let foundSelected = false;
+
+                    allApproverOptions.forEach(option => {
+                        const department = option.getAttribute('data-department') || '';
+                        if (selectedDepartment && department !== selectedDepartment) {
+                            return;
+                        }
+
+                        const clonedOption = option.cloneNode(true);
+                        if (clonedOption.value === selectedApprover) {
+                            clonedOption.selected = true;
+                            foundSelected = true;
+                        }
+
+                        approverSelect.appendChild(clonedOption);
+                    });
+
+                    if (!foundSelected) {
+                        approverSelect.value = '';
+                    }
+
+                    updateStatusStepLabels();
+                }
+
+                departmentSelect.addEventListener('change', renderApproverOptions);
+                approverSelect.addEventListener('change', () => {
+                    updateStatusStepLabels();
+                    toggleSelfApproverAlert();
+                });
+                renderApproverOptions();
+            } else {
+                updateStatusStepLabels();
+            }
+
+            toggleSelfApproverAlert();
+
+            // Rejection remark toggle
+            const remarkContainer = document.getElementById('rejectRemarkContainer');
+            const remarkInput = document.getElementById('rejectRemark');
+            const itAssignContainer = document.getElementById('itAssignContainer');
+            const itAssignSelect = document.getElementById('itAssignSelect');
+            const addStatusStepBtn = document.getElementById('addStatusStepBtn');
+            const statusStepHint = document.getElementById('statusStepHint');
+
+            if (statusSelect && remarkContainer && remarkInput) {
+                function getEffectiveStatusValue() {
+                    if (!additionalStatusSteps) {
+                        return statusSelect.value;
+                    }
+
+                    const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
+                    for (let i = stepSelects.length - 1; i >= 0; i -= 1) {
+                        if (stepSelects[i].value) {
+                            return stepSelects[i].value;
+                        }
+                    }
+
+                    return statusSelect.value;
+                }
+
+                function addStatusStep(selectedValue) {
+                    if (!additionalStatusSteps) {
+                        return;
+                    }
+
+                    const row = document.createElement('div');
+                    row.className = 'input-group mt-2 status-step-row';
+
+                    const select = document.createElement('select');
+                    select.name = 'approvalStatuses';
+                    select.className = 'form-select status-step-select';
+
+                    const placeholder = document.createElement('option');
+                    placeholder.value = '';
+                    placeholder.textContent = 'Select next status step';
+                    select.appendChild(placeholder);
+
+                    Array.from(statusSelect.options).forEach(option => {
+                        if (!option.value) {
+                            return;
+                        }
+
+                        const clonedOption = option.cloneNode(true);
+                        clonedOption.selected = false;
+                        select.appendChild(clonedOption);
+                    });
+
+                    if (selectedValue) {
+                        select.value = selectedValue;
+                    }
+
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'btn btn-outline-danger remove-status-step';
+                    removeButton.textContent = 'Remove';
+
+                    row.appendChild(select);
+                    row.appendChild(removeButton);
+                    additionalStatusSteps.appendChild(row);
+                    updateStatusStepLabels();
+                    updateStatusStepInteractivity();
+                }
+
+                function updateStatusStepInteractivity() {
+                    if (!additionalStatusSteps) {
+                        return;
+                    }
+
+                    const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
+                    let previousHasValue = Boolean(statusSelect.value);
+
+                    stepSelects.forEach(selectElement => {
+                        const row = selectElement.closest('.status-step-row');
+                        const removeButton = row ? row.querySelector('.remove-status-step') : null;
+                        const isExistingStep = selectElement.classList.contains('existing-step-select');
+
+                        if (isExistingStep) {
+                            selectElement.disabled = true;
+                            if (removeButton) {
+                                removeButton.disabled = true;
+                            }
+
+                            previousHasValue = previousHasValue && Boolean(selectElement.value);
+                            return;
+                        }
+
+                        const shouldEnable = previousHasValue;
+                        selectElement.disabled = !shouldEnable;
+
+                        if (!shouldEnable) {
+                            selectElement.value = '';
+                        }
+
+                        if (removeButton) {
+                            removeButton.disabled = !shouldEnable;
+                        }
+
+                        previousHasValue = shouldEnable && Boolean(selectElement.value);
+                    });
+
+                    if (addStatusStepBtn) {
+                        const hasPendingStep = stepSelects.some(selectElement =>
+                            !selectElement.classList.contains('existing-step-select')
+                            && !selectElement.disabled
+                            && !selectElement.value);
+
+                        addStatusStepBtn.disabled = hasPendingStep;
+                    }
+                }
+
+                function toggleStatusFields() {
+                    const effectiveStatus = getEffectiveStatusValue();
+                    const isRejected = effectiveStatus === 'Rejected';
+                    const isInProgress = effectiveStatus === 'InProgress';
+
+                    remarkContainer.style.display = isRejected ? 'block' : 'none';
+                    remarkInput.required = isRejected;
+                    if (!isRejected) {
+                        remarkInput.value = '';
+                    }
+
+                    if (itAssignContainer && itAssignSelect) {
+                        itAssignContainer.style.display = isInProgress ? 'block' : 'none';
+                        itAssignSelect.disabled = !isInProgress;
+                        itAssignSelect.required = isInProgress;
+                        if (!isInProgress) {
+                            itAssignSelect.value = '';
+                        }
+                    }
+
+                    updateStatusStepInteractivity();
+
+                    if (statusStepHint) {
+                        statusStepHint.textContent = 'ช่องก่อนหน้าจะถูกล็อก และเลือกช่องถัดไปได้ตามลำดับเท่านั้น';
+                    }
+                }
+
+                statusSelect.addEventListener('change', () => {
+                    updateStatusStepLabels();
+                    toggleStatusFields();
+                });
+
+                if (addStatusStepBtn) {
+                    addStatusStepBtn.addEventListener('click', () => {
+                        addStatusStep('');
+                        updateStatusStepLabels();
+                        toggleStatusFields();
+                    });
+                }
+
+                if (additionalStatusSteps) {
+                    additionalStatusSteps.addEventListener('change', event => {
+                        const target = event.target;
+                        if (target && target.classList.contains('status-step-select')) {
+                            updateStatusStepLabels();
+                            toggleStatusFields();
+                        }
+                    });
+
+                    additionalStatusSteps.addEventListener('click', event => {
+                        const target = event.target;
+                        if (target && target.classList.contains('remove-status-step')) {
+                            if (target.classList.contains('existing-step-remove')) {
+                                return;
+                            }
+
+                            const row = target.closest('.status-step-row');
+                            if (row) {
+                                row.remove();
+                                updateStatusStepLabels();
+                                toggleStatusFields();
+                            }
+                        }
+                    });
+                }
+
+                if (editForm && additionalStatusSteps) {
+                    editForm.addEventListener('submit', () => {
+                        const stepSelects = additionalStatusSteps.querySelectorAll('.status-step-select');
+                        stepSelects.forEach(select => {
+                            if (!select.value) {
+                                select.removeAttribute('name');
+                            }
+                            else {
+                                select.setAttribute('name', 'approvalStatuses');
+                            }
+                        });
+                    });
+                }
+
+                if (editForm) {
+                    editForm.addEventListener('submit', event => {
+                        if (isSelfApproverSelection()) {
+                            toggleSelfApproverAlert();
+                            event.preventDefault();
+                            window.alert('ผู้รับ step ถัดไปไม่สามารถเป็นตนเองได้ กรุณาเปลี่ยนผู้รับ');
+                        }
+                    });
+                }
+
+                updateStatusStepLabels();
+                toggleStatusFields();
+            }
+        })();
+    </script>
+}

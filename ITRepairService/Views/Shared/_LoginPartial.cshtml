@@ -1,0 +1,79 @@
+@using ITRepairService.Models
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<style>
+    .auth-nav {
+        gap: 0.5rem;
+    }
+
+    .auth-user-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #ffffff;
+        font-weight: 600;
+        line-height: 1;
+    }
+
+    .auth-user-pill i {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .auth-logout-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        color: #ffffff !important;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .auth-logout-btn:hover,
+    .auth-logout-btn:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.7);
+        color: #ffffff !important;
+        text-decoration: none;
+    }
+</style>
+
+<ul class="navbar-nav ms-auto auth-nav align-items-center">
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item">
+        <span class="auth-user-pill">
+            <i class="fas fa-user-circle" aria-hidden="true"></i>
+            @User.Identity?.Name
+        </span>
+    </li>
+    <li class="nav-item">
+        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link auth-logout-btn border-0">
+                <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                Logout
+            </button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Login</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Register</a>
+    </li>
+}
+</ul>

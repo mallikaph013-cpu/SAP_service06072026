@@ -1,0 +1,421 @@
+@model ITRepairService.Models.RepairTicket
+
+@{
+    ViewData["Title"] = "Create Ticket";
+    var canSetStatus = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) || User.IsInRole(ITRepairService.Models.AppRoles.Admin);
+    var approverDepartments = ViewData["ApproverDepartments"] as Microsoft.AspNetCore.Mvc.Rendering.SelectList
+        ?? new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Enumerable.Empty<string>());
+    var driveAccessDepartments = ViewData["DriveAccessDepartments"] as Microsoft.AspNetCore.Mvc.Rendering.SelectList
+        ?? new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Enumerable.Empty<string>());
+    var approverUsers = ViewData["ApproverUsers"] as List<ITRepairService.Models.ApplicationUser>
+        ?? new List<ITRepairService.Models.ApplicationUser>();
+    var selectedApproverUserId = ViewData["SelectedApproverUserId"]?.ToString() ?? Model.ApproverUserId;
+    var driveAccessRepairTypeValue = ((int)ITRepairService.Models.RepairType.DriveAccessPermission).ToString();
+
+    string GetTicketStatusDisplayName(ITRepairService.Models.TicketStatus status)
+    {
+        var displayAttribute = status.GetType()
+            .GetField(status.ToString())?
+            .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault();
+
+        return displayAttribute?.GetName() ?? status.ToString();
+    }
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+            <div class="card-body py-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 fw-bold mb-1">
+                        <i class="fas fa-tools me-2"></i>Create IT Service
+                    </h1>
+                    <p class="mb-0 opacity-90">Submit a new IT repair request</p>
+                </div>
+                <a asp-action="Index" class="btn btn-light fw-semibold">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12 col-lg-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="createTicketForm">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="RequesterName" class="form-label"></label>
+                        <input asp-for="RequesterName" class="form-control" readonly />
+                        <span asp-validation-for="RequesterName" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Department" class="form-label"></label>
+                        <input asp-for="Department" class="form-control" id="requesterDepartmentInput" />
+                        <span asp-validation-for="Department" class="text-danger"></span>
+                    </div>
+
+                    <input asp-for="DeviceName" type="hidden" id="deviceNameHidden" value="N/A" />
+
+                    <div class="mb-3">
+                        <label asp-for="RepairType" class="form-label"></label>
+                        <select asp-for="RepairType" id="repairTypeSelect" class="form-select"
+                            asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>().Where(i => i.Value != ((int)ITRepairService.Models.RepairType.Network).ToString())"></select>
+                        <span asp-validation-for="RepairType" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3" id="hardwareDeviceGroup" style="display:none;">
+                        <label class="form-label" id="hardwareDeviceLabel">ประเภทอุปกรณ์</label>
+                        <select id="hardwareDeviceSelect" class="form-select">
+                            <option value="">-- เลือกประเภท --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="driveAccessDepartmentGroup" style="display:none;">
+                        <label asp-for="DriveAccessDepartment" class="form-label"></label>
+                        <select asp-for="DriveAccessDepartment" class="form-select" asp-items="driveAccessDepartments" id="driveAccessDepartmentSelect">
+                            <option value="">เลือกฝ่าย</option>
+                        </select>
+                        <span asp-validation-for="DriveAccessDepartment" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="IssueDescription" class="form-label"></label>
+                        <textarea asp-for="IssueDescription" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="IssueDescription" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ฝ่ายสำหรับ step ถัดไป</label>
+                        <select asp-for="ApproverDepartment" class="form-select" asp-items="approverDepartments" id="approverDepartmentSelect">
+                            <option value="">Select approver department</option>
+                        </select>
+                        <div class="form-text">ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด</div>
+                        <span asp-validation-for="ApproverDepartment" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ผู้รับ step ถัดไป</label>
+                        <select asp-for="ApproverUserId" class="form-select" id="approverUserSelect">
+                            <option value="">Select approver</option>
+                            @foreach (var approver in approverUsers)
+                            {
+                                var displayName = !string.IsNullOrWhiteSpace(approver.FullName)
+                                    ? approver.FullName
+                                    : (approver.UserName ?? approver.Email ?? "Unknown User");
+                                var userNameForDisplay = !string.IsNullOrWhiteSpace(approver.UserName)
+                                    ? approver.UserName
+                                    : approver.Email;
+                                var departmentValue = approver.Department?.Trim() ?? string.Empty;
+
+                                if (selectedApproverUserId == approver.Id)
+                                {
+                                    <option value="@approver.Id" data-department="@departmentValue" selected>@displayName (@userNameForDisplay)</option>
+                                }
+                                else
+                                {
+                                    <option value="@approver.Id" data-department="@departmentValue">@displayName (@userNameForDisplay)</option>
+                                }
+                            }
+                        </select>
+                        <div class="form-text">เลือกคนที่ระบบจะส่งงานต่อไปให้ ไม่ได้ผูกกับสถานะของรายการ</div>
+                        <span asp-validation-for="ApproverUserId" class="text-danger"></span>
+                    </div>
+
+                    <input asp-for="Priority" type="hidden" value="@ITRepairService.Models.TicketPriority.Medium" />
+
+                    @if (canSetStatus)
+                    {
+                        <div class="mb-4">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select">
+                                @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
+                                {
+                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed)
+                                    {
+                                        continue;
+                                    }
+
+                                    <option value="@statusVal" selected="@(Model.Status == statusVal ? "selected" : null)">@GetTicketStatusDisplayName(statusVal)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input asp-for="Status" type="hidden" value="@ITRepairService.Models.TicketStatus.Open" />
+                        <div class="form-text" id="statusApproverPreview">step ถัดไป: -</div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Create</button>
+                        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        (function () {
+            const driveAccessRepairTypeValue = '@driveAccessRepairTypeValue';
+            const hardwareRepairTypeValue = '@((int)ITRepairService.Models.RepairType.Hardware)';
+            const softwareRepairTypeValue = '@((int)ITRepairService.Models.RepairType.Software)';
+            const repairTypeSelect = document.getElementById('repairTypeSelect');
+            const driveAccessDepartmentGroup = document.getElementById('driveAccessDepartmentGroup');
+            const hardwareDeviceGroup = document.getElementById('hardwareDeviceGroup');
+            const hardwareDeviceSelect = document.getElementById('hardwareDeviceSelect');
+            const deviceNameHidden = document.getElementById('deviceNameHidden');
+            const driveAccessDepartmentSelect = document.getElementById('driveAccessDepartmentSelect');
+            const departmentSelect = document.getElementById('approverDepartmentSelect');
+            const approverSelect = document.getElementById('approverUserSelect');
+            const requesterDepartmentInput = document.getElementById('requesterDepartmentInput');
+            const issueDescriptionInput = document.getElementById('IssueDescription');
+            const createTicketForm = document.getElementById('createTicketForm');
+            const statusApproverPreview = document.getElementById('statusApproverPreview');
+
+            if (!repairTypeSelect || !departmentSelect || !approverSelect) {
+                return;
+            }
+
+            function isDriveAccessRepairType() {
+                const selectedRepairType = repairTypeSelect.value;
+                return selectedRepairType === driveAccessRepairTypeValue || selectedRepairType === 'DriveAccessPermission';
+            }
+
+            function isHardwareRepairType() {
+                return repairTypeSelect.value === hardwareRepairTypeValue || repairTypeSelect.value === 'Hardware';
+            }
+
+            function isSoftwareRepairType() {
+                return repairTypeSelect.value === softwareRepairTypeValue || repairTypeSelect.value === 'Software';
+            }
+
+            const hardwareOptions = [
+                { value: 'Desktop', text: 'Desktop' },
+                { value: 'Notebook', text: 'Notebook' },
+                { value: 'Printer', text: 'Printer' },
+                { value: 'Portable Device', text: 'Portable Device' }
+            ];
+
+            const softwareOptions = [
+                { value: 'MSOffice', text: 'MSOffice' },
+                { value: 'New/Change/Delete User', text: 'New/Change/Delete User' },
+                { value: 'OS Windows', text: 'OS Windows' }
+            ];
+
+            function renderHardwareDeviceGroup() {
+                const isHardware = isHardwareRepairType();
+                const isSoftware = isSoftwareRepairType();
+                const show = isHardware || isSoftware;
+
+                if (hardwareDeviceGroup) {
+                    hardwareDeviceGroup.style.display = show ? '' : 'none';
+                }
+
+                if (!show) {
+                    if (hardwareDeviceSelect) hardwareDeviceSelect.value = '';
+                    if (deviceNameHidden) deviceNameHidden.value = 'N/A';
+                    return;
+                }
+
+                const opts = isHardware ? hardwareOptions : softwareOptions;
+                const label = document.getElementById('hardwareDeviceLabel');
+                if (label) label.textContent = isHardware ? 'ประเภทอุปกรณ์' : 'ประเภทซอฟต์แวร์';
+
+                hardwareDeviceSelect.innerHTML = '<option value="">-- เลือกประเภท --</option>';
+                opts.forEach(function(opt) {
+                    const el = document.createElement('option');
+                    el.value = opt.value;
+                    el.textContent = opt.text;
+                    hardwareDeviceSelect.appendChild(el);
+                });
+
+                updateDeviceName();
+            }
+
+            function updateDeviceName() {
+                if (!deviceNameHidden || !hardwareDeviceSelect) return;
+                const selected = hardwareDeviceSelect.value;
+                deviceNameHidden.value = selected || 'N/A';
+            }
+
+            function renderDriveAccessDepartment() {
+                const isDriveAccess = isDriveAccessRepairType();
+
+                if (driveAccessDepartmentGroup) {
+                    driveAccessDepartmentGroup.style.display = isDriveAccess ? '' : 'none';
+                }
+
+                if (driveAccessDepartmentSelect && !isDriveAccess) {
+                    driveAccessDepartmentSelect.value = '';
+                }
+
+                if (isDriveAccess) {
+                    syncApproverDepartmentFromDriveAccess();
+                } else {
+                    syncApproverDepartmentFromRequester();
+                }
+            }
+
+            function syncApproverDepartmentFromRequester() {
+                if (!requesterDepartmentInput || !departmentSelect) {
+                    return;
+                }
+
+                const requesterDepartment = requesterDepartmentInput.value.trim();
+
+                if (!requesterDepartment) {
+                    return;
+                }
+
+                departmentSelect.value = requesterDepartment;
+                renderApproverOptions(true);
+            }
+
+            function syncApproverDepartmentFromDriveAccess() {
+                if (!driveAccessDepartmentSelect || !departmentSelect) {
+                    return;
+                }
+
+                const selectedDriveAccessDepartment = driveAccessDepartmentSelect.value;
+
+                if (!selectedDriveAccessDepartment) {
+                    return;
+                }
+
+                departmentSelect.value = selectedDriveAccessDepartment;
+                renderApproverOptions(true);
+            }
+
+            const allApproverOptions = Array.from(approverSelect.querySelectorAll('option'))
+                .filter(option => option.value !== '');
+
+            function normalize(value) {
+                return (value || '').trim().toLowerCase();
+            }
+
+            function renderApproverOptions(autoSelectFirst = false) {
+                const selectedDepartment = departmentSelect.value;
+                const selectedApprover = approverSelect.value;
+                const normalizedSelectedDepartment = normalize(selectedDepartment);
+
+                const matchingOptions = allApproverOptions.filter(option => {
+                    const department = option.getAttribute('data-department') || '';
+                    return normalize(department) === normalizedSelectedDepartment;
+                });
+
+                const optionsToRender = normalizedSelectedDepartment && matchingOptions.length > 0
+                    ? matchingOptions
+                    : allApproverOptions;
+
+                if (normalizedSelectedDepartment && matchingOptions.length === 0) {
+                    departmentSelect.value = '';
+                }
+
+                approverSelect.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Select approver';
+                approverSelect.appendChild(placeholder);
+
+                let foundSelected = false;
+
+                optionsToRender.forEach(option => {
+                    const clonedOption = option.cloneNode(true);
+                    if (clonedOption.value === selectedApprover) {
+                        clonedOption.selected = true;
+                        foundSelected = true;
+                    }
+
+                    approverSelect.appendChild(clonedOption);
+                });
+
+                if (!foundSelected) {
+                    if (optionsToRender.length === 1 || (autoSelectFirst && optionsToRender.length > 0)) {
+                        approverSelect.value = optionsToRender[0].value;
+                    } else {
+                        approverSelect.value = '';
+                    }
+                }
+
+                updateStatusApproverPreview();
+            }
+
+            function updateStatusApproverPreview() {
+                if (!statusApproverPreview || !approverSelect) {
+                    return;
+                }
+
+                const selectedOption = approverSelect.options[approverSelect.selectedIndex];
+                const approverText = selectedOption && selectedOption.value
+                    ? selectedOption.textContent.trim().split(' (')[0]
+                    : '-';
+
+                statusApproverPreview.textContent = 'step ถัดไป: ' + approverText;
+            }
+
+            if (hardwareDeviceSelect) {
+                hardwareDeviceSelect.addEventListener('change', updateDeviceName);
+            }
+
+            departmentSelect.addEventListener('change', renderApproverOptions);
+            repairTypeSelect.addEventListener('change', function () {
+                renderHardwareDeviceGroup();
+                renderDriveAccessDepartment();
+            });
+            approverSelect.addEventListener('change', updateStatusApproverPreview);
+            if (requesterDepartmentInput) {
+                requesterDepartmentInput.addEventListener('change', function () {
+                    if (!isDriveAccessRepairType()) {
+                        syncApproverDepartmentFromRequester();
+                    }
+                });
+            }
+            if (driveAccessDepartmentSelect) {
+                driveAccessDepartmentSelect.addEventListener('change', syncApproverDepartmentFromDriveAccess);
+            }
+
+            if (createTicketForm) {
+                createTicketForm.addEventListener('submit', function () {
+                    if (isDriveAccessRepairType() && issueDescriptionInput && driveAccessDepartmentSelect) {
+                        const driveDepartment = driveAccessDepartmentSelect.value.trim();
+                        if (driveDepartment) {
+                            const driveRemark = 'ฝ่ายที่ต้องการขอสิทธิ์ Drive: ' + driveDepartment;
+                            const currentDescription = issueDescriptionInput.value.trim();
+
+                            if (!currentDescription) {
+                                issueDescriptionInput.value = driveRemark;
+                            } else if (currentDescription.toLowerCase().indexOf(driveRemark.toLowerCase()) === -1) {
+                                issueDescriptionInput.value = driveRemark + '\n' + currentDescription;
+                            }
+                        }
+                    }
+
+                    if (approverSelect && !approverSelect.value) {
+                        const firstApproverOption = Array.from(approverSelect.options).find(option => option.value);
+                        if (firstApproverOption) {
+                            approverSelect.value = firstApproverOption.value;
+                        }
+                    }
+                }, true);
+            }
+
+            renderHardwareDeviceGroup();
+            renderDriveAccessDepartment();
+            renderApproverOptions();
+            updateStatusApproverPreview();
+        })();
+    </script>
+}

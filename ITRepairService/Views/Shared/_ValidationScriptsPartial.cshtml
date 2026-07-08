@@ -1,0 +1,8 @@
+﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script>
+	// Use CSS-valid selector for ignore to avoid browser SyntaxError on :not(:hidden).
+	$.validator.setDefaults({
+		ignore: "[type='hidden']"
+	});
+</script>

@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ITRepairService", "ITRepairService.csproj", "{05D69004-DC1E-49A1-9DB2-A631563EA686}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ITRepairService.Migrations.Sqlite", "..\ITRepairService.Migrations.Sqlite\ITRepairService.Migrations.Sqlite.csproj", "{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ITRepairService.Migrations.SqlServer", "..\ITRepairService.Migrations.SqlServer\ITRepairService.Migrations.SqlServer.csproj", "{D9D0154C-44C1-4AA1-8632-4CCB21857446}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|x64.Build.0 = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Debug|x86.Build.0 = Debug|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|x64.ActiveCfg = Release|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|x64.Build.0 = Release|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|x86.ActiveCfg = Release|Any CPU
+		{05D69004-DC1E-49A1-9DB2-A631563EA686}.Release|x86.Build.0 = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|x64.Build.0 = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Debug|x86.Build.0 = Debug|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|x64.ActiveCfg = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|x64.Build.0 = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|x86.ActiveCfg = Release|Any CPU
+		{DDD3E8F3-8090-4638-B232-5AA1C1DDBB1C}.Release|x86.Build.0 = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|x64.Build.0 = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Debug|x86.Build.0 = Debug|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|x64.ActiveCfg = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|x64.Build.0 = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|x86.ActiveCfg = Release|Any CPU
+		{D9D0154C-44C1-4AA1-8632-4CCB21857446}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
