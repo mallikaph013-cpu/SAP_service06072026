@@ -1,12 +1,16 @@
+using System;
 using ITRepairService.Data;
 using ITRepairService.Models;
 using ITRepairService.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "SQLite";
 var sqliteConnection = builder.Configuration.GetConnectionString("SQLite")
     ?? builder.Configuration.GetConnectionString("SqliteConnection")
@@ -19,13 +23,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (databaseProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
     {
-        options.UseSqlServer(sqlServerConnection, sqlServerOptions =>
-            sqlServerOptions.MigrationsAssembly("ITRepairService.Migrations.SqlServer"));
+        options.UseSqlServer(sqlServerConnection);
     }
     else
     {
-        options.UseSqlite(sqliteConnection, sqliteOptions =>
-            sqliteOptions.MigrationsAssembly("ITRepairService.Migrations.Sqlite"));
+        options.UseSqlite(sqliteConnection);
         options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 });
@@ -55,6 +57,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<LdapSettings>(builder.Configuration.GetSection("LDAP"));
 builder.Services.AddSingleton<ILdapAuthenticationService, LdapAuthenticationService>();
 
+// Register Department Initializer service
+builder.Services.AddScoped<IDepartmentInitializerService, DepartmentInitializerService>();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -83,7 +88,17 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
+// Apply pending migrations and create database if it doesn't exist
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 await IdentitySeeder.SeedRolesAndAdminAsync(app.Services, app.Configuration);
+
+// Seed test users for testing role assignment logic
+await IdentitySeeder.SeedTestUsersAsync(app.Services);
 
 app.Run();
 

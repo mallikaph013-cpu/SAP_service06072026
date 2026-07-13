@@ -68,7 +68,10 @@ public class LdapAuthenticationService : ILdapAuthenticationService
 
         try
         {
-            string? distinguishedName = null;
+            _logger.LogInformation("Starting LDAP authentication for user: {Username}", username);
+            _logger.LogInformation("LDAP Settings - Server: {Server}, Port: {Port}, Domain: {Domain}, SearchBase: {SearchBase}", 
+                _settings.Server, _settings.Port, _settings.Domain, _settings.SearchBase);
+
             string sAMAccountName = username;
             string displayName = username;
             string email = $"{username}@{_settings.Domain.ToLowerInvariant()}.local";
@@ -80,17 +83,55 @@ public class LdapAuthenticationService : ILdapAuthenticationService
             string employeeID = string.Empty;
             var memberOf = new List<string>();
 
-            using (var searchConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port)))
+            // Connect and authenticate using Negotiate for AD compatibility
+            using (var connection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port)))
             {
-                searchConnection.AuthType = AuthType.Basic;
+                _logger.LogInformation("Connecting to LDAP server: {Server}:{Port}", _settings.Server, _settings.Port);
 
-                string userPrincipal = $@"{_settings.Domain}\{username}";
-                searchConnection.Bind(new System.Net.NetworkCredential(userPrincipal, password));
+                // Use Negotiate for Kerberos/NTLM (required for AD with DOMAIN\user format)
+                connection.AuthType = AuthType.Negotiate;
 
-                _logger.LogInformation("Bound to AD as {User}", userPrincipal);
+                // Try multiple credential formats
+                List<string> credentialFormats = new List<string>
+                {
+                    $"{_settings.Domain}\\{username}",           // DOMAIN\username
+                    $"{_settings.Domain}/{username}",           // DOMAIN/username
+                    $"{username}@{_settings.Domain.ToLowerInvariant()}.local",  // username@domain.local
+                    username                                     // username only
+                };
 
-                // Search for user details with all required attributes
+                bool bindSuccess = false;
+                Exception? lastException = null;
+
+                foreach (var credentialFormat in credentialFormats)
+                {
+                    try
+                    {
+                        _logger.LogInformation("Attempting to bind with format: {CredentialFormat}", credentialFormat);
+                        connection.Bind(new System.Net.NetworkCredential(credentialFormat, password));
+                        _logger.LogInformation("Successfully bound to AD as {User} using format: {Format}", credentialFormat, credentialFormat);
+                        bindSuccess = true;
+                        break;
+                    }
+                    catch (Exception bindEx)
+                    {
+                        _logger.LogWarning("Failed to bind with format {Format}: {Message}", credentialFormat, bindEx.Message);
+                        lastException = bindEx;
+                        continue;
+                    }
+                }
+
+                if (!bindSuccess)
+                {
+                    string errorMsg = lastException?.Message ?? "Unknown error";
+                    _logger.LogError(lastException, "All credential formats failed. Last error: {Message}", errorMsg);
+                    return LdapAuthenticationResult.Failure($"Authentication failed: {errorMsg}");
+                }
+
+                // Search for user details
                 string searchFilter = _settings.SearchFilter.Replace("{0}", EscapeLdapFilter(username));
+                _logger.LogInformation("Searching with filter: {Filter} in base: {SearchBase}", searchFilter, _settings.SearchBase);
+
                 var searchRequest = new SearchRequest(
                     _settings.SearchBase,
                     searchFilter,
@@ -100,16 +141,31 @@ public class LdapAuthenticationService : ILdapAuthenticationService
                     "employeeID", "memberOf"
                 );
 
-                var searchResponse = (SearchResponse)searchConnection.SendRequest(searchRequest);
+                SearchResponse searchResponse;
+                try
+                {
+                    searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
+                    _logger.LogInformation("Search completed. Found {Count} entries", searchResponse.Entries.Count);
+                }
+                catch (Exception searchEx)
+                {
+                    _logger.LogError(searchEx, "LDAP search failed: {Message}", searchEx.Message);
+                    return LdapAuthenticationResult.Failure($"Search failed: {searchEx.Message}");
+                }
 
                 if (searchResponse.Entries.Count == 0)
                 {
-                    _logger.LogWarning("User {Username} not found in AD", username);
+                    _logger.LogWarning("User {Username} not found in AD with filter {Filter}", username, searchFilter);
                     return LdapAuthenticationResult.Failure("Invalid username or password.");
                 }
 
                 var entry = searchResponse.Entries[0];
-                distinguishedName = GetAttributeValue(entry, "distinguishedName");
+                _logger.LogInformation("Found user entry with DN: {DN}", entry.DistinguishedName);
+
+                // Log all available attributes for debugging
+                _logger.LogInformation("Available attributes: {Attributes}",
+                    string.Join(", ", entry.Attributes.AttributeNames.Cast<string>()));
+
                 sAMAccountName = GetAttributeValue(entry, "sAMAccountName") ?? username;
                 displayName = GetAttributeValue(entry, "displayName")
                               ?? GetAttributeValue(entry, "cn")
@@ -124,17 +180,21 @@ public class LdapAuthenticationService : ILdapAuthenticationService
                 employeeID = GetAttributeValue(entry, "employeeID");
                 memberOf = GetAttributeValues(entry, "memberOf");
 
-                _logger.LogInformation("Found AD user: {DN}, department={Dept}, title={Title}, company={Company}",
-                    distinguishedName ?? "(none)", department, title, company);
-            }
-
-            // 2. Verify with user's DN
-            if (!string.IsNullOrEmpty(distinguishedName))
-            {
-                using var verifyConnection = new LdapConnection(new LdapDirectoryIdentifier(_settings.Server, _settings.Port));
-                verifyConnection.AuthType = AuthType.Basic;
-                verifyConnection.Bind(new System.Net.NetworkCredential(distinguishedName, password));
-                _logger.LogInformation("Password fully verified for {Username}", username);
+                // Detailed logging for debugging Title attribute
+                _logger.LogInformation("=== AD ATTRIBUTES DEBUG ===");
+                _logger.LogInformation("Username: {Username}", sAMAccountName);
+                _logger.LogInformation("DisplayName: {DisplayName}", displayName);
+                _logger.LogInformation("Department: {Department}", department);
+                _logger.LogInformation("Title (raw): {Title}", title);
+                _logger.LogInformation("Title (isNullOrEmpty): {IsNullOrEmpty}", string.IsNullOrEmpty(title));
+                _logger.LogInformation("Title (ToUpper): {TitleUpper}", title.ToUpperInvariant());
+                _logger.LogInformation("Contains 'DM': {ContainsDM}", title.ToUpperInvariant().Contains("DM"));
+                _logger.LogInformation("Contains 'SM': {ContainsSM}", title.ToUpperInvariant().Contains("SM"));
+                _logger.LogInformation("Contains 'IT': {ContainsIT}", department.ToUpperInvariant().Contains("IT"));
+                _logger.LogInformation("=== END DEBUG ===");
+                
+                _logger.LogInformation("Found AD user: {Username}, displayName={DisplayName}, email={Email}, dept={Dept}, title={Title}",
+                    sAMAccountName, displayName, email, department, title);
             }
 
             return LdapAuthenticationResult.Success(
@@ -146,7 +206,7 @@ public class LdapAuthenticationService : ILdapAuthenticationService
         }
         catch (DirectoryOperationException ex)
         {
-            _logger.LogWarning("LDAP directory operation error for {Username}: {Message}", username, ex.Message);
+            _logger.LogWarning("LDAP directory error for {Username}: {Message}", username, ex.Message);
             return LdapAuthenticationResult.Failure(ParseLdapError(ex.Message));
         }
         catch (LdapException ex)

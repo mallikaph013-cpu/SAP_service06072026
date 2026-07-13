@@ -6,16 +6,16 @@
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+        <div class="card page-header">
             <div class="card-body py-4">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
-                        <h1 class="h2 fw-bold mb-1">
-                            <i class="fas fa-user me-3"></i>User Details
+                        <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                            <i class="fas fa-user me-2"></i>User Details
                         </h1>
-                        <p class="mb-0 opacity-90">@Model.FullName</p>
+                        <p class="mb-0 opacity-80">@Model.FullName</p>
                     </div>
-                    <a asp-action="Index" class="btn btn-light fw-500">
+                    <a asp-action="Index" class="btn btn-light fw-semibold px-4">
                         <i class="fas fa-arrow-left me-2"></i>Back to List
                     </a>
                 </div>
@@ -26,61 +26,61 @@
 
 <div class="row">
     <div class="col-lg-7">
-        <div class="card border-0 shadow-sm mb-4">
+        <div class="card shadow-sm mb-4">
             <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 fw-600" style="color: #0066cc;">
-                    <i class="fas fa-id-card me-2"></i>Account Information
+                <h5 class="mb-0 fw-bold" style="color: #2a4050;">
+                    <i class="fas fa-id-card me-2" style="color: #9DCAEB;"></i>Account Information
                 </h5>
             </div>
             <div class="card-body p-4">
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Username</div>
-                    <div class="col-sm-8 fw-600">@Model.UserName</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Username</div>
+                    <div class="col-sm-8 fw-semibold" style="color: #2a4050;">@Model.UserName</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Email</div>
-                    <div class="col-sm-8">@Model.Email</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Email</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@Model.Email</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Full Name</div>
-                    <div class="col-sm-8 fw-600">@Model.FullName</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Full Name</div>
+                    <div class="col-sm-8 fw-semibold" style="color: #2a4050;">@Model.FullName</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Department</div>
-                    <div class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Department) ? "-" : Model.Department)</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Department</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@(string.IsNullOrWhiteSpace(Model.Department) ? "-" : Model.Department)</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Section</div>
-                    <div class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Section) ? "-" : Model.Section)</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Section</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@(string.IsNullOrWhiteSpace(Model.Section) ? "-" : Model.Section)</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Status</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Status</div>
                     <div class="col-sm-8">
                         @if (Model.IsActive)
                         {
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge rounded-pill" style="background: #a0d4b0; color: #1a4030; font-weight: 500;">Active</span>
                         }
                         else
                         {
-                            <span class="badge bg-secondary">Inactive</span>
+                            <span class="badge rounded-pill" style="background: #b8c0c8; color: #2a3a4a; font-weight: 500;">Inactive</span>
                         }
                     </div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Roles</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Roles</div>
                     <div class="col-sm-8">
                         @if (Model.Roles.Count > 0)
                         {
                             @foreach (var role in Model.Roles)
                             {
-                                <span class="badge bg-primary me-1">@role</span>
+                                <span class="badge rounded-pill me-1" style="background: #9DCAEB; color: #1a3040; font-weight: 500; padding: 0.35rem 0.7rem;">@role</span>
                             }
                         }
                         else
@@ -93,32 +93,32 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <div class="card shadow-sm">
             <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 fw-600" style="color: #0066cc;">
-                    <i class="fas fa-history me-2"></i>Audit Information
+                <h5 class="mb-0 fw-bold" style="color: #2a4050;">
+                    <i class="fas fa-history me-2" style="color: #9DCAEB;"></i>Audit Information
                 </h5>
             </div>
             <div class="card-body p-4">
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Created By</div>
-                    <div class="col-sm-8">@(Model.CreatedByName ?? "-")</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Created By</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@(Model.CreatedByName ?? "-")</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Created At</div>
-                    <div class="col-sm-8">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Created At</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Updated By</div>
-                    <div class="col-sm-8">@(Model.UpdatedByName ?? "-")</div>
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Updated By</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">@(Model.UpdatedByName ?? "-")</div>
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col-sm-4 text-muted fw-500">Updated At</div>
-                    <div class="col-sm-8">
+                    <div class="col-sm-4" style="color: #4a6a7a; font-weight: 500;">Updated At</div>
+                    <div class="col-sm-8" style="color: #3a4a5a;">
                         @(Model.UpdatedAt.HasValue ? Model.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm") : "-")
                     </div>
                 </div>
@@ -128,19 +128,19 @@
     </div>
 
     <div class="col-lg-5">
-        <div class="card border-0 shadow-sm">
+        <div class="card shadow-sm">
             <div class="card-body p-4 text-center">
-                <div class="avatar-lg mb-3 mx-auto d-flex align-items-center justify-content-center"
-                     style="width: 80px; height: 80px; background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); border-radius: 50%; color: white; font-size: 2rem; font-weight: bold;">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width: 80px; height: 80px; background: linear-gradient(135deg, #9DCAEB 0%, #b8d8f0 100%); border-radius: 50%; color: #1a3040; font-size: 2rem; font-weight: 700;">
                     @(Model.UserName.FirstOrDefault().ToString().ToUpper())
                 </div>
-                <h5 class="fw-600">@Model.FullName</h5>
-                <p class="text-muted mb-3">@Model.UserName</p>
+                <h5 class="fw-bold" style="color: #2a4050;">@Model.FullName</h5>
+                <p class="mb-3" style="color: #6a8a9a;">@Model.UserName</p>
                 <div class="d-grid gap-2">
-                    <a asp-action="EditRoles" asp-route-id="@Model.UserId" class="btn btn-primary fw-500">
+                    <a asp-action="EditRoles" asp-route-id="@Model.UserId" class="btn btn-primary fw-semibold">
                         <i class="fas fa-edit me-2"></i>Edit User
                     </a>
-                    <a asp-action="Index" class="btn btn-outline-secondary fw-500">
+                    <a asp-action="Index" class="btn btn-outline-secondary fw-semibold">
                         <i class="fas fa-arrow-left me-2"></i>Back to List
                     </a>
                 </div>
@@ -148,8 +148,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .fw-500 { font-weight: 500; }
-    .fw-600 { font-weight: 600; }
-</style>

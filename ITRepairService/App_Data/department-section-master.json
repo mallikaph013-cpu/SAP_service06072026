@@ -1,7 +1,16 @@
 {
-  "Departments": [],
+  "Departments": [
+    "DX"
+  ],
   "Sections": [
     "Enterprise System"
   ],
-  "InactiveSections": []
+  "InactiveDepartments": [],
+  "InactiveSections": [],
+  "SectionDepartmentMappings": [
+    {
+      "Section": "Enterprise System",
+      "Department": "IT"
+    }
+  ]
 }

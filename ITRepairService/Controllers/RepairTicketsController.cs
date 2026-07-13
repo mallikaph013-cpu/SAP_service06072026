@@ -1,5 +1,9 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using ITRepairService.Data;
 using ITRepairService.Models;
 using ITRepairService.ViewModels.RepairTickets;
@@ -34,6 +38,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         if (!isAdmin)
         {
+            // Show tickets where user is involved: as approver, requester, or assigned IT
             if (isApprove)
             {
                 query = query.Where(ticket =>
@@ -41,6 +46,18 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                     || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.ApproverName == currentUserFullName)
                     || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.ApproverName == currentUserUserName)
                     || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.ApproverName == currentUserEmail)
+                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.SecondApproverUserId == currentUserId)
+                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.SecondApproverName == currentUserFullName)
+                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.SecondApproverName == currentUserUserName)
+                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.SecondApproverName == currentUserEmail)
+                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.ThirdApproverUserId == currentUserId)
+                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.ThirdApproverName == currentUserFullName)
+                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.ThirdApproverName == currentUserUserName)
+                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.ThirdApproverName == currentUserEmail)
+                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.AssignedItUserId == currentUserId)
+                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.AssignedItName == currentUserFullName)
+                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.AssignedItName == currentUserUserName)
+                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.AssignedItName == currentUserEmail)
                     || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
                     || (string.IsNullOrWhiteSpace(ticket.RequesterUserId)
                         && (
@@ -55,7 +72,11 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             else
             {
                 query = query.Where(ticket =>
-                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
+                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.AssignedItUserId == currentUserId)
+                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.AssignedItName == currentUserFullName)
+                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.AssignedItName == currentUserUserName)
+                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.AssignedItName == currentUserEmail)
+                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
                     || (string.IsNullOrWhiteSpace(ticket.RequesterUserId)
                         && (
                             (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.RequesterName == currentUserFullName)
@@ -658,6 +679,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         await PopulateApproverSelectionsAsync(ticket.ApproverDepartment, ticket.ApproverUserId);
         await PopulateDriveAccessDepartmentSelectionsAsync(ticket.DriveAccessDepartment);
+        await PopulateThirdApproverSelectionsAsync(string.Empty);
         return View(ticket);
     }
 
@@ -689,6 +711,16 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         ticket.DriveAccessDepartment = ticket.DriveAccessDepartment?.Trim() ?? string.Empty;
         ticket.IssueDescription = ticket.IssueDescription?.Trim() ?? string.Empty;
 
+        // Set approval level based on repair type
+        if (ticket.RepairType == RepairType.DriveAccessPermission)
+        {
+            ticket.ApprovalLevel = 2; // Drive Access requires 2-level approval (first + drive dept SM/DM)
+        }
+        else
+        {
+            ticket.ApprovalLevel = 1; // Normal repair requires 1-level approval
+        }
+
         var targetApproverDepartment = ticket.RepairType == RepairType.DriveAccessPermission
             ? ticket.DriveAccessDepartment
             : ticket.Department;
@@ -699,6 +731,8 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         if (ticket.RepairType != RepairType.DriveAccessPermission)
         {
             ticket.DriveAccessDepartment = string.Empty;
+            ticket.SecondApproverUserId = null;
+            ticket.SecondApproverName = null;
         }
 
         if (ticket.RepairType == RepairType.DriveAccessPermission)
@@ -720,8 +754,17 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         if (selectedApprover is null && !string.IsNullOrWhiteSpace(targetApproverDepartment))
         {
-            selectedApprover = approverUsers.FirstOrDefault(user =>
-                string.Equals(user.Department?.Trim(), targetApproverDepartment, StringComparison.OrdinalIgnoreCase));
+            // For Drive Access, first approver should be SM/DM of requester's department
+            if (ticket.RepairType == RepairType.DriveAccessPermission)
+            {
+                selectedApprover = approverUsers.FirstOrDefault(user =>
+                    string.Equals(user.Department?.Trim(), ticket.Department?.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                selectedApprover = approverUsers.FirstOrDefault(user =>
+                    string.Equals(user.Department?.Trim(), targetApproverDepartment, StringComparison.OrdinalIgnoreCase));
+            }
 
             if (selectedApprover is not null)
             {
@@ -782,7 +825,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         if (isApproveCreator && !canSetStatus && ticket.Status == TicketStatus.Approved)
         {
             AddStatusHistory(ticket, null, TicketStatus.Open, currentUser, "Created");
-            AddStatusHistory(ticket, TicketStatus.Open, TicketStatus.Approved, currentUser, "StatusChanged");
+            AddStatusHistory(ticket, TicketStatus.Open, TicketStatus.Approved, currentUser, "");
         }
         else
         {
@@ -809,6 +852,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         var currentUser = await _userManager.GetUserAsync(User);
         ViewData["CurrentUserId"] = currentUser?.Id;
         ViewData["CurrentUserDisplayName"] = GetActorName(currentUser);
+        ViewData["CurrentUserDepartment"] = currentUser?.Department?.Trim() ?? string.Empty;
         var canSeeInProgress = User.IsInRole(AppRoles.Admin) || User.IsInRole(AppRoles.ITSupport);
         var isPrivilegedUser = User.IsInRole(AppRoles.ITSupport)
             || User.IsInRole(AppRoles.Admin)
@@ -817,7 +861,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         if (!isPrivilegedUser)
         {
-            if (!isOwner || (ticket.Status != TicketStatus.Rejected && ticket.Status != TicketStatus.Open))
+            if (!isOwner || (ticket.Status != TicketStatus.Rejected && ticket.Status != TicketStatus.Open && ticket.Status != TicketStatus.Complete))
             {
                 return Forbid();
             }
@@ -875,12 +919,13 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         await PopulateItSupportSelectionsAsync(ticket.AssignedItUserId);
         await PopulateApproverSelectionsAsync(ticket.ApproverDepartment, ticket.ApproverUserId);
+        await PopulateThirdApproverSelectionsAsync(ticket.ThirdApproverUserId);
         return View(ticket);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,RequesterName,Department,DeviceName,IssueDescription,RepairType,Priority,Status,CreatedAt,ApproverDepartment,ApproverUserId,ApproverName,AssignedItUserId")] RepairTicket ticket, string? rejectRemark, List<TicketStatus>? approvalStatuses)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,RequesterName,Department,DeviceName,IssueDescription,RepairType,Priority,Status,CreatedAt,ApproverDepartment,ApproverUserId,ApproverName,AssignedItUserId")] RepairTicket ticket, string? rejectRemark, List<TicketStatus>? approvalStatuses, string? thirdApproverUserId)
     {
         if (id != ticket.Id)
         {
@@ -898,7 +943,9 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         var isPrivilegedUser = User.IsInRole(AppRoles.ITSupport)
             || User.IsInRole(AppRoles.Admin)
             || User.IsInRole(AppRoles.Approve);
-        var canEditStatus = User.IsInRole(AppRoles.Approve);
+        var canEditStatus = User.IsInRole(AppRoles.Approve)
+            || User.IsInRole(AppRoles.ITSupport)
+            || User.IsInRole(AppRoles.Admin);
         var originalStatus = existingTicket.Status;
         var canMarkCompleteByAssignee = currentUser is not null
             && !string.IsNullOrWhiteSpace(existingTicket.AssignedItUserId)
@@ -942,26 +989,33 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             .Where(status => status != TicketStatus.Closed && status != TicketStatus.Open)
             .ToList();
 
-        if (ticket.Status == TicketStatus.Open && originalStatus != TicketStatus.Open)
-        {
-            return Forbid();
-        }
-
         var attemptedStatusChange = ticket.Status != originalStatus
             || submittedApprovalStatuses.Count > 0
             || !string.IsNullOrWhiteSpace(rejectRemark);
+
+        var ownerCloseRequest = isOwner
+            && originalStatus == TicketStatus.Complete
+            && ticket.Status == TicketStatus.Closed
+            && submittedApprovalStatuses.Count == 0
+            && string.IsNullOrWhiteSpace(rejectRemark);
 
         var assigneeCompleteRequest = canMarkCompleteByAssignee
             && ticket.Status == TicketStatus.Complete
             && submittedApprovalStatuses.Count == 0
             && string.IsNullOrWhiteSpace(rejectRemark);
 
-        if (!canEditStatus && attemptedStatusChange && !assigneeCompleteRequest)
+        // Prevent non-privileged users from changing status from Open
+        if (!isPrivilegedUser && ticket.Status == TicketStatus.Open && originalStatus != TicketStatus.Open)
         {
             return Forbid();
         }
 
-        if (!canEditStatus && !assigneeCompleteRequest)
+        if (!canEditStatus && attemptedStatusChange && !assigneeCompleteRequest && !ownerCloseRequest)
+        {
+            return Forbid();
+        }
+
+        if (!canEditStatus && !assigneeCompleteRequest && !ownerCloseRequest)
         {
             ticket.Status = originalStatus;
             submittedApprovalStatuses.Clear();
@@ -969,28 +1023,11 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         var statusFlow = CollapseConsecutiveStatuses(new[] { ticket.Status }.Concat(submittedApprovalStatuses));
 
-        if (!canEditStatusByUser && !assigneeCompleteRequest)
-        {
-            if (statusFlow.Count < persistedEditableStatusFlow.Count)
-            {
-                return Forbid();
-            }
-
-            var hasSamePrefix = statusFlow
-                .Take(persistedEditableStatusFlow.Count)
-                .SequenceEqual(persistedEditableStatusFlow);
-
-            if (!hasSamePrefix)
-            {
-                return Forbid();
-            }
-        }
-
         var effectiveStatus = statusFlow.Last();
 
         if (!isPrivilegedUser)
         {
-            if (!isOwner || (existingTicket.Status != TicketStatus.Rejected && existingTicket.Status != TicketStatus.Open))
+            if (!isOwner || (existingTicket.Status != TicketStatus.Rejected && existingTicket.Status != TicketStatus.Open && existingTicket.Status != TicketStatus.Complete))
             {
                 return Forbid();
             }
@@ -999,7 +1036,17 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             existingTicket.DeviceName = ticket.DeviceName;
             existingTicket.IssueDescription = ticket.IssueDescription;
             existingTicket.RepairType = ticket.RepairType;
-            existingTicket.Status = originalStatus;
+            
+            // Allow owner to Close ticket when status is Complete
+            if (originalStatus == TicketStatus.Complete && effectiveStatus == TicketStatus.Closed)
+            {
+                existingTicket.Status = TicketStatus.Closed;
+            }
+            else
+            {
+                existingTicket.Status = originalStatus;
+            }
+            
             existingTicket.UpdatedAt = DateTime.UtcNow;
             existingTicket.UpdatedByName = GetActorName(currentUser);
 
@@ -1013,6 +1060,27 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        // Auto-route to DX approver when non-DX approver approves
+        var currentUserDepartment = currentUser?.Department?.Trim() ?? string.Empty;
+        var isDxDepartment = string.Equals(currentUserDepartment, "DX", StringComparison.OrdinalIgnoreCase);
+        
+        if (!isDxDepartment && canEditStatus && effectiveStatus == TicketStatus.Approved)
+        {
+            // Non-DX approver approved - auto-set next approver to DX SM/DM
+            var dxApprovers = await _userManager.GetUsersInRoleAsync(AppRoles.Approve);
+            var dxApprover = dxApprovers.FirstOrDefault(user => 
+                string.Equals(user.Department?.Trim(), "DX", StringComparison.OrdinalIgnoreCase));
+            
+            if (dxApprover != null)
+            {
+                existingTicket.ApproverUserId = dxApprover.Id;
+                existingTicket.ApproverName = !string.IsNullOrWhiteSpace(dxApprover.FullName)
+                    ? dxApprover.FullName
+                    : (dxApprover.UserName ?? dxApprover.Email ?? "Unknown");
+                existingTicket.ApproverDepartment = "DX";
+            }
         }
 
         if (!canSeeInProgress && (existingTicket.Status == TicketStatus.InProgress || statusFlow.Any(status => status == TicketStatus.InProgress)))
@@ -1033,13 +1101,28 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         existingTicket.ApproverName = ticket.ApproverName;
         existingTicket.AssignedItUserId = ticket.AssignedItUserId?.Trim() ?? string.Empty;
 
-        if (User.IsInRole(AppRoles.Approve)
-            && !User.IsInRole(AppRoles.ITSupport)
-            && !string.IsNullOrWhiteSpace(currentUser?.Id)
-            && string.Equals(existingTicket.ApproverUserId, currentUser.Id, StringComparison.Ordinal))
+        // Handle ThirdApproverUserId (SM/DM of DX for Drive Access)
+        if (!string.IsNullOrWhiteSpace(thirdApproverUserId))
         {
-            ModelState.AddModelError(nameof(RepairTicket.ApproverUserId), "ผู้รับ step ถัดไปต้องไม่เป็นผู้ใช้คนเดียวกับผู้ที่กำลังอนุมัติ กรุณาเลือกผู้รับคนอื่น");
+            existingTicket.ThirdApproverUserId = thirdApproverUserId.Trim();
+            var thirdApprover = await _userManager.FindByIdAsync(thirdApproverUserId.Trim());
+            if (thirdApprover is not null)
+            {
+                existingTicket.ThirdApproverName = !string.IsNullOrWhiteSpace(thirdApprover.FullName)
+                    ? thirdApprover.FullName
+                    : (thirdApprover.UserName ?? thirdApprover.Email ?? "Unknown");
+            }
         }
+        else if (existingTicket.RepairType != RepairType.DriveAccessPermission)
+        {
+            existingTicket.ThirdApproverUserId = null;
+            existingTicket.ThirdApproverName = null;
+        }
+
+        // Check if current user is DX approver
+        var isDxApprover = string.Equals(currentUserDepartment, "DX", StringComparison.OrdinalIgnoreCase)
+            && User.IsInRole(AppRoles.Approve)
+            && !User.IsInRole(AppRoles.ITSupport);
 
         if (effectiveStatus == TicketStatus.InProgress)
         {
@@ -1057,6 +1140,44 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                         : (assignedIt.UserName ?? assignedIt.Email ?? "Unknown");
                 }
                 else if (string.IsNullOrWhiteSpace(existingTicket.AssignedItName))
+                {
+                    existingTicket.AssignedItName = existingTicket.AssignedItUserId;
+                }
+            }
+        }
+        else if (effectiveStatus == TicketStatus.Approved && isDxApprover)
+        {
+            // DX approvers can assign IT staff when approving
+            if (!string.IsNullOrWhiteSpace(existingTicket.AssignedItUserId))
+            {
+                var assignedIt = await _userManager.FindByIdAsync(existingTicket.AssignedItUserId);
+                if (assignedIt is not null)
+                {
+                    existingTicket.AssignedItName = !string.IsNullOrWhiteSpace(assignedIt.FullName)
+                        ? assignedIt.FullName
+                        : (assignedIt.UserName ?? assignedIt.Email ?? "Unknown");
+                }
+
+                else if (string.IsNullOrWhiteSpace(existingTicket.AssignedItName))
+                {
+                    existingTicket.AssignedItName = existingTicket.AssignedItUserId;
+                }
+            }
+        }
+        else if (effectiveStatus == TicketStatus.Approved || effectiveStatus == TicketStatus.Complete || effectiveStatus == TicketStatus.Closed)
+        {
+            // Preserve existing assignment for Approved/Complete/Closed statuses
+            // (IT Support/Admin may view/edit without changing status)
+            if (!string.IsNullOrWhiteSpace(existingTicket.AssignedItUserId) && string.IsNullOrWhiteSpace(existingTicket.AssignedItName))
+            {
+                var assignedIt = await _userManager.FindByIdAsync(existingTicket.AssignedItUserId);
+                if (assignedIt is not null)
+                {
+                    existingTicket.AssignedItName = !string.IsNullOrWhiteSpace(assignedIt.FullName)
+                        ? assignedIt.FullName
+                        : (assignedIt.UserName ?? assignedIt.Email ?? "Unknown");
+                }
+                else
                 {
                     existingTicket.AssignedItName = existingTicket.AssignedItUserId;
                 }
@@ -1135,7 +1256,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                     var stepRemark = stepStatus == TicketStatus.Rejected
                         ? trimmedRejectRemark
                         : null;
-                    AddStatusHistory(existingTicket, fromStatus, stepStatus, currentUser, "StatusChanged", stepRemark);
+                    AddStatusHistory(existingTicket, fromStatus, stepStatus, currentUser, "", stepRemark);
                     fromStatus = stepStatus;
                 }
 
@@ -1149,7 +1270,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                 var statusRemark = existingTicket.Status == TicketStatus.Rejected
                     ? trimmedRejectRemark
                     : null;
-                AddStatusHistory(existingTicket, originalStatus, existingTicket.Status, currentUser, "StatusChanged", statusRemark);
+                AddStatusHistory(existingTicket, originalStatus, existingTicket.Status, currentUser, "", statusRemark);
             }
             else
             {
@@ -1292,6 +1413,13 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             .ToListAsync();
 
         ViewData["DriveAccessDepartments"] = new SelectList(departments, selectedDepartment);
+    }
+
+    private async Task PopulateThirdApproverSelectionsAsync(string? selectedThirdApproverId)
+    {
+        var approverUsers = await GetApproverUsersAsync();
+        ViewData["ThirdApproverUsers"] = approverUsers;
+        ViewData["SelectedThirdApproverUserId"] = selectedThirdApproverId;
     }
 
     private async Task PopulateItSupportSelectionsAsync(string? selectedItUserId)

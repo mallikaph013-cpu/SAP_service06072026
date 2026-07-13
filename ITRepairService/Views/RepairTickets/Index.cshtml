@@ -15,11 +15,26 @@
     var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
         || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
 
+    bool IsTicketOwner(ITRepairService.Models.RepairTicket ticket)
+    {
+        return !string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId
+            || (string.IsNullOrWhiteSpace(ticket.RequesterUserId) && (
+                (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.RequesterName == currentUserFullName)
+                || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.RequesterName == currentUserUserName)
+                || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.RequesterName == currentUserEmail)
+                || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.CreatedByName == currentUserFullName)
+                || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.CreatedByName == currentUserUserName)
+                || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.CreatedByName == currentUserEmail)
+            ));
+    }
+
     string GetStatusDisplay(ITRepairService.Models.RepairTicket ticket)
     {
         var status = ticket.Status;
-
-        return !canSeeInProgress && status == ITRepairService.Models.TicketStatus.InProgress
+        var isOwner = IsTicketOwner(ticket);
+        var shouldHideStatus = !canSeeInProgress && status == ITRepairService.Models.TicketStatus.InProgress && !isOwner;
+        
+        return shouldHideStatus
             ? "-"
             : status == ITRepairService.Models.TicketStatus.Approved
                 ? $"Approved ({GetApproverDisplay(ticket)})"
@@ -37,510 +52,349 @@
         {
             return updater;
         }
-
         return string.IsNullOrWhiteSpace(ticket.ApproverName) ? "-" : ticket.ApproverName;
     }
 
     string SortIcon(string field)
     {
-        if (currentSort != field)
-        {
-            return "fa-sort text-secondary";
-        }
-
+        if (currentSort != field) return "fa-sort text-secondary";
         return currentDir == "asc" ? "fa-sort-up" : "fa-sort-down";
+    }
+
+    string GetStatusBadgeClass(ITRepairService.Models.TicketStatus status)
+    {
+        return status switch
+        {
+            ITRepairService.Models.TicketStatus.Open => "badge-open",
+            ITRepairService.Models.TicketStatus.InProgress => "badge-inprogress",
+            ITRepairService.Models.TicketStatus.Approved => "badge-approved",
+            ITRepairService.Models.TicketStatus.Rejected => "badge-rejected",
+            ITRepairService.Models.TicketStatus.Complete => "badge-complete",
+            ITRepairService.Models.TicketStatus.Closed => "badge-closed",
+            _ => "bg-secondary"
+        };
     }
 }
 
-<style>
-    .repairtickets-page {
-        width: 100%;
-        margin-inline: auto;
-    }
-
-    .it-table thead th {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        color: #4d5761;
-        background-color: #f8fafc;
-        border-bottom-width: 1px;
-    }
-
-    .it-table td {
-        vertical-align: middle;
-    }
-
-    .badge-soft {
-        font-weight: 600;
-        border: 1px solid transparent;
-        padding: 0.45rem 0.65rem;
-    }
-
-    .status-open {
-        background-color: #1d4ed8;
-        color: #ffffff;
-        border-color: #1e40af;
-    }
-
-    .status-inprogress {
-        background-color: #e2970b;
-        color: #ffffff;
-        border-color: #e68a13;
-    }
-
-    .status-approved {
-        background-color: #09b049;
-        color: #ffffff;
-        border-color: #049f42;
-    }
-
-    .status-rejected {
-        background-color: #f01818;
-        color: #ffffff;
-        border-color: #e21a1a;
-    }
-
-    .status-resolved {
-        background-color: #0f766e;
-        color: #ffffff;
-        border-color: #115e59;
-    }
-
-    .status-closed {
-        background-color: #334155;
-        color: #ffffff;
-        border-color: #1e293b;
-    }
-
-    .status-complete {
-        background-color: #0f766e;
-        color: #ffffff;
-        border-color: #115e59;
-    }
-
-    .status-restricted {
-        background-color: #4b5563;
-        color: #ffffff;
-        border-color: #374151;
-    }
-
-    .filter-card {
-        border: 1px solid #e9eef3;
-    }
-
-    .empty-state {
-        border: 2px dashed #d5dee8;
-        border-radius: 0.75rem;
-        background: #f9fbfd;
-    }
-
-    .sort-link {
-        color: #3f4a56;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-
-    .sort-link:hover {
-        color: #0d6efd;
-    }
-
-    .mobile-ticket-card {
-        border: 1px solid #e8edf3;
-        border-radius: 0.85rem;
-        background-color: #ffffff;
-    }
-
-    .mobile-ticket-card .meta-label {
-        font-size: 0.78rem;
-        color: #6c7a89;
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-    }
-
-     .btn-close-ticket {
-        background: linear-gradient(135deg, #d3f973 0%, #d3f973 100%);
-        border: 1px solid #d3f973;
-        color: #000000;
-        font-weight: 600;
-    } 
-
-     .btn-delete-ticket {
-        background: linear-gradient(135deg, #f03535 0%, #f03535 100%);
-        border: 1px solid #f03535;
-        color: #ffffff;
-        font-weight: 600;
-    }
-
-        .btn-detail-ticket {
-        background: linear-gradient(135deg, #0ad3dd 0%, #0ad3dd 100%);
-        border: 1px solid #0ad3dd;
-        color: #ffffff;
-        font-weight: 600;
-    }
-
-         .btn-edit-ticket {
-        background: linear-gradient(135deg, #ee9f0c 0%, #ee9f0c 100%);
-        border: 1px solid #ee9f0c;
-        color: #ffffff;
-        font-weight: 600;
-    }
-
-     .btn-delete-ticket-desktop {
-        margin-left: 0.25rem;
-    }
-</style>
-  
-
-
 <div class="repairtickets-page">
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
-            <div class="card-body py-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div>
-                    <h1 class="h2 fw-bold mb-1">
-                        <i class="fas fa-tools me-2"></i>IT Service
-                    </h1>
-                    <p class="mb-0 opacity-90">Manage IT service requests efficiently</p>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge text-bg-light text-primary px-3 py-2">@tickets.Count Case</span>
-                    <a asp-action="Create" class="btn btn-light fw-semibold">
-                        <i class="fas fa-plus me-1"></i>Create IT Service
-                    </a>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card page-header">
+                <div class="card-body py-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div>
+                        <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                            <i class="fas fa-tools me-2"></i>IT Service
+                        </h1>
+                        <p class="mb-0 opacity-90">Manage IT service requests efficiently</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge rounded-pill bg-white text-primary px-3 py-2 fs-6">@tickets.Count Case</span>
+                        <a asp-action="Create" class="btn btn-light fw-semibold btn-auto">
+                            <i class="fas fa-plus me-2"></i>Create
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="card filter-card shadow-sm mb-3">
-    <div class="card-body py-3">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-12 col-md-4 col-lg-3">
-                <label class="form-label fw-semibold text-secondary mb-1">Status</label>
-                <select class="form-select" name="status">
-                    <option value="">All Statuses</option>
-                    @foreach (ITRepairService.Models.TicketStatus status in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
-                    {
-                        if (!canSeeInProgress && status == ITRepairService.Models.TicketStatus.InProgress)
+    <div class="card card-filter shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4 col-lg-3">
+                    <label class="form-label mb-1">
+                        <i class="fas fa-filter me-1"></i>Status
+                    </label>
+                    <select class="form-select" name="status">
+                        <option value="">All Statuses</option>
+                        @foreach (ITRepairService.Models.TicketStatus status in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
                         {
-                            continue;
+                            @* if (!canSeeInProgress && status == ITRepairService.Models.TicketStatus.InProgress) { continue; } *@
+                            var isSelected = currentStatus == status.ToString();
+                            <option value="@status" selected="@isSelected">@status</option>
                         }
-
-                        if (currentStatus == status.ToString())
-                        {
-                            <option value="@status" selected>@status</option>
-                        }
-                        else
-                        {
-                            <option value="@status">@status</option>
-                        }
-                    }
-                </select>
-            </div>
-            <div class="col-12 col-md-auto d-flex gap-2 mt-md-4">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter me-1"></i>Filter
-                </button>
-                <a asp-action="Index" class="btn btn-outline-secondary">
-                    <i class="fas fa-rotate-left me-1"></i>Reset
-                </a>
-            </div>
-        </form>
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto d-flex gap-2 mt-md-4">
+                    <button type="submit" class="btn btn-primary btn-auto">
+                        <i class="fas fa-filter me-2"></i>Filter
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-auto">
+                        <i class="fas fa-rotate-left me-2"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-</div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        @if (!tickets.Any())
-        {
-            <div class="p-4 p-md-5 text-center empty-state m-3">
-                <i class="fas fa-inbox fa-2x text-secondary mb-3"></i>
-                <h2 class="h5 mb-2">No service requests found</h2>
-                <p class="text-secondary mb-3">Create your first request or adjust your filter to see results.</p>
-                <a asp-action="Create" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i>Create IT Service
-                </a>
-            </div>
-        }
-        else
-        {
-            <div class="d-grid gap-3 p-3 d-md-none">
-                @foreach (var item in tickets)
-                {
-                    var requesterName = item.RequesterName?.Trim();
-                    var createdByName = item.CreatedByName?.Trim();
-                    var isRequesterByName = string.IsNullOrWhiteSpace(item.RequesterUserId)
-                        && (
-                            (!string.IsNullOrWhiteSpace(requesterName)
-                                && (
-                                    (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(requesterName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(requesterName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(requesterName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
-                                ))
-                            || (!string.IsNullOrWhiteSpace(createdByName)
-                                && (
-                                    (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(createdByName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(createdByName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(createdByName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
-                                ))
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            @if (!tickets.Any())
+            {
+                <div class="text-center py-5 m-3 empty-state">
+                    <div class="py-4">
+                        <div class="display-4 text-secondary mb-3">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <h2 class="h4 mb-2">No service requests found</h2>
+                        <p class="text-secondary mb-4">Create your first request or adjust your filter to see results.</p>
+                        <a asp-action="Create" class="btn btn-primary px-4 btn-auto">
+                            <i class="fas fa-plus me-2"></i>Create IT Service
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @* Mobile cards *@
+                <div class="d-grid gap-3 p-3 d-md-none">
+                    @foreach (var item in tickets)
+                    {
+                        var requesterName = item.RequesterName?.Trim();
+                        var createdByName = item.CreatedByName?.Trim();
+                        var isRequesterByName = string.IsNullOrWhiteSpace(item.RequesterUserId) && (
+                            (!string.IsNullOrWhiteSpace(requesterName) && (
+                                (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(requesterName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(requesterName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(requesterName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+                            ))
+                            || (!string.IsNullOrWhiteSpace(createdByName) && (
+                                (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(createdByName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(createdByName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(createdByName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+                            ))
                         );
 
-                    var canEditTicket = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
-                        || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
-                        || User.IsInRole(ITRepairService.Models.AppRoles.Approve)
-                        || (item.Status == ITRepairService.Models.TicketStatus.Open
-                            && (item.RequesterUserId == currentUserId || isRequesterByName))
-                        || (item.Status == ITRepairService.Models.TicketStatus.Rejected
-                            && (item.RequesterUserId == currentUserId || isRequesterByName));
-                    if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress)
-                    {
-                        canEditTicket = false;
+                        var canEditTicket = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
+                            || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+                            || User.IsInRole(ITRepairService.Models.AppRoles.Approve)
+                            || (item.Status == ITRepairService.Models.TicketStatus.Open && (item.RequesterUserId == currentUserId || isRequesterByName))
+                            || (item.Status == ITRepairService.Models.TicketStatus.Rejected && (item.RequesterUserId == currentUserId || isRequesterByName));
+                        if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress) canEditTicket = false;
+
+                        var canCloseTicket = item.Status == ITRepairService.Models.TicketStatus.Complete
+                            && (User.IsInRole(ITRepairService.Models.AppRoles.Admin) || item.RequesterUserId == currentUserId || isRequesterByName);
+
+                        var badgeClass = GetStatusBadgeClass(item.Status);
+                        var isOwner = isRequesterByName || item.RequesterUserId == currentUserId;
+                        if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress && !isOwner) badgeClass = "bg-secondary";
+
+                        <div class="mobile-ticket-card p-3 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <p class="mb-0 small text-primary fw-semibold">
+                                        <i class="fas fa-file-alt me-1"></i>@(string.IsNullOrWhiteSpace(item.DocumentNo) ? "-" : item.DocumentNo)
+                                    </p>
+                                    <h3 class="h6 mb-1 fw-bold mt-1">@item.RequesterName</h3>
+                                    <p class="mb-0 text-secondary small">
+                                        <i class="fas fa-building me-1"></i>@item.Department
+                                    </p>
+                                </div>
+                                <span class="badge badge-status @badgeClass">@GetStatusDisplay(item)</span>
+                            </div>
+
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="meta-label mb-1">
+                                        <i class="fas fa-tools me-1"></i>Repair Type
+                                    </div>
+                                    <div class="fw-semibold small">@item.RepairType</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="meta-label mb-1">
+                                        <i class="fas fa-user-check me-1"></i>Approver
+                                    </div>
+                                    <div class="fw-semibold small">@GetApproverDisplay(item)</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <small class="text-secondary">
+                                    <i class="fas fa-clock me-1"></i>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                </small>
+                            </div>
+
+                            <div class="btn-group-action">
+                                @if (canEditTicket)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning btn-auto">
+                                        <i class="fas fa-pen me-1"></i>Edit
+                                    </a>
+                                }
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info btn-auto">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </a>
+                                @if (canCloseTicket)
+                                {
+                                    <form asp-action="CloseTicket" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openCloseTicketConfirm(this, event);">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-success btn-auto">
+                                            <i class="fas fa-check-circle me-1"></i>Close
+                                        </button>
+                                    </form>
+                                }
+                                @if (User.IsInRole(ITRepairService.Models.AppRoles.Admin))
+                                {
+                                    <form asp-action="ConfirmDelete" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openDeleteTicketConfirm(this, event);">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger btn-auto">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
                     }
+                </div>
 
-                    var canCloseTicket = item.Status == ITRepairService.Models.TicketStatus.Complete
-                        && (User.IsInRole(ITRepairService.Models.AppRoles.Admin)
-                            || item.RequesterUserId == currentUserId
-                            || isRequesterByName);
-
-                    var statusClass = item.Status switch
-                    {
-                        ITRepairService.Models.TicketStatus.Open => "status-open",
-                        ITRepairService.Models.TicketStatus.InProgress => "status-inprogress",
-                        ITRepairService.Models.TicketStatus.Approved => "status-approved",
-                        ITRepairService.Models.TicketStatus.Rejected => "status-rejected",
-                        ITRepairService.Models.TicketStatus.Closed => "status-closed",
-                        ITRepairService.Models.TicketStatus.Complete => "status-complete",
-                        _ => ""
-                    };
-                    if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress)
-                    {
-                        statusClass = "status-restricted";
-                    }
-
-                    <article class="mobile-ticket-card p-3 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                            <div>
-
-                                <p class="mb-0 small text-primary fw-semibold">Doc No: @(string.IsNullOrWhiteSpace(item.DocumentNo) ? "-" : item.DocumentNo)</p>
-                                <h3 class="h6 mb-1 fw-bold">@item.RequesterName</h3>
-                                <p class="mb-0 text-secondary">@item.Department</p>
-                                
-                            </div>
-                            <span class="badge badge-soft @statusClass">@GetStatusDisplay(item)</span>
-                        </div>
-
-                        <div class="mb-2 d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="meta-label mb-1">Repair Type</div>
-                                <div class="fw-semibold">@item.RepairType</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="meta-label mb-1">Approver</div>
-                                <div class="fw-semibold">@GetApproverDisplay(item)</div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end align-items-center mb-3">
-                            <small class="text-secondary">@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
-                        </div>
-
-                        <div class="d-flex flex-wrap gap-2">
-                            @if (canEditTicket)
+                @* Desktop table *@
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover mb-0 w-100">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Document No.</th>
+                                <th class="ps-4">
+                                    <a asp-action="Index"
+                                       asp-route-status="@currentStatus"
+                                       asp-route-sort="requester"
+                                       asp-route-dir="@NextDir("requester")"
+                                       class="sort-link">
+                                        Requester <i class="fas @SortIcon("requester")"></i>
+                                    </a>
+                                </th>
+                                <th>Department</th>
+                                <th>Type</th>
+                                <th>Approver</th>
+                                <th>Status</th>
+                                <th>
+                                    <a asp-action="Index"
+                                       asp-route-status="@currentStatus"
+                                       asp-route-sort="created"
+                                       asp-route-dir="@NextDir("created")"
+                                       class="sort-link">
+                                        Created <i class="fas @SortIcon("created")"></i>
+                                    </a>
+                                </th>
+                                <th class="text-end pe-4" style="width: 260px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in tickets)
                             {
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-edit-ticket">
-                                    <i class="fas fa-pen me-1"></i>Edit
-                                </a>
-                            }
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn-detail-ticket">
-                                <i class="fas fa-eye me-1"></i>Details
-                            </a>
-
-
-                            @if (canCloseTicket)
-                            {
-                                <form asp-action="CloseTicket" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openCloseTicketConfirm(this, event);">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-close-ticket">
-                                        <i class="fas fa-check-circle me-1"></i>Close
-                                    </button>
-                                </form>
-                            }
-                            @if (User.IsInRole(ITRepairService.Models.AppRoles.Admin))
-                            {
-                                @* <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash me-1"></i>Delete
-                                </a> *@
-
-                                  <form asp-action="ConfirmDelete" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openDeleteTicketConfirm(this, event);">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-delete-ticket">
-                                        <i class="fas fa-trash me-1"></i>Delete
-                                    </button>
-                                </form>
-
-                            }
-                        </div>
-                    </article>
-                }
-            </div>
-
-            <div class="table-responsive d-none d-md-block">
-                <table class="table table-hover mb-0 it-table">
-                    <thead>
-                        <tr>
-                            <th>Document No.</th>
-                            <th class="ps-4">
-                                <a asp-action="Index"
-                                   asp-route-status="@currentStatus"
-                                   asp-route-sort="requester"
-                                   asp-route-dir="@NextDir("requester")"
-                                   class="sort-link">
-                                    Requester <i class="fas @SortIcon("requester")"></i>
-                                </a>
-                            </th>
-                            
-                            <th>Department</th>
-                            <th>Type</th>
-                            <th>Approver</th>
-                            <th>Status</th>
-                            <th>
-                                <a asp-action="Index"
-                                   asp-route-status="@currentStatus"
-                                   asp-route-sort="created"
-                                   asp-route-dir="@NextDir("created")"
-                                   class="sort-link">
-                                    Created <i class="fas @SortIcon("created")"></i>
-                                </a>
-                            </th>
-                            <th class="text-end pe-4" style="width: 240px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in tickets)
-                        {
-                            var requesterName = item.RequesterName?.Trim();
-                            var createdByName = item.CreatedByName?.Trim();
-                            var isRequesterByName = string.IsNullOrWhiteSpace(item.RequesterUserId)
-                                && (
-                                    (!string.IsNullOrWhiteSpace(requesterName)
-                                        && (
-                                            (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(requesterName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                            || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(requesterName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                            || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(requesterName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
-                                        ))
-                                    || (!string.IsNullOrWhiteSpace(createdByName)
-                                        && (
-                                            (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(createdByName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                            || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(createdByName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
-                                            || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(createdByName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
-                                        ))
+                                var requesterName = item.RequesterName?.Trim();
+                                var createdByName = item.CreatedByName?.Trim();
+                                var isRequesterByName = string.IsNullOrWhiteSpace(item.RequesterUserId) && (
+                                    (!string.IsNullOrWhiteSpace(requesterName) && (
+                                        (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(requesterName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                        || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(requesterName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                        || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(requesterName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+                                    ))
+                                    || (!string.IsNullOrWhiteSpace(createdByName) && (
+                                        (!string.IsNullOrWhiteSpace(currentUserFullName) && string.Equals(createdByName, currentUserFullName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                        || (!string.IsNullOrWhiteSpace(currentUserUserName) && string.Equals(createdByName, currentUserUserName.Trim(), StringComparison.OrdinalIgnoreCase))
+                                        || (!string.IsNullOrWhiteSpace(currentUserEmail) && string.Equals(createdByName, currentUserEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+                                    ))
                                 );
 
-                            var canEditTicket = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
-                                || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
-                                || User.IsInRole(ITRepairService.Models.AppRoles.Approve)
-                                || (item.Status == ITRepairService.Models.TicketStatus.Open
-                                    && (item.RequesterUserId == currentUserId || isRequesterByName))
-                                || (item.Status == ITRepairService.Models.TicketStatus.Rejected
-                                    && (item.RequesterUserId == currentUserId || isRequesterByName));
-                            if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress)
-                            {
-                                canEditTicket = false;
-                            }
+                                var canEditTicket = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
+                                    || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+                                    || User.IsInRole(ITRepairService.Models.AppRoles.Approve)
+                                    || (item.Status == ITRepairService.Models.TicketStatus.Open && (item.RequesterUserId == currentUserId || isRequesterByName))
+                                    || (item.Status == ITRepairService.Models.TicketStatus.Rejected && (item.RequesterUserId == currentUserId || isRequesterByName));
+                                if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress) canEditTicket = false;
 
-                            var canCloseTicket = item.Status == ITRepairService.Models.TicketStatus.Complete
-                                && (User.IsInRole(ITRepairService.Models.AppRoles.Admin)
-                                    || item.RequesterUserId == currentUserId
-                                    || isRequesterByName);
+                                var canCloseTicket = item.Status == ITRepairService.Models.TicketStatus.Complete
+                                    && (User.IsInRole(ITRepairService.Models.AppRoles.Admin) || item.RequesterUserId == currentUserId || isRequesterByName);
 
-                            var statusClass = item.Status switch
-                            {
-                                ITRepairService.Models.TicketStatus.Open => "status-open",
-                                ITRepairService.Models.TicketStatus.InProgress => "status-inprogress",
-                                ITRepairService.Models.TicketStatus.Approved => "status-approved",
-                                ITRepairService.Models.TicketStatus.Rejected => "status-rejected",
-                                ITRepairService.Models.TicketStatus.Closed => "status-closed",
-                                ITRepairService.Models.TicketStatus.Complete => "status-complete",
-                                _ => ""
-                            };
-                            if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress)
-                            {
-                                statusClass = "status-restricted";
-                            }
+                                var badgeClass = GetStatusBadgeClass(item.Status);
+                                var isOwner = isRequesterByName || item.RequesterUserId == currentUserId;
+                                if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress && !isOwner) badgeClass = "bg-secondary";
 
-                            <tr>
-                                <td class="ps-4 text-primary fw-semibold">@(string.IsNullOrWhiteSpace(item.DocumentNo) ? "-" : item.DocumentNo)</td>
-                                <td class="fw-semibold">@item.RequesterName</td>
-                                <td>@item.Department</td>
-                                <td>@item.RepairType</td>
-                                <td>
-                                    <div class="fw-semibold">@GetApproverDisplay(item)</div>
-                                </td>
-                                <td>
-                                    <span class="badge badge-soft @statusClass">@GetStatusDisplay(item)</span>
-                                </td>
-                                <td class="text-nowrap">@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-end pe-4">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        @if (canEditTicket)
-                                        {
-                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning">
-                                                <i class="fas fa-pen me-1"></i>Edit
+                                <tr>
+                                    <td class="ps-4 text-primary fw-semibold">
+                                        <i class="fas fa-file-alt me-1"></i>@(string.IsNullOrWhiteSpace(item.DocumentNo) ? "-" : item.DocumentNo)
+                                    </td>
+                                    <td class="fw-semibold">
+                                        <i class="fas fa-user text-secondary me-1"></i>@item.RequesterName
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-building me-1"></i>@item.Department
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-tools me-1"></i>@item.RepairType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold small">
+                                            <i class="fas fa-user-check text-secondary me-1"></i>@GetApproverDisplay(item)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-status @badgeClass">@GetStatusDisplay(item)</span>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <i class="fas fa-clock text-secondary me-1"></i>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                    </td>
+                                    <td class="text-end pe-6">
+                                        <div class="btn-group-action">
+                                            @if (canEditTicket)
+                                            {
+                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning btn-auto">
+                                                    <i class="fas fa-pen me-1"></i>
+                                                </a>
+                                            }
+                                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info btn-auto">
+                                                <i class="fas fa-eye me-1"></i>
                                             </a>
-                                        }
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
-                                            <i class="fas fa-eye me-1"></i>Details
-                                        </a>
-                                        @if (canCloseTicket)
-                                        {
-                                            <form asp-action="CloseTicket" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openCloseTicketConfirm(this, event);">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-close-ticket btn-close-ticket-desktop">
-                                                    <i class="fas fa-check-circle me-1"></i>Close
-                                                </button>
-                                            </form>
-                                        }
-                                        @if (User.IsInRole(ITRepairService.Models.AppRoles.Admin))
-                                        {
-                                           <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openDeleteTicketConfirm(this, event);">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-delete-ticket btn-delete-ticket-desktop">
-                                                    <i class="fas fa-trash me-1"></i>Delete
-                                                </button>
-                                            </form>
-                                        }
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
+                                            @if (canCloseTicket)
+                                            {
+                                                <form asp-action="CloseTicket" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openCloseTicketConfirm(this, event);">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-success btn-auto">
+                                                        <i class="fas fa-check-circle me-1"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (User.IsInRole(ITRepairService.Models.AppRoles.Admin))
+                                            {
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return openDeleteTicketConfirm(this, event);">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger btn-auto">
+                                                        <i class="fas fa-trash me-1"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
+@* Close confirmation modal *@
 <div class="modal fade" id="closeTicketConfirmModal" tabindex="-1" aria-labelledby="closeTicketConfirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-danger text-white">
+    <div class="modal-dialog modal-dialog-centered" style="color: #a0d4b0;">
+        <div class="modal-content">
+            <div class="modal-header  text-white" style="background-color: #a0d4b0;">
                 <h5 class="modal-title" id="closeTicketConfirmModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>ยืนยันปิดงาน
+                    <i class="fas fa-check-circle me-2" style="color: #a0d4b0;"></i>ยืนยันปิดงาน
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">ยืนยันปิดงานรายการนี้ใช่หรือไม่?</p>
+                <p class="mb-0"><i class="fas fa-question-circle text-success me-2"></i>ยืนยันปิดงานรายการนี้ใช่หรือไม่?</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" class="btn btn-sm btn-close-ticket" id="closeTicketConfirmButton">
+                <button type="button" class="btn btn-success btn-auto" id="closeTicketConfirmButton">
                     <i class="fas fa-check-circle me-1"></i>Close
                 </button>
             </div>
@@ -548,10 +402,10 @@
     </div>
 </div>
 
-
+@* Delete confirmation modal *@
 <div class="modal fade" id="deleteTicketConfirmModal" tabindex="-1" aria-labelledby="deleteTicketConfirmModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="deleteTicketConfirmModalLabel">
                     <i class="fas fa-exclamation-triangle me-2"></i>ยืนยันลบงาน
@@ -559,12 +413,12 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">ยืนยันลบงานรายการนี้ใช่หรือไม่?</p>
+                <p class="mb-0"><i class="fas fa-question-circle text-danger me-2"></i>ยืนยันลบงานรายการนี้ใช่หรือไม่?</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" class="btn btn-sm btn-delete-ticket" id="deleteTicketConfirmButton">
-                    <i class="fas fa-check-circle me-1"></i>Delete
+                <button type="button" class="btn btn-danger btn-auto" id="deleteTicketConfirmButton">
+                    <i class="fas fa-trash me-1"></i>Delete
                 </button>
             </div>
         </div>
@@ -573,86 +427,44 @@
 
 <script>
     (function () {
+        // Close confirmation
         let pendingCloseForm = null;
-
         window.openCloseTicketConfirm = function (form, event) {
-            if (event) {
-                event.preventDefault();
-            }
-
+            if (event) event.preventDefault();
             pendingCloseForm = form;
-
-            const modalElement = document.getElementById('closeTicketConfirmModal');
-            if (!modalElement || typeof bootstrap === 'undefined') {
-                if (window.confirm('ยืนยันปิดงานรายการนี้ใช่หรือไม่?')) {
-                    form.submit();
-                }
-
-                return false;
+            try {
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('closeTicketConfirmModal'));
+                modal.show();
+            } catch (e) {
+                if (window.confirm('ยืนยันปิดงานรายการนี้ใช่หรือไม่?')) form.submit();
             }
-
-            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-            modal.show();
             return false;
         };
+        document.getElementById('closeTicketConfirmButton')?.addEventListener('click', function () {
+            if (pendingCloseForm) pendingCloseForm.submit();
+        });
+        document.getElementById('closeTicketConfirmModal')?.addEventListener('hidden.bs.modal', function () {
+            pendingCloseForm = null;
+        });
 
-        const confirmButton = document.getElementById('closeTicketConfirmButton');
-        if (confirmButton) {
-            confirmButton.addEventListener('click', function () {
-                if (pendingCloseForm) {
-                    pendingCloseForm.submit();
-                }
-            });
-        }
-
-        const modalElement = document.getElementById('closeTicketConfirmModal');
-        if (modalElement) {
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                pendingCloseForm = null;
-            });
-        }
-    })();
-
-    // Delete confirmation logic
-
-     (function () {
+        // Delete confirmation
         let pendingDeleteForm = null;
-
         window.openDeleteTicketConfirm = function (form, event) {
-            if (event) {
-                event.preventDefault();
-            }
-
+            if (event) event.preventDefault();
             pendingDeleteForm = form;
-
-            const modalElement = document.getElementById('deleteTicketConfirmModal');
-            if (!modalElement || typeof bootstrap === 'undefined') {
-                if (window.confirm('ยืนยันลบงานรายการนี้ใช่หรือไม่?')) {
-                    form.submit();
-                }
-
-                return false;
+            try {
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteTicketConfirmModal'));
+                modal.show();
+            } catch (e) {
+                if (window.confirm('ยืนยันลบงานรายการนี้ใช่หรือไม่?')) form.submit();
             }
-
-            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-            modal.show();
             return false;
         };
-
-        const confirmButton = document.getElementById('deleteTicketConfirmButton');
-        if (confirmButton) {
-            confirmButton.addEventListener('click', function () {
-                if (pendingDeleteForm) {
-                    pendingDeleteForm.submit();
-                }
-            });
-        }
-
-        const modalElement = document.getElementById('deleteTicketConfirmModal');
-        if (modalElement) {
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                pendingDeleteForm = null;
-            });
-        }
+        document.getElementById('deleteTicketConfirmButton')?.addEventListener('click', function () {
+            if (pendingDeleteForm) pendingDeleteForm.submit();
+        });
+        document.getElementById('deleteTicketConfirmModal')?.addEventListener('hidden.bs.modal', function () {
+            pendingDeleteForm = null;
+        });
     })();
 </script>

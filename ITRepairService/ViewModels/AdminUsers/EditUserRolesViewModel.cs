@@ -24,7 +24,6 @@ public class EditUserRolesViewModel
     [Display(Name = "Department")]
     public string Department { get; set; } = string.Empty;
 
-    [Required]
     [Display(Name = "Section")]
     public string Section { get; set; } = string.Empty;
 

@@ -51,6 +51,60 @@
                 </button>
             </form>
 
+            @if (ViewBag.AdData != null)
+            {
+                <div class="alert alert-info mt-3">
+                    <h5><i class="fas fa-info-circle me-2"></i>Active Directory Data</h5>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Username:</strong> @ViewBag.AdData.Username</p>
+                            <p><strong>Display Name:</strong> @ViewBag.AdData.DisplayName</p>
+                            <p><strong>Email:</strong> @ViewBag.AdData.Email</p>
+                            <p><strong>Department:</strong> @ViewBag.AdData.Department</p>
+                            <p><strong>Title:</strong> @ViewBag.AdData.Title</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Company:</strong> @ViewBag.AdData.Company</p>
+                            <p><strong>Manager:</strong> @ViewBag.AdData.Manager</p>
+                            <p><strong>Telephone:</strong> @ViewBag.AdData.TelephoneNumber</p>
+                            <p><strong>Employee ID:</strong> @ViewBag.AdData.EmployeeID</p>
+                        </div>
+                    </div>
+                    <hr />
+                    <small class="text-muted">
+                        <strong>Role Assignment:</strong><br/>
+                        @if (!string.IsNullOrEmpty(ViewBag.AdData.Title) && 
+                              (ViewBag.AdData.Title.ToUpper().Contains("DM") || 
+                               ViewBag.AdData.Title.ToUpper().Contains("DEPARTMENT MANAGER") ||
+                               ViewBag.AdData.Title.ToUpper().Contains("SM") || 
+                               ViewBag.AdData.Title.ToUpper().Contains("SECTION MANAGER")))
+                        {
+                            <span class="badge bg-success me-1">Approve</span>
+                            
+                            if (!string.IsNullOrEmpty(ViewBag.AdData.Department) && 
+                                 ViewBag.AdData.Department.ToUpper().Contains("IT"))
+                            {
+                                <span class="badge bg-info me-1">ITSupport</span>
+                                <span class="badge bg-danger me-1">Admin</span>
+                            }
+                        }
+                        else if (!string.IsNullOrEmpty(ViewBag.AdData.Department) && 
+                                 ViewBag.AdData.Department.ToUpper().Contains("IT"))
+                        {
+                            <span class="badge bg-info me-1">ITSupport</span>
+                        }
+                        
+                        <span class="badge bg-primary me-1">User</span>
+                        
+                        @if (ViewBag.AdData.Username == "p_mallika")
+                        {
+                            <span class="badge bg-warning me-1">Admin (Special)</span>
+                        }
+                    </small>
+                </div>
+            }
+
             <div class="text-center pt-3 border-top">
                 <p class="text-muted mb-0">Don't have an account?
                     <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none fw-500" style="color: #0066cc;">

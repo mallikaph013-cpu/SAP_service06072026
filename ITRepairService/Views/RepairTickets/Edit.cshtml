@@ -14,6 +14,10 @@
         ?? new List<ITRepairService.Models.ApplicationUser>();
     var selectedItSupportUserId = ViewData["SelectedItSupportUserId"]?.ToString() ?? Model.AssignedItUserId;
     var requesterEditMode = ViewData["RequesterEditMode"] as bool? ?? false;
+    var thirdApproverUsers = ViewData["ThirdApproverUsers"] as List<ITRepairService.Models.ApplicationUser>
+        ?? new List<ITRepairService.Models.ApplicationUser>();
+    var selectedThirdApproverUserId = ViewData["SelectedThirdApproverUserId"]?.ToString() ?? Model.ThirdApproverUserId;
+    var isDriveAccessRepairType = Model.RepairType == ITRepairService.Models.RepairType.DriveAccessPermission;
     var additionalApprovalStatuses = ViewData["ApprovalStatuses"] as List<ITRepairService.Models.TicketStatus>
         ?? new List<ITRepairService.Models.TicketStatus>();
     var flowPrimaryStatus = ViewData["FlowPrimaryStatus"] is ITRepairService.Models.TicketStatus statusFromFlow
@@ -25,12 +29,22 @@
     var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
         || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
     var canMarkCompleteByAssignee = ViewData["CanMarkCompleteByAssignee"] as bool? ?? false;
-    var canEditStatus = User.IsInRole(ITRepairService.Models.AppRoles.Approve) || canMarkCompleteByAssignee;
+    var canEditStatus = User.IsInRole(ITRepairService.Models.AppRoles.Approve)
+        || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
+        || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+        || canMarkCompleteByAssignee;
     var assigneeCompleteOnlyMode = canMarkCompleteByAssignee && !User.IsInRole(ITRepairService.Models.AppRoles.Approve);
     var isApproveUser = User.IsInRole(ITRepairService.Models.AppRoles.Approve)
         && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
     var currentUserId = ViewData["CurrentUserId"]?.ToString() ?? string.Empty;
+    var currentUserDepartment = ViewData["CurrentUserDepartment"]?.ToString() ?? string.Empty;
+    var isDxUser = !string.IsNullOrWhiteSpace(currentUserDepartment)
+        && currentUserDepartment.Trim().Equals("DX", StringComparison.OrdinalIgnoreCase);
     var canEditStatusByUser = ViewData["CanEditStatusByUser"] as bool? ?? true;
+    var isApprovedOrBeyond = Model.Status == ITRepairService.Models.TicketStatus.Approved
+        || Model.Status == ITRepairService.Models.TicketStatus.InProgress
+        || Model.Status == ITRepairService.Models.TicketStatus.Complete
+        || Model.Status == ITRepairService.Models.TicketStatus.Closed;
     var lockPrimaryStatusSelection = !assigneeCompleteOnlyMode && (hasPriorStatusSteps || !canEditStatusByUser);
 
     Model.Status = flowPrimaryStatus;
@@ -61,20 +75,400 @@
 
         return $"{GetTicketStatusBaseDisplayName(previousStatus.Value)} -> {currentLabel}";
     }
+
+    string GetStatusBadgeClass(ITRepairService.Models.TicketStatus status)
+    {
+        return status switch
+        {
+            ITRepairService.Models.TicketStatus.Open => "bg-warning text-dark",
+            ITRepairService.Models.TicketStatus.InProgress => "bg-info text-white",
+            ITRepairService.Models.TicketStatus.Approved => "bg-success",
+            ITRepairService.Models.TicketStatus.Rejected => "bg-danger",
+            ITRepairService.Models.TicketStatus.Complete => "bg-primary",
+            ITRepairService.Models.TicketStatus.Closed => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    string GetStatusIcon(ITRepairService.Models.TicketStatus status)
+    {
+        return status switch
+        {
+            ITRepairService.Models.TicketStatus.Open => "fa-circle",
+            ITRepairService.Models.TicketStatus.InProgress => "fa-spinner fa-pulse",
+            ITRepairService.Models.TicketStatus.Approved => "fa-check-circle",
+            ITRepairService.Models.TicketStatus.Rejected => "fa-times-circle",
+            ITRepairService.Models.TicketStatus.Complete => "fa-check-double",
+            ITRepairService.Models.TicketStatus.Closed => "fa-lock",
+            _ => "fa-question-circle"
+        };
+    }
 }
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+        --card-shadow: 0 2px 16px rgba(0,0,0,0.08);
+        --card-shadow-hover: 0 8px 32px rgba(0,0,0,0.12);
+        --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --border-radius-lg: 16px;
+        --border-radius-md: 12px;
+    }
+
+    .header-card {
+        background: linear-gradient(135deg, #9DCAEB 0%, #9DCAEB 50%, #9DCAEB 100%);
+        border: none;
+        border-radius: var(--border-radius-lg);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .header-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #ffd700, #ffed4a, #ffd700);
+        background-size: 200% 100%;
+        animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @@keyframes shimmer {
+        0%, 100% { background-position: 200% 0; }
+        50% { background-position: -200% 0; }
+    }
+
+    .form-card {
+        border: none;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--card-shadow);
+        transition: var(--transition-base);
+    }
+
+    .form-card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .form-card .card-body {
+        padding: 2rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: var(--border-radius-md);
+        padding: 0.65rem 1rem;
+        transition: var(--transition-base);
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+    }
+
+    .form-control:read-only, .form-control:disabled, .form-select:disabled {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        opacity: 0.85;
+        cursor: not-allowed;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.35rem;
+    }
+
+    .validation-summary-errors ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .alert {
+        border: none;
+        border-radius: var(--border-radius-md);
+        padding: 1rem 1.25rem;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .alert-info {
+        background: linear-gradient(135deg, #e8f4fd, #d0ebff);
+        color: #0c5460;
+        border-left: 4px solid #0dcaf0;
+    }
+
+    .alert-warning {
+        background: linear-gradient(135deg, #fff8e1, #fff3cd);
+        color: #856404;
+        border-left: 4px solid #e8d090;
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, #fce4ec, #f8d7da);
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    .btn {
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
+        transition: var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:active::after {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #9DCAEB, #b8d8f0);
+        border: none;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(13, 110, 253, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #a0d4b0, #20c997);
+        border: none;
+        box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(25, 135, 84, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #e4606d);
+        border: none;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #b8c0c8, #b8c0c8);
+        border: none;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(184, 192, 200, 0.3);
+    }
+
+    .btn-light {
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+    }
+
+    .btn-light:hover {
+        background: rgba(255,255,255,0.25);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .badge-status {
+        font-size: 0.85rem;
+        padding: 0.5em 1em;
+        border-radius: 50px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .status-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .status-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, #0d6efd, #20c997);
+    }
+
+    .status-step-row {
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .reject-remark-container {
+        animation: slideDown 0.4s ease-out;
+    }
+
+    .input-group .form-select:disabled {
+        background-color: #f8f9fa;
+    }
+
+    .input-group .btn-outline-danger {
+        border: 2px solid #dc3545;
+        color: #dc3545;
+        transition: var(--transition-base);
+    }
+
+    .input-group .btn-outline-danger:hover:not(:disabled) {
+        background: #dc3545;
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .input-group .btn-outline-danger:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Select2-like enhanced select styling */
+    select.form-select option {
+        padding: 0.5rem;
+    }
+
+    /* Responsive tweaks */
+    .form-row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .form-row-grid {
+            grid-template-columns: 1fr;
+        }
+        .form-card .card-body {
+            padding: 1.25rem;
+        }
+    }
+
+    /* Smooth hover reveal for hidden sections */
+    .hidden-section {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.4s ease-in-out;
+    }
+
+    .hidden-section.visible {
+        opacity: 1;
+        max-height: 500px;
+    }
+
+    /* Auto-route alert animation */
+    #autoRouteAlert {
+        animation: slideDown 0.5s ease-out;
+        border-left: 4px solid #0dcaf0;
+        background: linear-gradient(135deg, #e8f4fd, #d0ebff);
+    }
+
+    /* IT Assign field smooth toggle */
+    #itAssignContainer,
+    #itAssignContainerDx {
+        transition: var(--transition-base);
+    }
+
+    /* Status display input */
+    #statusDisplay {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        font-weight: 500;
+    }
+
+    /* Button group spacing */
+    .btn-group-action {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+</style>
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
-            <div class="card-body py-4 d-flex justify-content-between align-items-center">
+        <div class="card header-card text-white">
+            <div class="card-body py-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
-                    <h1 class="h2 fw-bold mb-1">
-                        <i class="fas fa-edit me-2"></i>Edit IT Service
+                    <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                        <i class="fas fa-pen-to-square"></i> Edit IT Service
+                        <span class="badge rounded-pill bg-white text-primary fs-6 ms-2">#@Model.Id</span>
                     </h1>
-                    <p class="mb-0 opacity-90">Update IT repair request #@Model.Id</p>
+                    <p class="mb-0 opacity-90 d-flex align-items-center gap-2">
+                        <i class="fas fa-info-circle"></i> Update IT repair request
+                        <span class="badge badge-status @GetStatusBadgeClass(Model.Status)">
+                            <i class="fas @GetStatusIcon(Model.Status) me-1"></i>
+                            @GetTicketStatusBaseDisplayName(Model.Status)
+                        </span>
+                    </p>
                 </div>
-                <a asp-action="Index" class="btn btn-light fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                <a asp-action="Index" class="btn btn-light fw-semibold px-4">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
                 </a>
             </div>
         </div>
@@ -82,76 +476,116 @@
 </div>
 
 <div class="row">
-    <div class="col-md-12 col-lg-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
+    <div class="col-12">
+        <div class="card form-card">
+            <div class="card-body">
                 <form asp-action="Edit">
                     <input type="hidden" asp-for="Id" />
                     <input type="hidden" asp-for="CreatedAt" />
                     <input type="hidden" asp-for="Priority" />
                     <input type="hidden" asp-for="DeviceName" />
                     <input type="hidden" asp-for="ApproverName" />
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3" style="display: none;" id="validationSummary"></div>
 
                     @if (requesterEditMode)
                     {
-                        <div class="alert alert-warning">
-                            <i class="fas fa-rotate-left me-1"></i>เมื่อบันทึก ระบบจะส่งรายการกลับเป็นสถานะ <strong>Open</strong> อัตโนมัติ
-                        </div>
+                        @if (Model.Status == ITRepairService.Models.TicketStatus.Complete)
+                        {
+                            <div class="alert alert-info d-flex align-items-center gap-2">
+                                <i class="fas fa-check-circle fa-lg"></i>
+                                <span>IT ได้ดำเนินการเสร็จเรียบร้อยแล้ว กรุณากด <strong>Close</strong> เพื่อปิดงาน</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning d-flex align-items-center gap-2">
+                                <i class="fas fa-rotate-left fa-lg"></i>
+                                <span>เมื่อบันทึก ระบบจะส่งรายการกลับเป็นสถานะ <strong>Open</strong> อัตโนมัติ</span>
+                            </div>
+                        }
                     }
 
-                    <div class="mb-3">
-                        <label asp-for="RequesterName" class="form-label"></label>
-                        <input asp-for="RequesterName" class="form-control" readonly />
-                        <span asp-validation-for="RequesterName" class="text-danger"></span>
+                    <div class="form-row-grid">
+                        <div class="mb-3">
+                            <label asp-for="RequesterName" class="form-label">
+                                <i class="fas fa-user me-1"></i>ผู้แจ้งซ่อม
+                            </label>
+                            <input asp-for="RequesterName" class="form-control" readonly />
+                            <span asp-validation-for="RequesterName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Department" class="form-label">
+                                <i class="fas fa-building me-1"></i>ฝ่าย
+                            </label>
+                            @if (isApprovedOrBeyond)
+                            {
+                                <input asp-for="Department" class="form-control" readonly />
+                            }
+                            else
+                            {
+                                <input asp-for="Department" class="form-control" />
+                            }
+                            <span asp-validation-for="Department" class="text-danger small"></span>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Department" class="form-label"></label>
-                        <input asp-for="Department" class="form-control" />
-                        <span asp-validation-for="Department" class="text-danger"></span>
-                    </div>
-
-                    @* <div class="mb-3">
-                        <label asp-for="DeviceName" class="form-label"></label>
-                        <input asp-for="DeviceName" class="form-control" readonly />
-                        <span asp-validation-for="DeviceName" class="text-danger"></span>
-                    </div> *@
-
-                    <div class="mb-3">
-                        <label asp-for="RepairType" class="form-label"></label>
-                        <select asp-for="RepairType" class="form-select" asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>()"></select>
-                        <span asp-validation-for="RepairType" class="text-danger"></span>
+                        <label asp-for="RepairType" class="form-label">
+                            <i class="fas fa-tools me-1"></i>ประเภทการแจ้งซ่อม
+                        </label>
+                        @if (isApprovedOrBeyond)
+                        {
+                            <select asp-for="RepairType" class="form-select" asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>()" disabled></select>
+                        }
+                        else
+                        {
+                            <select asp-for="RepairType" class="form-select" asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>()"></select>
+                        }
+                        <span asp-validation-for="RepairType" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="IssueDescription" class="form-label"></label>
-                        <textarea asp-for="IssueDescription" class="form-control" rows="4"></textarea>
-                        <span asp-validation-for="IssueDescription" class="text-danger"></span>
+                        <label asp-for="IssueDescription" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>รายละเอียดปัญหา
+                        </label>
+                        @if (isApprovedOrBeyond)
+                        {
+                            <textarea asp-for="IssueDescription" class="form-control" rows="4" readonly></textarea>
+                        }
+                        else
+                        {
+                            <textarea asp-for="IssueDescription" class="form-control" rows="4" placeholder="กรุณาระบุรายละเอียดปัญหา..."></textarea>
+                        }
+                        <span asp-validation-for="IssueDescription" class="text-danger small"></span>
                     </div>
 
+                    <hr class="my-4" />
+
                     <div class="mb-3">
-                        <label class="form-label">ฝ่ายสำหรับ step ถัดไป</label>
+                        <label class="form-label">
+                            <i class="fas fa-share me-1"></i>ฝ่ายสำหรับ step ถัดไป
+                        </label>
                         @if (requesterEditMode)
                         {
                             <input asp-for="ApproverDepartment" class="form-control" readonly />
                         }
                         else
                         {
-                            <select asp-for="ApproverDepartment" class="form-select" asp-items="approverDepartments" id="approverDepartmentSelect" disabled="@(!canEditStatusByUser ? "disabled" : null)">
-                                <option value="">Select approver department</option>
+                            <select asp-for="ApproverDepartment" class="form-select" asp-items="approverDepartments" id="approverDepartmentSelect">
+                                <option value="">— Select approver department —</option>
                             </select>
-                            @if (!canEditStatusByUser)
-                            {
-                                <input type="hidden" asp-for="ApproverDepartment" />
-                            }
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด
+                            </div>
                         }
-                        <div class="form-text">ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด</div>
-                        <span asp-validation-for="ApproverDepartment" class="text-danger"></span>
+                        <span asp-validation-for="ApproverDepartment" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">ผู้รับ step ถัดไป</label>
+                        <label class="form-label">
+                            <i class="fas fa-user-check me-1"></i>ผู้รับ step ถัดไป
+                        </label>
                         @if (requesterEditMode)
                         {
                             var selectedApprover = approverUsers.FirstOrDefault(user => user.Id == selectedApproverUserId);
@@ -168,10 +602,9 @@
                             <select asp-for="ApproverUserId"
                                     class="form-select"
                                     id="approverUserSelect"
-                                    disabled="@(!canEditStatusByUser ? "disabled" : null)"
                                     data-current-user-id="@currentUserId"
                                     data-is-approve-user="@(isApproveUser ? "true" : "false")">
-                                <option value="">Select approver</option>
+                                <option value="">— Select approver —</option>
                                 @foreach (var approver in approverUsers)
                                 {
                                     var displayName = !string.IsNullOrWhiteSpace(approver.FullName)
@@ -181,8 +614,9 @@
                                         ? approver.UserName
                                         : approver.Email;
                                     var departmentValue = approver.Department?.Trim() ?? string.Empty;
+                                    var isSelected = selectedApproverUserId == approver.Id;
 
-                                    if (selectedApproverUserId == approver.Id)
+                                    @if (isSelected)
                                     {
                                         <option value="@approver.Id" data-department="@departmentValue" selected>@displayName (@userNameForDisplay)</option>
                                     }
@@ -192,121 +626,196 @@
                                     }
                                 }
                             </select>
-                            <div class="form-text">เลือกคนที่ระบบจะส่งงานต่อไปให้ ไม่ได้ผูกกับสถานะของรายการ</div>
-                            <div id="selfApproverAlert" class="alert alert-warning mt-2 py-2 px-3" style="display:none;">
-                                ผู้รับ step ถัดไปไม่สามารถเป็นผู้ใช้คนเดียวกับผู้ที่กำลังอนุมัติ กรุณาเลือกผู้รับคนอื่น
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>เลือกคนที่ระบบจะส่งงานต่อไปให้ ไม่ได้ผูกกับสถานะของรายการ
                             </div>
-                            @if (!canEditStatusByUser)
-                            {
-                                <input type="hidden" asp-for="ApproverUserId" />
-                            }
+                            <div id="autoRouteAlert" class="alert mt-2 py-2 px-3" style="display:none;">
+                                <i class="fas fa-info-circle me-1"></i>เมื่ออนุมัติ ระบบจะส่งงานไปยัง SM/DM ของฝ่าย DX อัตโนมัติ
+                            </div>
                         }
-                        <span asp-validation-for="ApproverUserId" class="text-danger"></span>
+                        <span asp-validation-for="ApproverUserId" class="text-danger small"></span>
                     </div>
+
+                    @if (isDriveAccessRepairType && !requesterEditMode && canEditStatus)
+                    {
+                        <div class="mb-3" id="thirdApproverContainer">
+                            <label class="form-label">
+                                <i class="fas fa-user-shield me-1"></i>ผู้อนุมัติระดับ 3 (SM/DM ของ DX)
+                            </label>
+                            <select name="ThirdApproverUserId" class="form-select">
+                                <option value="">— Select DX approver —</option>
+                                @foreach (var approver in thirdApproverUsers)
+                                {
+                                    var displayName = !string.IsNullOrWhiteSpace(approver.FullName)
+                                        ? approver.FullName
+                                        : (approver.UserName ?? approver.Email ?? "Unknown User");
+                                    var userNameForDisplay = !string.IsNullOrWhiteSpace(approver.UserName)
+                                        ? approver.UserName
+                                        : approver.Email;
+                                    var isSelected = selectedThirdApproverUserId == approver.Id;
+
+                                    @if (isSelected)
+                                    {
+                                        <option value="@approver.Id" selected>@displayName (@userNameForDisplay)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@approver.Id">@displayName (@userNameForDisplay)</option>
+                                    }
+                                }
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>เลือก SM/DM ของ DX สำหรับขั้นตอนอนุมัติสุดท้ายก่อน Assign งาน
+                            </div>
+                        </div>
+                    }
 
                     @if (requesterEditMode || !canEditStatus)
                     {
-                        <input type="hidden" asp-for="Status" />
+                        @if (requesterEditMode && Model.Status == ITRepairService.Models.TicketStatus.Complete)
+                        {
+                            <input type="hidden" name="Status" value="Closed" />
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="Status" />
+                        }
                         @if (!requesterEditMode)
                         {
                             if (!canEditStatus)
                             {
-                                <div class="alert alert-info">
-                                    <i class="fas fa-lock me-1"></i>เฉพาะผู้ใช้ที่มีสิทธิ์ <strong>Approve</strong> หรือผู้ที่ได้รับมอบหมายงานเท่านั้นที่แก้ไขสถานะได้
+                                <div class="alert alert-info d-flex align-items-center gap-2">
+                                    <i class="fas fa-lock fa-lg"></i>
+                                    <span>เฉพาะผู้ใช้ที่มีสิทธิ์ <strong>Approve</strong> หรือผู้ที่ได้รับมอบหมายงานเท่านั้นที่แก้ไขสถานะได้</span>
                                 </div>
                             }
                         }
                     }
-                    else
+
+                    @* Approve/Reject section for pure Approve users *@
+                    @if (User.IsInRole(ITRepairService.Models.AppRoles.Approve) && !isDxUser && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport))
+                    {
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-gavel me-1"></i>การอนุมัติ
+                            </label>
+                            <input type="hidden" name="Status" value="@flowPrimaryStatus" id="statusHidden" />
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="badge badge-status @GetStatusBadgeClass(flowPrimaryStatus)" id="statusBadge">
+                                    <i class="fas @GetStatusIcon(flowPrimaryStatus) me-1"></i>
+                                    <span id="statusBadgeText">@GetTicketStatusTimelineDisplayName(flowPrimaryStatus)</span>
+                                </span>
+                                <div class="btn-group-action">
+                                    <button type="button" class="btn btn-success" id="approveBtn">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="rejectBtn">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (isDxUser && User.IsInRole(ITRepairService.Models.AppRoles.Approve) && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport))
+                    {
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-gavel me-1"></i>การอนุมัติ
+                            </label>
+                            <input type="hidden" name="Status" value="@flowPrimaryStatus" id="statusHidden" />
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="badge badge-status @GetStatusBadgeClass(flowPrimaryStatus)" id="statusBadge">
+                                    <i class="fas @GetStatusIcon(flowPrimaryStatus) me-1"></i>
+                                    <span id="statusBadgeText">@GetTicketStatusTimelineDisplayName(flowPrimaryStatus)</span>
+                                </span>
+                                <button type="button" class="btn btn-danger" id="rejectBtn">
+                                    <i class="fas fa-times me-1"></i>Rejected
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (isCurrentStatusApproved)
+                        {
+                            <div class="mb-3" id="itAssignContainer">
+                                <label asp-for="AssignedItUserId" class="form-label">
+                                    <i class="fas fa-laptop-code me-1"></i>ผู้รับผิดชอบ (IT)
+                                </label>
+                                <select asp-for="AssignedItUserId" class="form-select" id="itAssignSelect">
+                                    <option value="">— Select IT assignee —</option>
+                                    @foreach (var itUser in itSupportUsers)
+                                    {
+                                        var displayName = !string.IsNullOrWhiteSpace(itUser.FullName)
+                                            ? itUser.FullName
+                                            : (itUser.UserName ?? itUser.Email ?? "Unknown User");
+                                        var userNameForDisplay = !string.IsNullOrWhiteSpace(itUser.UserName)
+                                            ? itUser.UserName
+                                            : itUser.Email;
+                                        var isSelected = selectedItSupportUserId == itUser.Id;
+
+                                        @if (isSelected)
+                                        {
+                                            <option value="@itUser.Id" selected>@displayName (@userNameForDisplay)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itUser.Id">@displayName (@userNameForDisplay)</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="AssignedItUserId" class="text-danger small"></span>
+                            </div>
+                        }
+
+                        <div class="mb-4 p-3 bg-danger bg-opacity-10 border border-danger rounded-3" id="rejectRemarkContainerDx" style="display: none;">
+                            <label for="rejectRemarkDx" class="form-label fw-semibold text-danger">
+                                <i class="fas fa-exclamation-circle me-1"></i>หมายเหตุการตีกลับ
+                            </label>
+                            <textarea id="rejectRemarkDx" name="rejectRemark" class="form-control border-danger" rows="3" maxlength="250" placeholder="ระบุเหตุผลที่ตีกลับ...">@ViewData["RejectRemark"]</textarea>
+                            <span class="text-danger small" data-valmsg-for="rejectRemark" data-valmsg-replace="true"></span>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-info-circle me-1"></i>สถานะจะยังคงเป็น <strong>Rejected</strong> จนกว่าผู้แจ้งจะแก้ไขและบันทึกใหม่
+                            </small>
+                        </div>
+                    }
+                    else if (!requesterEditMode && canEditStatus)
                     {
                         <div class="mb-3">
-                            <label asp-for="Status" class="form-label"></label>
+                            <label asp-for="Status" class="form-label">
+                                <i class="fas fa-tag me-1"></i>สถานะ
+                            </label>
                             @{
                                 var canSeeComplete = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
                                     || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
                                     || canMarkCompleteByAssignee;
                             }
+
                             @if (showInitialOpenStatus)
                             {
                                 <div class="mb-2">
-                                    <input class="form-control" value="@GetTicketStatusTimelineDisplayName(flowPrimaryStatus, ITRepairService.Models.TicketStatus.Open)" readonly disabled />
-                                  
+                                    <span class="badge badge-status bg-warning text-dark">
+                                        <i class="fas @GetStatusIcon(ITRepairService.Models.TicketStatus.Open) me-1"></i>
+                                        @GetTicketStatusTimelineDisplayName(flowPrimaryStatus, ITRepairService.Models.TicketStatus.Open)
+                                    </span>
                                 </div>
                             }
-                            @if (lockPrimaryStatusSelection)
+
+                            <input type="hidden" name="Status" value="@flowPrimaryStatus" id="statusHidden" />
+
+                            @if (User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) || User.IsInRole(ITRepairService.Models.AppRoles.Admin))
                             {
-                                <select asp-for="Status" class="form-select" id="statusSelect" disabled>
-                                    @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
-                                    {
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Open)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Closed)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (assigneeCompleteOnlyMode && statusVal != ITRepairService.Models.TicketStatus.Complete)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
-                                        {
-                                            continue;
-                                        }
-                                        <option value="@statusVal" selected="@(flowPrimaryStatus == statusVal ? "selected" : null)">@GetTicketStatusTimelineDisplayName(statusVal)</option>
-                                    }
-                                </select>
-                                <input type="hidden" asp-for="Status" />
+                                @* Status dropdown rendered at the bottom *@
                             }
                             else
                             {
-                                <select asp-for="Status" class="form-select" id="statusSelect">
-                                    @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
-                                    {
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Open)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Closed)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (assigneeCompleteOnlyMode && statusVal != ITRepairService.Models.TicketStatus.Complete)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
-                                        {
-                                            continue;
-                                        }
-
-                                        if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
-                                        {
-                                            continue;
-                                        }
-                                        <option value="@statusVal" selected="@(flowPrimaryStatus == statusVal ? "selected" : null)">@GetTicketStatusTimelineDisplayName(statusVal)</option>
-                                    }
-                                </select>
-                            }
-                            @if (!canEditStatusByUser)
-                            {
-                                <div class="form-text text-warning mt-1">
-                                    ไม่สามารถแก้ไขสถานะก่อนหน้าได้ เพราะสถานะล่าสุดถูกบันทึกโดยผู้ใช้อื่น แต่สามารถเพิ่มลำดับถัดไปผ่านปุ่ม Add dropdown ได้
+                                <div class="mb-2">
+                                    <span class="badge badge-status @GetStatusBadgeClass(flowPrimaryStatus)">
+                                        <i class="fas @GetStatusIcon(flowPrimaryStatus) me-1"></i>
+                                        @GetTicketStatusTimelineDisplayName(flowPrimaryStatus)
+                                    </span>
                                 </div>
                             }
-                            @if (isCurrentStatusApproved)
+
+                            @if (isCurrentStatusApproved && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) && !User.IsInRole(ITRepairService.Models.AppRoles.Admin))
                             {
                                 <input type="hidden" asp-for="Status" />
                             }
@@ -318,34 +827,20 @@
                                     {
                                         <div class="input-group mt-2 status-step-row existing-step-row">
                                             <select name="approvalStatuses" class="form-select status-step-select existing-step-select" disabled>
-                                                <option value="">Select next status step</option>
+                                                <option value="">— Select next status step —</option>
                                                 @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
                                                 {
-                                                    if (statusVal == ITRepairService.Models.TicketStatus.Open)
-                                                    {
-                                                        continue;
-                                                    }
-
-                                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed)
-                                                    {
-                                                        continue;
-                                                    }
-
-                                                    if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress)
-                                                    {
-                                                        continue;
-                                                    }
-
-                                                    if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete)
-                                                    {
-                                                        continue;
-                                                    }
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Open) { continue; }
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed) { continue; }
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress) { continue; }
+                                                    if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete) { continue; }
 
                                                     var previousStatus = i == 0
                                                         ? flowPrimaryStatus
                                                         : additionalApprovalStatuses[i - 1];
+                                                    var isSelected = additionalApprovalStatuses[i] == statusVal;
 
-                                                    if (additionalApprovalStatuses[i] == statusVal)
+                                                    @if (isSelected)
                                                     {
                                                         <option value="@statusVal" selected>@GetTicketStatusTimelineDisplayName(statusVal, previousStatus)</option>
                                                     }
@@ -356,53 +851,58 @@
                                                 }
                                             </select>
                                             <input type="hidden" name="approvalStatuses" value="@additionalApprovalStatuses[i]" class="existing-step-hidden" />
-                                            <button type="button" class="btn btn-outline-danger remove-status-step existing-step-remove" disabled>Remove</button>
+                                            <button type="button" class="btn btn-outline-danger remove-status-step existing-step-remove" disabled>
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
                                         </div>
                                     }
                                 </div>
-
-                                <div class="mt-2">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addStatusStepBtn">
-                                        <i class="fas fa-plus me-1"></i>Add dropdown
-                                    </button>
-                                    <small class="text-muted d-block mt-1" id="statusStepHint">เพิ่ม Status เป็นลำดับต่อจากช่องหลักได้</small>
-                                </div>
                             }
 
-                            <span asp-validation-for="Status" class="text-danger"></span>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
                         </div>
 
-                        <div class="mb-3" id="itAssignContainer" style="display: none;">
-                            <label asp-for="AssignedItUserId" class="form-label"></label>
-                            <select asp-for="AssignedItUserId" class="form-select" id="itAssignSelect">
-                                <option value="">Select IT assignee</option>
-                                @foreach (var itUser in itSupportUsers)
-                                {
-                                    var displayName = !string.IsNullOrWhiteSpace(itUser.FullName)
-                                        ? itUser.FullName
-                                        : (itUser.UserName ?? itUser.Email ?? "Unknown User");
-                                    var userNameForDisplay = !string.IsNullOrWhiteSpace(itUser.UserName)
-                                        ? itUser.UserName
-                                        : itUser.Email;
-
-                                    if (selectedItSupportUserId == itUser.Id)
+                        @if (User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) || User.IsInRole(ITRepairService.Models.AppRoles.Admin))
+                        {
+                            <div class="mb-3" id="itAssignContainer">
+                                <label asp-for="AssignedItUserId" class="form-label">
+                                    <i class="fas fa-laptop-code me-1"></i>ผู้รับผิดชอบ (IT)
+                                </label>
+                                <select asp-for="AssignedItUserId" class="form-select" id="itAssignSelect">
+                                    <option value="">— Select IT assignee —</option>
+                                    @foreach (var itUser in itSupportUsers)
                                     {
-                                        <option value="@itUser.Id" selected>@displayName (@userNameForDisplay)</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@itUser.Id">@displayName (@userNameForDisplay)</option>
-                                    }
-                                }
-                            </select>
-                            <span asp-validation-for="AssignedItUserId" class="text-danger"></span>
-                        </div>
+                                        var displayName = !string.IsNullOrWhiteSpace(itUser.FullName)
+                                            ? itUser.FullName
+                                            : (itUser.UserName ?? itUser.Email ?? "Unknown User");
+                                        var userNameForDisplay = !string.IsNullOrWhiteSpace(itUser.UserName)
+                                            ? itUser.UserName
+                                            : itUser.Email;
+                                        var isSelected = selectedItSupportUserId == itUser.Id;
 
-                        <div class="mb-4 p-3 border border-danger rounded bg-danger bg-opacity-10" id="rejectRemarkContainer" style="display: none;">
+                                        @if (isSelected)
+                                        {
+                                            <option value="@itUser.Id" selected>@displayName (@userNameForDisplay)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@itUser.Id">@displayName (@userNameForDisplay)</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="AssignedItUserId" class="text-danger small"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="AssignedItUserId" />
+                        }
+
+                        <div class="mb-4 p-3 bg-danger bg-opacity-10 border border-danger rounded-3" id="rejectRemarkContainer" style="display: @(flowPrimaryStatus == ITRepairService.Models.TicketStatus.Rejected ? "block" : "none")">
                             <label for="rejectRemark" class="form-label fw-semibold text-danger">
                                 <i class="fas fa-exclamation-circle me-1"></i>หมายเหตุการตีกลับ
                             </label>
-                            <textarea id="rejectRemark" name="rejectRemark" class="form-control" rows="3" maxlength="250" placeholder="ระบุเหตุผลที่ตีกลับ...">@ViewData["RejectRemark"]</textarea>
+                            <textarea id="rejectRemark" name="rejectRemark" class="form-control border-danger" rows="3" maxlength="250" placeholder="ระบุเหตุผลที่ตีกลับ...">@ViewData["RejectRemark"]</textarea>
                             <span class="text-danger small" data-valmsg-for="rejectRemark" data-valmsg-replace="true"></span>
                             <small class="text-muted d-block mt-1">
                                 <i class="fas fa-info-circle me-1"></i>สถานะจะยังคงเป็น <strong>Rejected</strong> จนกว่าผู้แจ้งจะแก้ไขและบันทึกใหม่
@@ -410,11 +910,54 @@
                         </div>
                     }
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Save
+                    @if (User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) || User.IsInRole(ITRepairService.Models.AppRoles.Admin))
+                    {
+                        var canSeeComplete = User.IsInRole(ITRepairService.Models.AppRoles.ITSupport)
+                            || User.IsInRole(ITRepairService.Models.AppRoles.Admin)
+                            || canMarkCompleteByAssignee;
+                        <div class="mb-4">
+                            <label asp-for="Status" class="form-label">
+                                <i class="fas fa-tag me-1"></i>สถานะ
+                            </label>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="badge badge-status @GetStatusBadgeClass(flowPrimaryStatus)" id="statusBadge">
+                                    <i class="fas @GetStatusIcon(flowPrimaryStatus) me-1"></i>
+                                    <span id="statusBadgeText">@GetTicketStatusTimelineDisplayName(flowPrimaryStatus)</span>
+                                </span>
+                                <select class="form-select w-auto" id="statusDropdown" style="min-width: 200px;">
+                                    @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
+                                    {
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Open) { continue; }
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Closed && !User.IsInRole(ITRepairService.Models.AppRoles.Admin) && !User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) && flowPrimaryStatus != ITRepairService.Models.TicketStatus.Complete) { continue; }
+                                        if (statusVal == ITRepairService.Models.TicketStatus.InProgress && !canSeeInProgress) { continue; }
+                                        if (statusVal == ITRepairService.Models.TicketStatus.Complete && !canSeeComplete) { continue; }
+
+                                        var isSelected = flowPrimaryStatus == statusVal;
+
+                                        @if (isSelected)
+                                        {
+                                            <option value="@statusVal" selected>@GetTicketStatusTimelineDisplayName(statusVal)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@statusVal">@GetTicketStatusTimelineDisplayName(statusVal)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
+                        </div>
+                    }
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex gap-3 flex-wrap">
+                        <button type="submit" class="btn btn-primary px-5" id="saveBtn">
+                            <i class="fas fa-save me-2"></i>Save
                         </button>
-                        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                        <a asp-action="Index" class="btn btn-secondary px-4">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
                     </div>
                 </form>
             </div>
@@ -427,105 +970,126 @@
 
     <script>
         (function () {
-            // Approver department/user filter
+            // DOM Elements
             const departmentSelect = document.getElementById('approverDepartmentSelect');
             const approverSelect = document.getElementById('approverUserSelect');
-            const statusSelect = document.getElementById('statusSelect');
+            const statusHidden = document.getElementById('statusHidden');
+            const statusBadge = document.getElementById('statusBadge');
+            const statusBadgeText = document.getElementById('statusBadgeText');
             const additionalStatusSteps = document.getElementById('additionalStatusSteps');
-            const selfApproverAlert = document.getElementById('selfApproverAlert');
             const editForm = document.querySelector('form[asp-action="Edit"]') || document.querySelector('form');
+            const approveBtn = document.getElementById('approveBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+            const remarkContainer = document.getElementById('rejectRemarkContainer');
+            const remarkContainerDx = document.getElementById('rejectRemarkContainerDx');
+            const remarkInput = document.getElementById('rejectRemark');
+            const remarkInputDx = document.getElementById('rejectRemarkDx');
+            const itAssignContainer = document.getElementById('itAssignContainer');
+            const itAssignSelect = document.getElementById('itAssignSelect');
+            const saveBtn = document.getElementById('saveBtn');
 
-            function isSelfApproverSelection() {
-                if (!approverSelect) {
-                    return false;
-                }
-
-                const isApproveUser = approverSelect.dataset.isApproveUser === 'true';
-                const currentUserId = (approverSelect.dataset.currentUserId || '').trim();
-                const selectedApproverId = (approverSelect.value || '').trim();
-
-                return isApproveUser
-                    && currentUserId.length > 0
-                    && selectedApproverId.length > 0
-                    && selectedApproverId === currentUserId;
+            // Validation summary auto-show
+            const validationSummary = document.getElementById('validationSummary');
+            if (validationSummary && validationSummary.querySelector('ul') && validationSummary.querySelector('ul').children.length > 0) {
+                validationSummary.style.display = 'block';
             }
 
-            function toggleSelfApproverAlert() {
-                if (!selfApproverAlert) {
-                    return;
-                }
+            // Status badge class map
+            const statusBadgeClasses = {
+                'Open': 'bg-warning text-dark',
+                'InProgress': 'bg-info text-white',
+                'Approved': 'bg-success',
+                'Rejected': 'bg-danger',
+                'Complete': 'bg-primary',
+                'Closed': 'bg-secondary'
+            };
 
-                selfApproverAlert.style.display = isSelfApproverSelection() ? 'block' : 'none';
-            }
+            const statusIcons = {
+                'Open': 'fa-circle',
+                'InProgress': 'fa-spinner fa-pulse',
+                'Approved': 'fa-check-circle',
+                'Rejected': 'fa-times-circle',
+                'Complete': 'fa-check-double',
+                'Closed': 'fa-lock'
+            };
 
-            function getStatusBaseLabel(statusValue) {
-                if (!statusValue) {
-                    return '';
-                }
-
-                const option = statusSelect
-                    ? Array.from(statusSelect.options).find(item => item.value === statusValue)
-                    : null;
-
-                if (option && option.dataset.baseLabel) {
-                    return option.dataset.baseLabel;
-                }
-
-                return statusValue;
-            }
-
-            function formatTimelineLabel(previousStatusValue, currentStatusValue) {
-                const currentLabel = getStatusBaseLabel(currentStatusValue);
-                if (!previousStatusValue) {
-                    return currentLabel;
-                }
-
-                if (previousStatusValue === currentStatusValue) {
-                    return `${currentLabel} (Saved)`;
-                }
-
-                return `${getStatusBaseLabel(previousStatusValue)} -> ${currentLabel}`;
-            }
-
-            function updateStatusStepLabels() {
-                if (!statusSelect) {
-                    return;
-                }
-
-                Array.from(statusSelect.options).forEach(option => {
-                    if (!option.value) {
-                        return;
-                    }
-
-                    if (!option.dataset.baseLabel) {
-                        option.dataset.baseLabel = option.textContent;
-                    }
-
-                    option.textContent = formatTimelineLabel('', option.value);
+            // Update status badge visual
+            function updateStatusBadge(statusValue) {
+                if (!statusBadge || !statusBadgeText) return;
+                const displayText = statusValue === 'Approved' ? 'อนุมัติ' :
+                                    statusValue === 'Rejected' ? 'ตีกลับ' :
+                                    statusValue;
+                statusBadgeText.textContent = displayText;
+                // Update badge class
+                Object.keys(statusBadgeClasses).forEach(key => {
+                    statusBadge.classList.remove(statusBadgeClasses[key]);
                 });
-
-                let previousStatusValue = statusSelect.value;
-
-                if (!additionalStatusSteps) {
-                    return;
+                const badgeClass = statusBadgeClasses[statusValue];
+                if (badgeClass) {
+                    statusBadge.classList.add(badgeClass);
                 }
+                // Update icon
+                const icon = statusBadge.querySelector('i');
+                if (icon) {
+                    Object.values(statusIcons).forEach(cls => icon.classList.remove(cls));
+                    statusIcons[statusValue]?.split(' ').forEach(cls => icon.classList.add(cls));
+                }
+            }
 
-                const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
-                stepSelects.forEach(selectElement => {
-                    Array.from(selectElement.options).forEach(option => {
-                        if (!option.value) {
-                            return;
+            // Approve/Reject button handlers
+            function setApprovalStatus(status) {
+                if (statusHidden) {
+                    statusHidden.value = status;
+                }
+                updateStatusBadge(status);
+
+                const isRejected = status === 'Rejected';
+                if (remarkContainer) {
+                    remarkContainer.style.display = isRejected ? 'block' : 'none';
+                }
+                if (remarkContainerDx) {
+                    remarkContainerDx.style.display = isRejected ? 'block' : 'none';
+                }
+                if (remarkInput) {
+                    remarkInput.required = isRejected;
+                }
+                if (remarkInputDx) {
+                    remarkInputDx.required = isRejected;
+                }
+            }
+
+            if (approveBtn) {
+                approveBtn.addEventListener('click', () => {
+                    setApprovalStatus('Approved');
+                    const autoRouteAlert = document.getElementById('autoRouteAlert');
+                    if (autoRouteAlert) {
+                        autoRouteAlert.style.display = 'block';
+                    }
+
+                    const currentUserDepartment = '@(ViewData["CurrentUserDepartment"]?.ToString() ?? string.Empty)';
+                    if (currentUserDepartment && currentUserDepartment.toLowerCase() !== 'dx') {
+                        const dxDepartmentOption = Array.from(departmentSelect.options)
+                            .find(opt => opt.value.toLowerCase() === 'dx');
+                        if (dxDepartmentOption) {
+                            departmentSelect.value = 'DX';
+                            departmentSelect.dispatchEvent(new Event('change'));
                         }
+                    }
 
-                        option.textContent = formatTimelineLabel(previousStatusValue, option.value);
-                    });
-
-                    if (selectElement.value) {
-                        previousStatusValue = selectElement.value;
+                    if (itAssignContainer && itAssignSelect) {
+                        itAssignContainer.style.display = 'block';
+                        itAssignSelect.disabled = false;
                     }
                 });
             }
 
+            if (rejectBtn) {
+                rejectBtn.addEventListener('click', () => {
+                    setApprovalStatus('Rejected');
+                });
+            }
+
+            // Approver department/user filter
             if (departmentSelect && approverSelect) {
                 const allApproverOptions = Array.from(approverSelect.querySelectorAll('option'))
                     .filter(option => option.value !== '');
@@ -538,7 +1102,7 @@
 
                     const placeholder = document.createElement('option');
                     placeholder.value = '';
-                    placeholder.textContent = 'Select approver';
+                    placeholder.textContent = '— Select approver —';
                     approverSelect.appendChild(placeholder);
 
                     let foundSelected = false;
@@ -561,229 +1125,47 @@
                     if (!foundSelected) {
                         approverSelect.value = '';
                     }
-
-                    updateStatusStepLabels();
                 }
 
                 departmentSelect.addEventListener('change', renderApproverOptions);
-                approverSelect.addEventListener('change', () => {
-                    updateStatusStepLabels();
-                    toggleSelfApproverAlert();
-                });
                 renderApproverOptions();
-            } else {
-                updateStatusStepLabels();
             }
 
-            toggleSelfApproverAlert();
+            // IT Assignee toggle
+            function toggleItAssignField() {
+                if (itAssignContainer && itAssignSelect && statusHidden) {
+                    const isInProgress = statusHidden.value === 'InProgress';
+                    const isDxApprover = @(isDxUser ? "true" : "false");
+                    const isApproved = statusHidden.value === 'Approved';
+                    const isItOrAdmin = @(User.IsInRole(ITRepairService.Models.AppRoles.ITSupport) || User.IsInRole(ITRepairService.Models.AppRoles.Admin) ? "true" : "false");
+                    const shouldShow = isItOrAdmin || isInProgress || (isDxApprover && isApproved);
 
-            // Rejection remark toggle
-            const remarkContainer = document.getElementById('rejectRemarkContainer');
-            const remarkInput = document.getElementById('rejectRemark');
-            const itAssignContainer = document.getElementById('itAssignContainer');
-            const itAssignSelect = document.getElementById('itAssignSelect');
-            const addStatusStepBtn = document.getElementById('addStatusStepBtn');
-            const statusStepHint = document.getElementById('statusStepHint');
-
-            if (statusSelect && remarkContainer && remarkInput) {
-                function getEffectiveStatusValue() {
-                    if (!additionalStatusSteps) {
-                        return statusSelect.value;
-                    }
-
-                    const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
-                    for (let i = stepSelects.length - 1; i >= 0; i -= 1) {
-                        if (stepSelects[i].value) {
-                            return stepSelects[i].value;
-                        }
-                    }
-
-                    return statusSelect.value;
+                    itAssignContainer.style.display = shouldShow ? 'block' : 'none';
+                    itAssignSelect.disabled = !shouldShow;
+                    itAssignSelect.required = isInProgress;
                 }
+            }
 
-                function addStatusStep(selectedValue) {
-                    if (!additionalStatusSteps) {
-                        return;
-                    }
-
-                    const row = document.createElement('div');
-                    row.className = 'input-group mt-2 status-step-row';
-
-                    const select = document.createElement('select');
-                    select.name = 'approvalStatuses';
-                    select.className = 'form-select status-step-select';
-
-                    const placeholder = document.createElement('option');
-                    placeholder.value = '';
-                    placeholder.textContent = 'Select next status step';
-                    select.appendChild(placeholder);
-
-                    Array.from(statusSelect.options).forEach(option => {
-                        if (!option.value) {
-                            return;
-                        }
-
-                        const clonedOption = option.cloneNode(true);
-                        clonedOption.selected = false;
-                        select.appendChild(clonedOption);
-                    });
-
-                    if (selectedValue) {
-                        select.value = selectedValue;
-                    }
-
-                    const removeButton = document.createElement('button');
-                    removeButton.type = 'button';
-                    removeButton.className = 'btn btn-outline-danger remove-status-step';
-                    removeButton.textContent = 'Remove';
-
-                    row.appendChild(select);
-                    row.appendChild(removeButton);
-                    additionalStatusSteps.appendChild(row);
-                    updateStatusStepLabels();
-                    updateStatusStepInteractivity();
-                }
-
-                function updateStatusStepInteractivity() {
-                    if (!additionalStatusSteps) {
-                        return;
-                    }
-
-                    const stepSelects = Array.from(additionalStatusSteps.querySelectorAll('.status-step-select'));
-                    let previousHasValue = Boolean(statusSelect.value);
-
-                    stepSelects.forEach(selectElement => {
-                        const row = selectElement.closest('.status-step-row');
-                        const removeButton = row ? row.querySelector('.remove-status-step') : null;
-                        const isExistingStep = selectElement.classList.contains('existing-step-select');
-
-                        if (isExistingStep) {
-                            selectElement.disabled = true;
-                            if (removeButton) {
-                                removeButton.disabled = true;
-                            }
-
-                            previousHasValue = previousHasValue && Boolean(selectElement.value);
-                            return;
-                        }
-
-                        const shouldEnable = previousHasValue;
-                        selectElement.disabled = !shouldEnable;
-
-                        if (!shouldEnable) {
-                            selectElement.value = '';
-                        }
-
-                        if (removeButton) {
-                            removeButton.disabled = !shouldEnable;
-                        }
-
-                        previousHasValue = shouldEnable && Boolean(selectElement.value);
-                    });
-
-                    if (addStatusStepBtn) {
-                        const hasPendingStep = stepSelects.some(selectElement =>
-                            !selectElement.classList.contains('existing-step-select')
-                            && !selectElement.disabled
-                            && !selectElement.value);
-
-                        addStatusStepBtn.disabled = hasPendingStep;
-                    }
-                }
-
-                function toggleStatusFields() {
-                    const effectiveStatus = getEffectiveStatusValue();
-                    const isRejected = effectiveStatus === 'Rejected';
-                    const isInProgress = effectiveStatus === 'InProgress';
-
-                    remarkContainer.style.display = isRejected ? 'block' : 'none';
-                    remarkInput.required = isRejected;
-                    if (!isRejected) {
-                        remarkInput.value = '';
-                    }
-
-                    if (itAssignContainer && itAssignSelect) {
-                        itAssignContainer.style.display = isInProgress ? 'block' : 'none';
-                        itAssignSelect.disabled = !isInProgress;
-                        itAssignSelect.required = isInProgress;
-                        if (!isInProgress) {
-                            itAssignSelect.value = '';
-                        }
-                    }
-
-                    updateStatusStepInteractivity();
-
-                    if (statusStepHint) {
-                        statusStepHint.textContent = 'ช่องก่อนหน้าจะถูกล็อก และเลือกช่องถัดไปได้ตามลำดับเท่านั้น';
-                    }
-                }
-
-                statusSelect.addEventListener('change', () => {
-                    updateStatusStepLabels();
-                    toggleStatusFields();
+            // Sync status dropdown with badge and hidden field
+            const statusDropdown = document.getElementById('statusDropdown');
+            if (statusDropdown && statusHidden) {
+                statusDropdown.addEventListener('change', () => {
+                    const newValue = statusDropdown.value;
+                    statusHidden.value = newValue;
+                    updateStatusBadge(newValue);
                 });
-
-                if (addStatusStepBtn) {
-                    addStatusStepBtn.addEventListener('click', () => {
-                        addStatusStep('');
-                        updateStatusStepLabels();
-                        toggleStatusFields();
-                    });
-                }
-
-                if (additionalStatusSteps) {
-                    additionalStatusSteps.addEventListener('change', event => {
-                        const target = event.target;
-                        if (target && target.classList.contains('status-step-select')) {
-                            updateStatusStepLabels();
-                            toggleStatusFields();
-                        }
-                    });
-
-                    additionalStatusSteps.addEventListener('click', event => {
-                        const target = event.target;
-                        if (target && target.classList.contains('remove-status-step')) {
-                            if (target.classList.contains('existing-step-remove')) {
-                                return;
-                            }
-
-                            const row = target.closest('.status-step-row');
-                            if (row) {
-                                row.remove();
-                                updateStatusStepLabels();
-                                toggleStatusFields();
-                            }
-                        }
-                    });
-                }
-
-                if (editForm && additionalStatusSteps) {
-                    editForm.addEventListener('submit', () => {
-                        const stepSelects = additionalStatusSteps.querySelectorAll('.status-step-select');
-                        stepSelects.forEach(select => {
-                            if (!select.value) {
-                                select.removeAttribute('name');
-                            }
-                            else {
-                                select.setAttribute('name', 'approvalStatuses');
-                            }
-                        });
-                    });
-                }
-
-                if (editForm) {
-                    editForm.addEventListener('submit', event => {
-                        if (isSelfApproverSelection()) {
-                            toggleSelfApproverAlert();
-                            event.preventDefault();
-                            window.alert('ผู้รับ step ถัดไปไม่สามารถเป็นตนเองได้ กรุณาเปลี่ยนผู้รับ');
-                        }
-                    });
-                }
-
-                updateStatusStepLabels();
-                toggleStatusFields();
             }
+
+            // Save button loading state
+            if (saveBtn && editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+                });
+            }
+
+            // Initial toggle
+            toggleItAssignField();
         })();
     </script>
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -35,11 +37,11 @@ public class RepairTicket
     [Display(Name = "ต้องการขอสิทธิ์ Drive ของฝ่าย")]
     public string? DriveAccessDepartment { get; set; }
 
-   
+    
     [Display(Name = "ระดับความสำคัญ")]
     public TicketPriority Priority { get; set; } = TicketPriority.Medium;
 
-  
+   
     [Display(Name = "สถานะ")]
     public TicketStatus Status { get; set; } = TicketStatus.Open;
 
@@ -62,12 +64,31 @@ public class RepairTicket
     public string ApproverDepartment { get; set; } = string.Empty;
 
     [StringLength(450)]
-    [Display(Name = "ผู้อนุมัติ")]
+    [Display(Name = "ผู้อนุมัติ (SM/DM ของฝ่ายผู้แจ้ง)")]
     public string ApproverUserId { get; set; } = string.Empty;
 
     [StringLength(150)]
     [Display(Name = "ชื่อผู้อนุมัติ")]
     public string ApproverName { get; set; } = string.Empty;
+
+    [StringLength(450)]
+    [Display(Name = "ผู้อนุมัติระดับ 2 (SM/DM ของ DX)")]
+    public string? SecondApproverUserId { get; set; }
+
+    [StringLength(150)]
+    [Display(Name = "ชื่อผู้อนุมัติระดับ 2")]
+    public string? SecondApproverName { get; set; }
+
+    [StringLength(450)]
+    [Display(Name = "ผู้อนุมัติระดับ 3 (SM/DM ของฝ่ายที่ขอสิทธิ์ Drive)")]
+    public string? ThirdApproverUserId { get; set; }
+
+    [StringLength(150)]
+    [Display(Name = "ชื่อผู้อนุมัติระดับ 3")]
+    public string? ThirdApproverName { get; set; }
+
+    [Display(Name = "ระดับการอนุมัติ")]
+    public int ApprovalLevel { get; set; } = 1;
 
     [StringLength(450)]
     [Display(Name = "ผู้รับมอบหมายงาน (IT)")]

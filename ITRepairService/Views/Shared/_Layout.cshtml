@@ -17,7 +17,12 @@
     <link rel="stylesheet" href="~/ITRepairService.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
 </head>
-<body class="app-shell bg-light d-flex flex-column">
+<body class="app-shell bg-light d-flex flex-column @{
+    if (ViewContext.RouteData.Values["controller"]?.ToString() == "RepairTickets")
+    {
+        <text>repairtickets-page</text>
+    }
+}">
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
             <div class="container-lg">
@@ -157,7 +162,7 @@
                                     </li>
                                     <li>
                                         <a class="dropdown-item" asp-area="" asp-controller="AdminUsers" asp-action="DepartmentSections">
-                                            <i class="fas fa-sitemap me-2"></i>Department &amp; Section
+                                            <i class="fas fa-sitemap me-2"></i>Department
                                         </a>
                                     </li>
                                 </ul>

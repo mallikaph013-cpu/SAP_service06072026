@@ -6,21 +6,21 @@
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+        <div class="card page-header">
             <div class="card-body py-4">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
-                        <h1 class="h2 fw-bold mb-1">
-                            <i class="fas fa-users me-3"></i>User Management
+                        <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                            <i class="fas fa-users me-2"></i>User Management
                         </h1>
-                        <p class="mb-0 opacity-90">Manage system users and assign roles</p>
+                        <p class="mb-0 opacity-80">Manage system users and assign roles</p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <a asp-action="DepartmentSections" class="btn btn-outline-light fw-500">
-                            <i class="fas fa-sitemap me-2"></i>Department &amp; Section
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a asp-action="DepartmentSections" class="btn btn-light fw-semibold">
+                            <i class="fas fa-sitemap me-2"></i>Department
                         </a>
-                        <a asp-action="Create" class="btn btn-light fw-500">
-                            <i class="fas fa-user-plus me-2"></i>Create New User
+                        <a asp-action="Create" class="btn btn-light fw-semibold">
+                            <i class="fas fa-user-plus me-2"></i>Create
                         </a>
                     </div>
                 </div>
@@ -31,33 +31,42 @@
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info border-0" role="alert">
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>No users found.</strong> 
-        <a asp-action="Create" class="alert-link">Create the first user</a>
+    <div class="card shadow-sm">
+        <div class="card-body py-5 text-center">
+            <div class="py-4">
+                <div class="display-4 text-secondary mb-3">
+                    <i class="fas fa-users"></i>
+                </div>
+                <p class="text-secondary mb-3 fs-5">
+                    <i class="fas fa-info-circle me-2" style="color: #9DCAEB;"></i>
+                    <strong>No users found.</strong>
+                </p>
+                <a asp-action="Create" class="btn btn-primary px-4">Create the first user</a>
+            </div>
+        </div>
     </div>
 }
 else
 {
-    <div class="card border-0 shadow-sm">
+    <div class="card shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead style="background-color: #f8f9fa;">
+                <thead>
                     <tr>
-                        <th style="color: #0066cc; font-weight: 600;">
-                            <i class="fas fa-at me-2"></i>Username
+                        <th class="ps-4">
+                            <i class="fas fa-at me-2" style="color: #9DCAEB;"></i>Username
                         </th>
-                        <th style="color: #0066cc; font-weight: 600;">
-                            <i class="fas fa-envelope me-2"></i>Email
+                        <th>
+                            <i class="fas fa-envelope me-2" style="color: #9DCAEB;"></i>Email
                         </th>
-                        <th style="color: #0066cc; font-weight: 600;">
-                            <i class="fas fa-user me-2"></i>Full Name
+                        <th>
+                            <i class="fas fa-user me-2" style="color: #9DCAEB;"></i>Full Name
                         </th>
-                        <th style="color: #0066cc; font-weight: 600;">
-                            <i class="fas fa-shield-alt me-2"></i>Roles
+                        <th>
+                            <i class="fas fa-shield-alt me-2" style="color: #9DCAEB;"></i>Roles
                         </th>
-                        <th style="color: #0066cc; font-weight: 600; width: 200px;">
-                            <i class="fas fa-cog me-2"></i>Actions
+                        <th class="text-end pe-4" style="width: 220px;">
+                            <i class="fas fa-cog me-2" style="color: #9DCAEB;"></i>Actions
                         </th>
                     </tr>
                 </thead>
@@ -65,26 +74,26 @@ else
                     @foreach (var user in Model)
                     {
                         <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar me-2" style="width: 36px; height: 36px; background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #9DCAEB 0%, #b8d8f0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1a3040; font-weight: 700; font-size: 0.9rem;">
                                         @(user.UserName?.FirstOrDefault().ToString().ToUpper() ?? "U")
                                     </div>
-                                    <span class="fw-500">@user.UserName</span>
+                                    <span class="fw-semibold" style="color: #2a4050;">@user.UserName</span>
                                 </div>
                             </td>
                             <td>
-                                <span class="text-muted">@user.Email</span>
+                                <span style="color: #4a6a7a;">@user.Email</span>
                             </td>
                             <td>
-                                <span class="fw-500">@user.FullName</span>
+                                <span class="fw-semibold" style="color: #3a4a5a;">@user.FullName</span>
                             </td>
                             <td>
                                 @if (user.Roles.Count > 0)
                                 {
                                     @foreach (var role in user.Roles)
                                     {
-                                        <span class="badge bg-primary me-1">@role</span>
+                                        <span class="badge rounded-pill me-1" style="background: #9DCAEB; color: #1a3040; font-weight: 500; padding: 0.35rem 0.7rem;">@role</span>
                                     }
                                 }
                                 else
@@ -92,22 +101,24 @@ else
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-                            <td>
-                                <div class="action-group">
-                                    <a asp-action="Details" asp-route-id="@user.UserId" class="btn btn-sm action-btn action-btn-view" title="View details">
-                                        <i class="fas fa-eye action-icon"></i>
-                                        <span class="action-label">Detail</span>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <a asp-action="Details" asp-route-id="@user.UserId" 
+                                       class="btn btn-sm" 
+                                       style="border-radius: 999px; border: 1px solid #9DCAEB; background: rgba(157, 202, 235, 0.12); color: #2a5a7a; font-weight: 500;"
+                                       title="View details">
+                                        <i class="fas fa-eye me-1"></i>
                                     </a>
-                                    <a asp-action="EditRoles" asp-route-id="@user.UserId" class="btn btn-sm action-btn action-btn-edit" title="Edit roles and profile">
-                                        <i class="fas fa-edit action-icon"></i>
-                                        <span class="action-label">Edit</span>
+                                    <a asp-action="EditRoles" asp-route-id="@user.UserId" 
+                                       class="btn btn-sm btn-outline-warning"
+                                       title="Edit roles and profile">
+                                        <i class="fas fa-edit me-1"></i>
                                     </a>
                                     <form asp-action="Delete" asp-route-id="@user.UserId" method="post" class="d-inline"
-                                          onsubmit="return confirm('Are you sure you want to delete user &quot;@user.UserName&quot;? This action cannot be undone.');">
+                                          onsubmit="return confirm('Are you sure you want to delete user @user.UserName? This action cannot be undone.');">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm action-btn action-btn-delete" title="Delete user">
-                                            <i class="fas fa-trash action-icon"></i>
-                                            <span class="action-label">Delete</span>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete user">
+                                            <i class="fas fa-trash me-1"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -119,99 +130,3 @@ else
         </div>
     </div>
 }
-
-<style>
-    .fw-500 {
-        font-weight: 500;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 102, 204, 0.05);
-        transition: background-color 0.2s ease;
-    }
-
-    .badge {
-        padding: 0.35rem 0.65rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-
-    .action-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-    }
-
-    .action-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        padding: 0.34rem 0.72rem;
-        font-weight: 500;
-        border: 1px solid transparent;
-        transition: all 0.2s ease;
-    }
-
-    .action-icon {
-        margin-right: 0.35rem;
-    }
-
-    .action-btn-view {
-        color: #0d6efd;
-        background-color: #eaf3ff;
-        border-color: #cfe2ff;
-    }
-
-    .action-btn-view:hover {
-        color: #fff;
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-
-    .action-btn-edit {
-        color: #0051ba;
-        background-color: #e8f1ff;
-        border-color: #b9d4ff;
-    }
-
-    .action-btn-edit:hover {
-        color: #fff;
-        background-color: #0051ba;
-        border-color: #0051ba;
-    }
-
-    .action-btn-delete {
-        color: #d62f2f;
-        background-color: #ffecee;
-        border-color: #ffc8cf;
-    }
-
-    .action-btn-delete:hover {
-        color: #fff;
-        background-color: #d62f2f;
-        border-color: #d62f2f;
-    }
-
-    @@media (max-width: 768px) {
-        .action-group {
-            gap: 0.3rem;
-        }
-
-        .action-btn {
-            width: 34px;
-            height: 34px;
-            padding: 0;
-            border-radius: 0.6rem;
-        }
-
-        .action-icon {
-            margin-right: 0;
-            font-size: 0.9rem;
-        }
-
-        .action-label {
-            display: none;
-        }
-    }
-</style>

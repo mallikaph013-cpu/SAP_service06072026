@@ -4,216 +4,113 @@
     ViewData["Title"] = "News";
 }
 
-<style>
-    .news-page {
-        max-width: 1200px;
-        margin-inline: auto;
-    }
-
-    .news-list-card {
-        border: 1px solid #e8edf3;
-        border-radius: 0.9rem;
-        overflow: hidden;
-    }
-
-    .news-list-table thead th {
-        font-size: 0.82rem;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: #445467;
-        background: #f4f7fb;
-        border-bottom: 1px solid #dbe5ef;
-        padding-top: 0.95rem;
-        padding-bottom: 0.95rem;
-    }
-
-    .news-list-table td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: #e9eef4;
-    }
-
-    .news-list-table tbody tr {
-        transition: background-color 0.2s ease;
-    }
-
-    .news-list-table tbody tr:hover {
-        background-color: #f8fbff;
-    }
-
-    .news-id-badge {
-        background: #eef4ff;
-        color: #0b5ed7;
-        border: 1px solid #cfe0ff;
-        border-radius: 999px;
-        font-weight: 600;
-        padding: 0.25rem 0.6rem;
-        font-size: 0.8rem;
-        display: inline-block;
-        min-width: 2.4rem;
-        text-align: center;
-    }
-
-    .news-title {
-        color: #13314f;
-        font-weight: 700;
-    }
-
-    .news-content-snippet {
-        color: #5f7083;
-        font-size: 0.9rem;
-        margin-top: 0.2rem;
-    }
-
-    .news-author {
-        font-weight: 600;
-        color: #1f3145;
-    }
-
-    .news-date {
-        color: #435365;
-        font-weight: 500;
-    }
-
-    .news-attachment-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.65rem;
-        border-radius: 999px;
-        border: 1px solid #c7dbff;
-        background: #eef5ff;
-        color: #0a58ca;
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-decoration: none;
-    }
-
-    .news-attachment-link:hover {
-        background: #e0edff;
-        color: #084aa8;
-    }
-
-    .news-no-attachment {
-        color: #8a98a8;
-        font-size: 0.9rem;
-    }
-
-    .news-actions {
-        display: inline-flex;
-        gap: 0.45rem;
-    }
-
-    .news-action-btn {
-        border-radius: 999px;
-        font-weight: 600;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.82rem;
-    }
-
-    .news-action-btn-delete {
-        background: #fff5f5;
-        border-color: #f1b8bf;
-        color: #b4232f;
-    }
-
-    .news-action-btn-delete:hover {
-        background: #ffe6e9;
-        border-color: #e58a96;
-        color: #8f1c25;
-    }
-</style>
-
 <div class="news-page">
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
-            <div class="card-body py-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h2 fw-bold mb-1">
-                        <i class="fas fa-newspaper me-2"></i>News
-                    </h1>
-                    <p class="mb-0 opacity-90">All published announcements</p>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card page-header">
+                <div class="card-body py-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                            <i class="fas fa-newspaper me-2"></i>News
+                        </h1>
+                        <p class="mb-0 opacity-80">All published announcements</p>
+                    </div>
+                    <a asp-action="Create" class="btn btn-light fw-semibold px-4">
+                        <i class="fas fa-plus me-2"></i>Create News
+                    </a>
                 </div>
-                <a asp-action="Create" class="btn btn-light fw-semibold">
-                    <i class="fas fa-plus me-1"></i>Create News
-                </a>
             </div>
         </div>
     </div>
-</div>
 
-@if (!Model.Any())
-{
-    <div class="card border-0 shadow-sm">
-        <div class="card-body py-5 text-center text-secondary">
-            <i class="fas fa-newspaper fa-2x mb-3"></i>
-            <p class="mb-0">No news items found.</p>
-        </div>
-    </div>
-}
-else
-{
-    <div class="card border-0 shadow-sm news-list-card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0 news-list-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Title</th>
-                            <th>Created By</th>
-                            <th>Date</th>
-                            <th>Attachment</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td><span class="news-id-badge">@item.Id</span></td>
-                                <td>
-                                    <div class="news-title">@item.Title</div>
-                                    <div class="news-content-snippet">@(item.Content.Length > 120 ? $"{item.Content[..120]}..." : item.Content)</div>
-                                </td>
-                                <td>
-                                    <div class="news-author">
-                                        <i class="fas fa-user-circle me-1 text-secondary"></i>@(item.CreatedByName ?? "-")
-                                    </div>
-                                </td>
-                                <td><span class="news-date">@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span></td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(item.AttachmentUrl))
-                                    {
-                                        <a href="@item.AttachmentUrl" target="_blank" class="news-attachment-link" rel="noopener noreferrer">
-                                            <i class="fas fa-paperclip me-1"></i>@item.AttachmentFileName
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <span class="news-no-attachment">No file</span>
-                                    }
-                                </td>
-                                <td>
-                                    <div class="news-actions">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary news-action-btn">
-                                            <i class="fas fa-pen me-1"></i>Edit
-                                        </a>
-                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this news item?');">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn news-action-btn news-action-btn-delete">
-                                                <i class="fas fa-trash me-1"></i>Delete
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="py-4">
+                    <div class="display-4 text-secondary mb-3">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <p class="text-secondary mb-0 fs-5">No news items found.</p>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4" style="width: 80px;">#</th>
+                                <th>Title</th>
+                                <th style="width: 180px;">Created By</th>
+                                <th style="width: 170px;">Date</th>
+                                <th style="width: 200px;">Attachment</th>
+                                <th class="text-end pe-4" style="width: 180px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="badge rounded-pill" style="background: #9DCAEB; color: #1a3040; font-weight: 600;">
+                                            @item.Id
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold" style="color: #2a4050;">@item.Title</div>
+                                        <div class="small" style="color: #6a8a9a; margin-top: 0.2rem;">
+                                            @(item.Content.Length > 120 ? $"{item.Content[..120]}..." : item.Content)
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold" style="color: #3a4a5a;">
+                                            <i class="fas fa-user-circle me-1" style="color: #9DCAEB;"></i>@(item.CreatedByName ?? "-")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #4a6a7a;">
+                                            <i class="fas fa-clock me-1" style="color: #9DCAEB;"></i>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.AttachmentUrl))
+                                        {
+                                            <a href="@item.AttachmentUrl" target="_blank" class="btn btn-sm" 
+                                               style="border-radius: 999px; border: 1px solid #9DCAEB; background: rgba(157, 202, 235, 0.15); color: #2a5a7a; font-weight: 600; padding: 0.3rem 0.7rem; text-decoration: none;"
+                                               rel="noopener noreferrer">
+                                                <i class="fas fa-paperclip me-1"></i>@item.AttachmentFileName
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="small" style="color: #8a9aaa;">No file</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex gap-1 justify-content-end">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-pen me-1"></i>Edit
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" 
+                                                  onsubmit="return confirm('Delete this news item?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash me-1"></i>Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 </div>

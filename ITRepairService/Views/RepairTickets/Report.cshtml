@@ -35,12 +35,12 @@
     {
         return status switch
         {
-            ITRepairService.Models.TicketStatus.Open => "bg-primary text-white border border-primary-subtle",
-            ITRepairService.Models.TicketStatus.Approved => "bg-success text-white border border-success-subtle",
-            ITRepairService.Models.TicketStatus.InProgress => "bg-warning text-dark border border-warning-subtle",
-            ITRepairService.Models.TicketStatus.Complete => "bg-success text-white border border-success-subtle",
-            ITRepairService.Models.TicketStatus.Closed => "bg-dark text-white border border-dark-subtle",
-            ITRepairService.Models.TicketStatus.Rejected => "bg-danger text-white border border-danger-subtle",
+            ITRepairService.Models.TicketStatus.Open => "status-open",
+            ITRepairService.Models.TicketStatus.Approved => "status-approve",
+            ITRepairService.Models.TicketStatus.InProgress => "status-inprogress",
+            ITRepairService.Models.TicketStatus.Complete => "status-complete",
+            ITRepairService.Models.TicketStatus.Closed => "status-close",
+            ITRepairService.Models.TicketStatus.Rejected => "status-rejected",
             _ => "bg-light text-dark"
         };
     }
@@ -62,6 +62,59 @@
 }
 
 <style>
+
+.status-open {
+
+background-color: #9DCAEB !important;
+color: white !important;
+border: 1px solid #9DCAEB;
+
+}
+
+.status-inprogress {
+
+background-color: #e8d090 !important;
+color: white !important;
+border: 1px solid #e8d090;
+
+}
+
+.status-approve {
+
+background-color: #a0d4b0 !important;
+color: white !important;
+border: 1px solid #a0d4b0;
+
+}
+
+
+.status-rejected {
+
+background-color: #e0a0a0 !important;
+color: white !important;
+border: 1px solid #e0a0a0;
+
+}
+
+.status-complete {
+
+background-color: #90b8d0 !important;
+color: white !important;
+border: 1px solid #90b8d0;
+
+}
+
+.status-close {
+
+background-color: #b8c0c8 !important;
+color: white !important;
+border: 1px solid #b8c0c8;
+
+}
+
+
+
+
     .btn {
         border-radius: 999px;
     }
@@ -225,9 +278,10 @@
 
     .report-table .action-buttons .btn {
         border-radius: 999px;
-        padding: 0.22rem 0.65rem;
-        font-size: 0.76rem;
-        line-height: 1.2;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.82rem;
+        line-height: 1.4;
+        white-space: nowrap;
     }
 
     .report-table .last-update {
@@ -362,7 +416,7 @@ else
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
+        <div class="card page-header">
             <div class="card-body py-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                 <div>
                     <h1 class="h3 fw-bold mb-1"><i class="fas fa-chart-line me-2"></i>IT Service Report</h1>

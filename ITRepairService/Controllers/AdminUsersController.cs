@@ -1,8 +1,14 @@
 using ITRepairService.Models;
 using ITRepairService.ViewModels.AdminUsers;
 using ITRepairService.Data;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -244,14 +250,18 @@ public class AdminUsersController(
             ModelState.AddModelError(nameof(model.Department), "Department ที่เลือกไม่ถูกต้องหรือไม่ได้เปิดใช้งาน");
         }
 
-        var validSection = sectionDepartmentOptions
-            .Any(item =>
-                string.Equals(item.Department, normalizedDepartment, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(item.Section, normalizedSection, StringComparison.OrdinalIgnoreCase));
-
-        if (!validSection)
+        // Only validate Section if section-department options are available (legacy validation)
+        if (sectionDepartmentOptions.Any())
         {
-            ModelState.AddModelError(nameof(model.Section), "Section ที่เลือกไม่ตรงกับ Department ที่เลือก");
+            var validSection = sectionDepartmentOptions
+                .Any(item =>
+                    string.Equals(item.Department, normalizedDepartment, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(item.Section, normalizedSection, StringComparison.OrdinalIgnoreCase));
+
+            if (!validSection)
+            {
+                ModelState.AddModelError(nameof(model.Section), "Section ที่เลือกไม่ตรงกับ Department ที่เลือก");
+            }
         }
 
         if (!ModelState.IsValid)
@@ -616,75 +626,6 @@ public class AdminUsersController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateSection(DepartmentSectionManagementViewModel model)
-    {
-        var sectionDepartment = NormalizeMasterValue(model.CreateSection.Department);
-        var newSection = NormalizeMasterValue(model.CreateSection.Name);
-
-        if (string.IsNullOrWhiteSpace(sectionDepartment))
-        {
-            TempData["Error"] = "กรุณาเลือก Department สำหรับ Section";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        if (string.IsNullOrWhiteSpace(newSection))
-        {
-            TempData["Error"] = "กรุณาระบุชื่อ Section ใหม่";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var (availableDepartments, _) = await GetActiveDepartmentSectionOptionsAsync();
-        var departmentExists = availableDepartments
-            .Any(name => string.Equals(name, sectionDepartment, StringComparison.OrdinalIgnoreCase));
-
-        if (!departmentExists)
-        {
-            TempData["Error"] = "Department ที่เลือกไม่พร้อมใช้งาน กรุณาตรวจสอบอีกครั้ง";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var masterData = await LoadDepartmentSectionStoreAsync();
-        var existsInMaster = masterData.Sections
-            .Any(name => string.Equals(name, newSection, StringComparison.OrdinalIgnoreCase));
-
-        var usedSectionNames = await _dbContext.Users
-            .AsNoTracking()
-            .Select(user => user.Section)
-            .ToListAsync();
-
-        var existsInUsage = usedSectionNames
-            .Select(NormalizeMasterValue)
-            .Any(name => string.Equals(name, newSection, StringComparison.OrdinalIgnoreCase));
-
-        if (existsInMaster || existsInUsage)
-        {
-            if (!masterData.Sections.Any(name => string.Equals(name, newSection, StringComparison.OrdinalIgnoreCase)))
-            {
-                masterData.Sections.Add(newSection);
-            }
-
-            masterData.InactiveSections.RemoveAll(name => string.Equals(name, newSection, StringComparison.OrdinalIgnoreCase));
-            UpsertSectionDepartmentMapping(masterData, newSection, sectionDepartment);
-            await SaveDepartmentSectionStoreAsync(masterData);
-
-            TempData["Success"] = $"อัปเดต Department ของ Section สำเร็จ: {newSection} -> {sectionDepartment}";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        if (!existsInMaster)
-        {
-            masterData.Sections.Add(newSection);
-            masterData.InactiveSections.RemoveAll(name => string.Equals(name, newSection, StringComparison.OrdinalIgnoreCase));
-            UpsertSectionDepartmentMapping(masterData, newSection, sectionDepartment);
-            await SaveDepartmentSectionStoreAsync(masterData);
-        }
-
-        TempData["Success"] = $"เพิ่ม Section ใหม่สำเร็จ: {newSection} ({sectionDepartment})";
-        return RedirectToAction(nameof(DepartmentSections));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RenameDepartment(DepartmentSectionManagementViewModel model)
     {
         var oldDepartment = NormalizeMasterValue(model.RenameDepartment.OldDepartment);
@@ -864,208 +805,6 @@ public class AdminUsersController(
         return RedirectToAction(nameof(DepartmentSections));
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RenameSection(DepartmentSectionManagementViewModel model)
-    {
-        var oldSection = NormalizeMasterValue(model.RenameSection.OldSection);
-        var newSection = NormalizeMasterValue(model.RenameSection.NewSection);
-        var selectedDepartment = NormalizeMasterValue(model.RenameSection.Department);
-
-        if (string.IsNullOrWhiteSpace(oldSection) || string.IsNullOrWhiteSpace(newSection))
-        {
-            TempData["Error"] = "กรุณาระบุ Section เดิมและ Section ใหม่ให้ครบถ้วน";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        if (string.IsNullOrWhiteSpace(selectedDepartment))
-        {
-            TempData["Error"] = "กรุณาเลือก Department";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var (availableDepartments, _) = await GetActiveDepartmentSectionOptionsAsync();
-        var departmentExists = availableDepartments
-            .Any(name => string.Equals(name, selectedDepartment, StringComparison.OrdinalIgnoreCase));
-
-        if (!departmentExists)
-        {
-            TempData["Error"] = "Department ที่เลือกไม่พร้อมใช้งาน กรุณาตรวจสอบอีกครั้ง";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var masterData = await LoadDepartmentSectionStoreAsync();
-        var currentDepartment = masterData.SectionDepartmentMappings
-            .Where(item => string.Equals(item.Section, oldSection, StringComparison.OrdinalIgnoreCase))
-            .Select(item => NormalizeMasterValue(item.Department))
-            .FirstOrDefault() ?? string.Empty;
-
-        var sectionNameChanged = !string.Equals(oldSection, newSection, StringComparison.OrdinalIgnoreCase);
-        var departmentChanged = !string.Equals(currentDepartment, selectedDepartment, StringComparison.OrdinalIgnoreCase);
-
-        if (!sectionNameChanged && !departmentChanged)
-        {
-            TempData["Warning"] = "Section และ Department เดิมและใหม่เหมือนกัน จึงไม่มีการเปลี่ยนแปลง";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var actor = await _userManager.GetUserAsync(User);
-        var actorName = GetActorName(actor);
-        var nowUtc = DateTime.UtcNow;
-
-        var updatedUserCount = 0;
-
-        if (sectionNameChanged)
-        {
-            var users = await _dbContext.Users.ToListAsync();
-
-            foreach (var user in users)
-            {
-                if (!string.Equals(NormalizeMasterValue(user.Section), oldSection, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                user.Section = newSection;
-                user.UpdatedAt = nowUtc;
-                user.UpdatedByName = actorName;
-                updatedUserCount++;
-            }
-
-            if (updatedUserCount == 0)
-            {
-                var sectionExistsInMaster = masterData.Sections
-                    .Any(item => string.Equals(item, oldSection, StringComparison.OrdinalIgnoreCase));
-
-                if (!sectionExistsInMaster)
-                {
-                    TempData["Warning"] = "ไม่พบข้อมูล Section ที่ต้องการเปลี่ยนชื่อ";
-                    return RedirectToAction(nameof(DepartmentSections));
-                }
-            }
-
-            await _dbContext.SaveChangesAsync();
-        }
-
-        for (var i = 0; i < masterData.Sections.Count; i++)
-        {
-            if (string.Equals(masterData.Sections[i], oldSection, StringComparison.OrdinalIgnoreCase))
-            {
-                masterData.Sections[i] = newSection;
-            }
-        }
-
-        for (var i = 0; i < masterData.InactiveSections.Count; i++)
-        {
-            if (string.Equals(masterData.InactiveSections[i], oldSection, StringComparison.OrdinalIgnoreCase))
-            {
-                masterData.InactiveSections[i] = newSection;
-            }
-        }
-
-        masterData.Sections = masterData.Sections
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name)
-            .ToList();
-
-        masterData.InactiveSections = masterData.InactiveSections
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name)
-            .ToList();
-
-        for (var i = 0; i < masterData.SectionDepartmentMappings.Count; i++)
-        {
-            if (string.Equals(masterData.SectionDepartmentMappings[i].Section, oldSection, StringComparison.OrdinalIgnoreCase))
-            {
-                masterData.SectionDepartmentMappings[i].Section = newSection;
-            }
-        }
-
-        UpsertSectionDepartmentMapping(masterData, newSection, selectedDepartment);
-
-        await SaveDepartmentSectionStoreAsync(masterData);
-        TempData["Success"] = sectionNameChanged
-            ? $"อัปเดต Section สำเร็จ: ผู้ใช้ {updatedUserCount} รายการ, Department {selectedDepartment}"
-            : $"อัปเดต Department ของ Section สำเร็จ: {newSection} -> {selectedDepartment}";
-        return RedirectToAction(nameof(DepartmentSections));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleSectionActive(string name)
-    {
-        var sectionName = NormalizeMasterValue(name);
-        if (string.IsNullOrWhiteSpace(sectionName))
-        {
-            TempData["Error"] = "ไม่พบ Section ที่ต้องการเปลี่ยนสถานะ";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var masterData = await LoadDepartmentSectionStoreAsync();
-        if (!masterData.Sections.Any(x => string.Equals(x, sectionName, StringComparison.OrdinalIgnoreCase)))
-        {
-            masterData.Sections.Add(sectionName);
-        }
-
-        var wasInactive = masterData.InactiveSections
-            .Any(x => string.Equals(x, sectionName, StringComparison.OrdinalIgnoreCase));
-
-        if (wasInactive)
-        {
-            masterData.InactiveSections.RemoveAll(x => string.Equals(x, sectionName, StringComparison.OrdinalIgnoreCase));
-            TempData["Success"] = $"เปิดใช้งาน Section สำเร็จ: {sectionName}";
-        }
-        else
-        {
-            masterData.InactiveSections.Add(sectionName);
-            TempData["Success"] = $"ปิดใช้งาน Section สำเร็จ: {sectionName}";
-        }
-
-        await SaveDepartmentSectionStoreAsync(masterData);
-        return RedirectToAction(nameof(DepartmentSections));
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> EditSection(string name)
-    {
-        var currentName = NormalizeMasterValue(name);
-        if (string.IsNullOrWhiteSpace(currentName))
-        {
-            TempData["Error"] = "ไม่พบ Section ที่ต้องการแก้ไข";
-            return RedirectToAction(nameof(DepartmentSections));
-        }
-
-        var managementModel = await BuildDepartmentSectionManagementViewModelAsync();
-        var currentDepartment = managementModel.Sections
-            .Where(item => string.Equals(item.Name, currentName, StringComparison.OrdinalIgnoreCase))
-            .Select(item => item.Department)
-            .FirstOrDefault() ?? string.Empty;
-
-        var model = new RenameSectionInputModel
-        {
-            OldSection = currentName,
-            NewSection = currentName,
-            Department = currentDepartment,
-            AvailableDepartments = managementModel.AvailableDepartments
-        };
-
-        return View(model);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditSection(RenameSectionInputModel model)
-    {
-        var wrapper = new DepartmentSectionManagementViewModel
-        {
-            RenameSection = model
-        };
-
-        return await RenameSection(wrapper);
-    }
-
     private async Task<DepartmentSectionManagementViewModel> BuildDepartmentSectionManagementViewModelAsync()
     {
         var users = await _dbContext.Users
@@ -1110,24 +849,6 @@ public class AdminUsersController(
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var inactiveSectionSet = masterData.InactiveSections
-            .Select(NormalizeMasterValue)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var sectionDepartmentMap = masterData.SectionDepartmentMappings
-            .Select(mapping => new
-            {
-                Section = NormalizeMasterValue(mapping.Section),
-                Department = NormalizeMasterValue(mapping.Department)
-            })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Section))
-            .GroupBy(item => item.Section, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(item => item.Department).FirstOrDefault(department => !string.IsNullOrWhiteSpace(department)) ?? string.Empty,
-                StringComparer.OrdinalIgnoreCase);
-
         var departmentNames = departmentUserCounts.Keys
             .Concat(requesterDepartmentCounts.Keys)
             .Concat(approverDepartmentCounts.Keys)
@@ -1148,52 +869,9 @@ public class AdminUsersController(
             })
             .ToList();
 
-        var sectionUserCounts = users
-            .Select(user => NormalizeMasterValue(user.Section))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-
-        var sectionUserDepartments = users
-            .Select(user => new
-            {
-                Section = NormalizeMasterValue(user.Section),
-                Department = NormalizeMasterValue(user.Department)
-            })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Section) && !string.IsNullOrWhiteSpace(item.Department))
-            .GroupBy(item => item.Section, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .Select(item => item.Department)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(name => name)
-                    .ToList(),
-                StringComparer.OrdinalIgnoreCase);
-
-        var sectionNames = sectionUserCounts.Keys
-            .Concat(masterData.Sections.Select(NormalizeMasterValue))
-            .Concat(masterData.InactiveSections.Select(NormalizeMasterValue))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name)
-            .ToList();
-
-        var sections = sectionNames
-            .Select(name => new SectionUsageViewModel
-            {
-                Name = name,
-                Department = ResolveSectionDepartment(name, sectionDepartmentMap, sectionUserDepartments),
-                UserCount = sectionUserCounts.GetValueOrDefault(name),
-                IsActive = !inactiveSectionSet.Contains(name)
-            })
-            .OrderBy(section => section.Name)
-            .ToList();
-
         return new DepartmentSectionManagementViewModel
         {
             Departments = departments,
-            Sections = sections,
             AvailableDepartments = departments
                 .Where(item => item.IsActive)
                 .Select(item => item.Name)
@@ -1220,70 +898,17 @@ public class AdminUsersController(
             .OrderBy(name => name)
             .ToList();
 
-        var sections = managementModel.Sections
-            .Where(item => item.IsActive)
-            .Select(item => NormalizeMasterValue(item.Name))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name)
-            .ToList();
+        // Sections are no longer managed separately
+        var sections = new List<string>();
 
         return (departments, sections);
     }
 
     private async Task<List<DepartmentSectionOptionViewModel>> GetActiveSectionDepartmentOptionsAsync()
     {
-        var managementModel = await BuildDepartmentSectionManagementViewModelAsync();
-
-        var activeDepartments = managementModel.Departments
-            .Where(item => item.IsActive)
-            .Select(item => NormalizeMasterValue(item.Name))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name)
-            .ToList();
-
-        var mappedOptions = managementModel.Sections
-            .Where(item => item.IsActive)
-            .Select(item => new DepartmentSectionOptionViewModel
-            {
-                Department = NormalizeMasterValue(item.Department),
-                Section = NormalizeMasterValue(item.Name)
-            })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Department) && !string.IsNullOrWhiteSpace(item.Section))
-            .ToList();
-
-        var legacyUnmappedSections = managementModel.Sections
-            .Where(item => item.IsActive)
-            .Select(item => new
-            {
-                Section = NormalizeMasterValue(item.Name),
-                Department = NormalizeMasterValue(item.Department)
-            })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Section) && string.IsNullOrWhiteSpace(item.Department))
-            .Select(item => item.Section)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        foreach (var section in legacyUnmappedSections)
-        {
-            foreach (var department in activeDepartments)
-            {
-                mappedOptions.Add(new DepartmentSectionOptionViewModel
-                {
-                    Department = department,
-                    Section = section
-                });
-            }
-        }
-
-        return mappedOptions
-            .Where(item => !string.IsNullOrWhiteSpace(item.Department) && !string.IsNullOrWhiteSpace(item.Section))
-            .GroupBy(item => $"{item.Department}|||{item.Section}", StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())
-            .OrderBy(item => item.Department)
-            .ThenBy(item => item.Section)
-            .ToList();
+        // This method is no longer needed since we removed Section management
+        // Keeping it for backward compatibility with EditRoles functionality
+        return new List<DepartmentSectionOptionViewModel>();
     }
 
     private async Task<DepartmentSectionStoreModel> LoadDepartmentSectionStoreAsync()

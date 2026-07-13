@@ -1,5 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using ITRepairService.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ITRepairService.Data;
 
@@ -48,6 +52,110 @@ public static class IdentitySeeder
         if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Admin))
         {
             await userManager.AddToRoleAsync(adminUser, AppRoles.Admin);
+        }
+    }
+
+    public static async Task SeedTestUsersAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        // Test User 1: Regular user in FI department (non-SM/DM, non-DX)
+        // Expected roles: User only
+        var regularFIUser = await userManager.FindByNameAsync("test_user_fi");
+        if (regularFIUser is null)
+        {
+            regularFIUser = new ApplicationUser
+            {
+                UserName = "test_user_fi",
+                Email = "test_user_fi@example.com",
+                FullName = "Test User FI",
+                Department = "FI",
+                Title = "",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var createResult = await userManager.CreateAsync(regularFIUser, "Test@1234");
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(regularFIUser, AppRoles.User);
+            }
+        }
+
+        // Test User 2: SM (Section Manager) in FI department
+        // Expected roles: User, Approve (SM/DM but not DX)
+        var smFIUser = await userManager.FindByNameAsync("test_sm_fi");
+        if (smFIUser is null)
+        {
+            smFIUser = new ApplicationUser
+            {
+                UserName = "test_sm_fi",
+                Email = "test_sm_fi@example.com",
+                FullName = "Test SM FI",
+                Department = "FI",
+                Title = "SM",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var createResult = await userManager.CreateAsync(smFIUser, "Test@1234");
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(smFIUser, AppRoles.User);
+                await userManager.AddToRoleAsync(smFIUser, AppRoles.Approve);
+            }
+        }
+
+        // Test User 3: Regular user in DX department (non-SM/DM)
+        // Expected roles: User, ITSupport, Approve
+        var regularDXUser = await userManager.FindByNameAsync("test_user_dx");
+        if (regularDXUser is null)
+        {
+            regularDXUser = new ApplicationUser
+            {
+                UserName = "test_user_dx",
+                Email = "test_user_dx@example.com",
+                FullName = "Test User DX",
+                Department = "DX",
+                Title = "",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var createResult = await userManager.CreateAsync(regularDXUser, "Test@1234");
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(regularDXUser, AppRoles.User);
+                await userManager.AddToRoleAsync(regularDXUser, AppRoles.ITSupport);
+                await userManager.AddToRoleAsync(regularDXUser, AppRoles.Approve);
+            }
+        }
+
+        // Test User 4: SM (Section Manager) in DX department
+        // Expected roles: User, Approve, ITSupport, Admin
+        var smDXUser = await userManager.FindByNameAsync("test_sm_dx");
+        if (smDXUser is null)
+        {
+            smDXUser = new ApplicationUser
+            {
+                UserName = "test_sm_dx",
+                Email = "test_sm_dx@example.com",
+                FullName = "Test SM DX",
+                Department = "DX",
+                Title = "SM",
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var createResult = await userManager.CreateAsync(smDXUser, "Test@1234");
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(smDXUser, AppRoles.User);
+                await userManager.AddToRoleAsync(smDXUser, AppRoles.Approve);
+                await userManager.AddToRoleAsync(smDXUser, AppRoles.ITSupport);
+                await userManager.AddToRoleAsync(smDXUser, AppRoles.Admin);
+            }
         }
     }
 }

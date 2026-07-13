@@ -26,83 +26,105 @@
 
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #0051ba 0%, #0066cc 100%); color: white;">
-            <div class="card-body py-4 d-flex justify-content-between align-items-center">
+        <div class="card page-header">
+            <div class="card-body py-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h1 class="h2 fw-bold mb-1">
-                        <i class="fas fa-tools me-2"></i>Create IT Service
+                        <i class="fas fa-plus-circle me-2"></i>Create
                     </h1>
                     <p class="mb-0 opacity-90">Submit a new IT repair request</p>
                 </div>
-                <a asp-action="Index" class="btn btn-light fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                <a asp-action="Index" class="btn btn-light fw-semibold px-4">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
                 </a>
             </div>
         </div>
     </div>
 </div>
 <div class="row">
-    <div class="col-md-12 col-lg-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
+    <div class="col-12">
+        <div class="card form-card">
+            <div class="card-body">
                 <form asp-action="Create" method="post" id="createTicketForm">
-                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div asp-validation-summary="All" class="alert alert-danger py-2 mb-3" style="display: none;" id="validationSummary"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="RequesterName" class="form-label"></label>
-                        <input asp-for="RequesterName" class="form-control" readonly />
-                        <span asp-validation-for="RequesterName" class="text-danger"></span>
-                    </div>
+                    <div class="form-row-grid">
+                        <div class="mb-3">
+                            <label asp-for="RequesterName" class="form-label">
+                                <i class="fas fa-user me-1"></i>ผู้แจ้งซ่อม
+                            </label>
+                            <input asp-for="RequesterName" class="form-control" readonly />
+                            <span asp-validation-for="RequesterName" class="text-danger small"></span>
+                        </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Department" class="form-label"></label>
-                        <input asp-for="Department" class="form-control" id="requesterDepartmentInput" />
-                        <span asp-validation-for="Department" class="text-danger"></span>
+                        <div class="mb-3">
+                            <label asp-for="Department" class="form-label">
+                                <i class="fas fa-building me-1"></i>ฝ่าย
+                            </label>
+                            <input asp-for="Department" class="form-control" id="requesterDepartmentInput" placeholder="กรุณาระบุฝ่าย..." />
+                            <span asp-validation-for="Department" class="text-danger small"></span>
+                        </div>
                     </div>
 
                     <input asp-for="DeviceName" type="hidden" id="deviceNameHidden" value="N/A" />
 
                     <div class="mb-3">
-                        <label asp-for="RepairType" class="form-label"></label>
+                        <label asp-for="RepairType" class="form-label">
+                            <i class="fas fa-tools me-1"></i>ประเภทการแจ้งซ่อม
+                        </label>
                         <select asp-for="RepairType" id="repairTypeSelect" class="form-select"
                             asp-items="Html.GetEnumSelectList<ITRepairService.Models.RepairType>().Where(i => i.Value != ((int)ITRepairService.Models.RepairType.Network).ToString())"></select>
-                        <span asp-validation-for="RepairType" class="text-danger"></span>
+                        <span asp-validation-for="RepairType" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3" id="hardwareDeviceGroup" style="display:none;">
-                        <label class="form-label" id="hardwareDeviceLabel">ประเภทอุปกรณ์</label>
+                        <label class="form-label" id="hardwareDeviceLabel">
+                            <i class="fas fa-laptop me-1"></i>ประเภทอุปกรณ์
+                        </label>
                         <select id="hardwareDeviceSelect" class="form-select">
-                            <option value="">-- เลือกประเภท --</option>
+                            <option value="">— เลือกประเภท —</option>
                         </select>
                     </div>
 
                     <div class="mb-3" id="driveAccessDepartmentGroup" style="display:none;">
-                        <label asp-for="DriveAccessDepartment" class="form-label"></label>
+                        <label asp-for="DriveAccessDepartment" class="form-label">
+                            <i class="fas fa-folder-open me-1"></i>ฝ่ายที่ต้องการขอสิทธิ์ Drive
+                        </label>
                         <select asp-for="DriveAccessDepartment" class="form-select" asp-items="driveAccessDepartments" id="driveAccessDepartmentSelect">
-                            <option value="">เลือกฝ่าย</option>
+                            <option value="">— เลือกฝ่าย —</option>
                         </select>
-                        <span asp-validation-for="DriveAccessDepartment" class="text-danger"></span>
+                        <span asp-validation-for="DriveAccessDepartment" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="IssueDescription" class="form-label"></label>
-                        <textarea asp-for="IssueDescription" class="form-control" rows="4"></textarea>
-                        <span asp-validation-for="IssueDescription" class="text-danger"></span>
+                        <label asp-for="IssueDescription" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>รายละเอียดปัญหา
+                        </label>
+                        <textarea asp-for="IssueDescription" class="form-control" rows="4" placeholder="กรุณาระบุรายละเอียดปัญหา..."></textarea>
+                        <span asp-validation-for="IssueDescription" class="text-danger small"></span>
                     </div>
 
+                    <hr class="my-4" />
+
                     <div class="mb-3">
-                        <label class="form-label">ฝ่ายสำหรับ step ถัดไป</label>
+                        <label class="form-label">
+                            <i class="fas fa-share me-1"></i>ฝ่ายสำหรับ step ถัดไป
+                        </label>
                         <select asp-for="ApproverDepartment" class="form-select" asp-items="approverDepartments" id="approverDepartmentSelect">
-                            <option value="">Select approver department</option>
+                            <option value="">— Select approver department —</option>
                         </select>
-                        <div class="form-text">ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด</div>
-                        <span asp-validation-for="ApproverDepartment" class="text-danger"></span>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>ใช้ระบุว่าขั้นตอนถัดไปของงานจะส่งไปที่ฝ่ายใด
+                        </div>
+                        <span asp-validation-for="ApproverDepartment" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">ผู้รับ step ถัดไป</label>
+                        <label class="form-label">
+                            <i class="fas fa-user-check me-1"></i>ผู้รับ step ถัดไป
+                        </label>
                         <select asp-for="ApproverUserId" class="form-select" id="approverUserSelect">
-                            <option value="">Select approver</option>
+                            <option value="">— Select approver —</option>
                             @foreach (var approver in approverUsers)
                             {
                                 var displayName = !string.IsNullOrWhiteSpace(approver.FullName)
@@ -124,7 +146,7 @@
                             }
                         </select>
                         <div class="form-text">เลือกคนที่ระบบจะส่งงานต่อไปให้ ไม่ได้ผูกกับสถานะของรายการ</div>
-                        <span asp-validation-for="ApproverUserId" class="text-danger"></span>
+                        <span asp-validation-for="ApproverUserId" class="text-danger small"></span>
                     </div>
 
                     <input asp-for="Priority" type="hidden" value="@ITRepairService.Models.TicketPriority.Medium" />
@@ -132,36 +154,56 @@
                     @if (canSetStatus)
                     {
                         <div class="mb-4">
-                            <label asp-for="Status" class="form-label"></label>
+                            <label asp-for="Status" class="form-label">
+                                <i class="fas fa-tag me-1"></i>สถานะ
+                            </label>
                             <select asp-for="Status" class="form-select">
                                 @foreach (ITRepairService.Models.TicketStatus statusVal in Enum.GetValues(typeof(ITRepairService.Models.TicketStatus)))
                                 {
-                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed)
-                                    {
-                                        continue;
-                                    }
-
-                                    <option value="@statusVal" selected="@(Model.Status == statusVal ? "selected" : null)">@GetTicketStatusDisplayName(statusVal)</option>
+                                    if (statusVal == ITRepairService.Models.TicketStatus.Closed) { continue; }
+                                    var isSelected = Model.Status == statusVal;
+                                    <option value="@statusVal" selected="@(isSelected ? "selected" : null)">@GetTicketStatusDisplayName(statusVal)</option>
                                 }
                             </select>
-                            <span asp-validation-for="Status" class="text-danger"></span>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
                         </div>
                     }
                     else
                     {
                         <input asp-for="Status" type="hidden" value="@ITRepairService.Models.TicketStatus.Open" />
-                        <div class="form-text" id="statusApproverPreview">step ถัดไป: -</div>
+                        <div class="alert alert-info py-2" id="statusApproverPreview">
+                            <i class="fas fa-info-circle me-1"></i>step ถัดไป: -
+                        </div>
                     }
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Create</button>
-                        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                    <hr class="my-4" />
+
+                    <div class="d-flex gap-3 flex-wrap">
+                        <button type="submit" class="btn btn-primary px-5" id="saveBtn">
+                            <i class="fas fa-plus-circle me-2"></i>Create
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary px-4">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        const saveBtn = document.getElementById('saveBtn');
+        const form = document.getElementById('createTicketForm');
+        if (saveBtn && form) {
+            form.addEventListener('submit', function() {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Creating...';
+            });
+        }
+    })();
+</script>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
