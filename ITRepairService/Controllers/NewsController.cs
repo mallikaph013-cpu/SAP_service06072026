@@ -64,6 +64,8 @@ public class NewsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<IActionResult> Create(CreateNewsViewModel model)
     {
         try
@@ -151,6 +153,8 @@ public class NewsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
     public async Task<IActionResult> Edit(EditNewsViewModel model)
     {
         var newsItem = await _dbContext.NewsItems.FirstOrDefaultAsync(n => n.Id == model.Id);
