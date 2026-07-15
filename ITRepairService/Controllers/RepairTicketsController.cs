@@ -54,10 +54,6 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                     || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.ThirdApproverName == currentUserFullName)
                     || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.ThirdApproverName == currentUserUserName)
                     || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.ThirdApproverName == currentUserEmail)
-                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.AssignedItUserId == currentUserId)
-                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.AssignedItName == currentUserFullName)
-                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.AssignedItName == currentUserUserName)
-                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.AssignedItName == currentUserEmail)
                     || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
                     || (string.IsNullOrWhiteSpace(ticket.RequesterUserId)
                         && (
@@ -72,11 +68,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             else
             {
                 query = query.Where(ticket =>
-                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.AssignedItUserId == currentUserId)
-                    || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.AssignedItName == currentUserFullName)
-                    || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.AssignedItName == currentUserUserName)
-                    || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.AssignedItName == currentUserEmail)
-                    || (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
+                    (!string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId)
                     || (string.IsNullOrWhiteSpace(ticket.RequesterUserId)
                         && (
                             (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.RequesterName == currentUserFullName)
