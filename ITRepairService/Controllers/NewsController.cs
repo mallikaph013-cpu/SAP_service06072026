@@ -73,15 +73,19 @@ public class NewsController(
 
             if (model.Attachment is not null && model.Attachment.Length > 0)
             {
+                var fileSizeMB = model.Attachment.Length / (1024.0 * 1024.0);
+                var extension = Path.GetExtension(model.Attachment.FileName).ToLowerInvariant();
+
                 if (model.Attachment.Length > MaxAttachmentSize)
                 {
-                    ModelState.AddModelError(nameof(model.Attachment), "Attachment size must not exceed 10 MB.");
+                    ModelState.AddModelError(nameof(model.Attachment), 
+                        $"ไฟล์เกินขนาดสูงสุด 10 MB (ขนาดไฟล์ของคุณ: {fileSizeMB:F2} MB)");
                 }
 
-                var extension = Path.GetExtension(model.Attachment.FileName);
-                if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension.ToLowerInvariant()))
+                if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension))
                 {
-                    ModelState.AddModelError(nameof(model.Attachment), "Unsupported file type.");
+                    ModelState.AddModelError(nameof(model.Attachment), 
+                        $"ประเภทไฟล์ไม่รองรับ: {extension}. ไฟล์ที่รองรับ: PDF, รูปภาพ, Office, TXT, วิดีโอ (mp4, mov, avi, wmv, flv, webm)");
                 }
             }
 
