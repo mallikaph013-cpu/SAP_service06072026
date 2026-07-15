@@ -74,6 +74,12 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
     options.MultipartHeadersLengthLimit = 10 * 1024 * 1024;
 });
 
+// Configure Kestrel to allow large file uploads
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
