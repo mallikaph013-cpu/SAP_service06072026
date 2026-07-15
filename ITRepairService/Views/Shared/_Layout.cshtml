@@ -34,6 +34,7 @@
                     var currentUserUserName = currentUser?.UserName?.Trim();
                     var currentUserEmail = currentUser?.Email?.Trim();
                     var nextStepCount = 0;
+                    var assignedTicketCount = 0;
 
                     if (currentUser is not null)
                     {
@@ -107,6 +108,10 @@
                         }
 
                         nextStepCount = openNextStepCount + rejectedUnreadCount;
+
+                        assignedTicketCount = await DbContext.RepairTickets
+                            .AsNoTracking()
+                            .CountAsync(ticket => ticket.AssignedItUserId == currentUserId);
                     }
                 }
                 <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
@@ -137,6 +142,10 @@
                             <li class="nav-item">
                                 <a class="nav-link text-white" asp-area="" asp-controller="RepairTickets" asp-action="AssignedToMe">
                                     <i class="fas fa-laptop-code me-1"></i>ได้รับมอบหมาย
+                                    @if (assignedTicketCount > 0)
+                                    {
+                                        <span class="badge rounded-pill bg-danger ms-2">@assignedTicketCount</span>
+                                    }
                                 </a>
                             </li>
                         }
