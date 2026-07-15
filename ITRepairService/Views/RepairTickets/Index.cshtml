@@ -15,30 +15,12 @@
     var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
         || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
 
-    bool IsTicketOwner(ITRepairService.Models.RepairTicket ticket)
-    {
-        return !string.IsNullOrWhiteSpace(currentUserId) && ticket.RequesterUserId == currentUserId
-            || (string.IsNullOrWhiteSpace(ticket.RequesterUserId) && (
-                (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.RequesterName == currentUserFullName)
-                || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.RequesterName == currentUserUserName)
-                || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.RequesterName == currentUserEmail)
-                || (!string.IsNullOrWhiteSpace(currentUserFullName) && ticket.CreatedByName == currentUserFullName)
-                || (!string.IsNullOrWhiteSpace(currentUserUserName) && ticket.CreatedByName == currentUserUserName)
-                || (!string.IsNullOrWhiteSpace(currentUserEmail) && ticket.CreatedByName == currentUserEmail)
-            ));
-    }
-
     string GetStatusDisplay(ITRepairService.Models.RepairTicket ticket)
     {
         var status = ticket.Status;
-        var isOwner = IsTicketOwner(ticket);
-        var shouldHideStatus = !canSeeInProgress && status == ITRepairService.Models.TicketStatus.InProgress && !isOwner;
-        
-        return shouldHideStatus
-            ? "-"
-            : status == ITRepairService.Models.TicketStatus.Approved
-                ? $"Approved ({GetApproverDisplay(ticket)})"
-                : status.ToString();
+        return status == ITRepairService.Models.TicketStatus.Approved
+            ? $"Approved ({GetApproverDisplay(ticket)})"
+            : status.ToString();
     }
 
     string NextDir(string field)
@@ -59,6 +41,17 @@
     {
         if (currentSort != field) return "fa-sort text-secondary";
         return currentDir == "asc" ? "fa-sort-up" : "fa-sort-down";
+    }
+
+    string GetRepairTypeDisplayName(ITRepairService.Models.RepairType repairType)
+    {
+        var displayAttribute = repairType.GetType()
+            .GetField(repairType.ToString())?
+            .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault();
+
+        return displayAttribute?.GetName() ?? repairType.ToString();
     }
 
     string GetStatusBadgeClass(ITRepairService.Models.TicketStatus status)
@@ -177,7 +170,6 @@
 
                         var badgeClass = GetStatusBadgeClass(item.Status);
                         var isOwner = isRequesterByName || item.RequesterUserId == currentUserId;
-                        if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress && !isOwner) badgeClass = "bg-secondary";
 
                         <div class="mobile-ticket-card p-3 shadow-sm">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -198,7 +190,7 @@
                                     <div class="meta-label mb-1">
                                         <i class="fas fa-tools me-1"></i>Repair Type
                                     </div>
-                                    <div class="fw-semibold small">@item.RepairType</div>
+                                    <div class="fw-semibold small">@GetRepairTypeDisplayName(item.RepairType)</div>
                                 </div>
                                 <div class="text-end">
                                     <div class="meta-label mb-1">
@@ -308,7 +300,6 @@
 
                                 var badgeClass = GetStatusBadgeClass(item.Status);
                                 var isOwner = isRequesterByName || item.RequesterUserId == currentUserId;
-                                if (!canSeeInProgress && item.Status == ITRepairService.Models.TicketStatus.InProgress && !isOwner) badgeClass = "bg-secondary";
 
                                 <tr>
                                     <td class="ps-4 text-primary fw-semibold">
@@ -324,7 +315,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-dark">
-                                            <i class="fas fa-tools me-1"></i>@item.RepairType
+                                            <i class="fas fa-tools me-1"></i>@GetRepairTypeDisplayName(item.RepairType)
                                         </span>
                                     </td>
                                     <td>
@@ -338,7 +329,7 @@
                                     <td class="text-nowrap">
                                         <i class="fas fa-clock text-secondary me-1"></i>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                     </td>
-                                    <td class="text-end pe-6">
+                                    <td class="text-end pe-3">
                                         <div class="btn-group-action">
                                             @if (canEditTicket)
                                             {

@@ -4,6 +4,8 @@
     ViewData["Title"] = "Edit IT Service";
     var approverDepartments = ViewData["ApproverDepartments"] as Microsoft.AspNetCore.Mvc.Rendering.SelectList
         ?? new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Enumerable.Empty<string>());
+    var driveAccessDepartments = ViewData["DriveAccessDepartments"] as Microsoft.AspNetCore.Mvc.Rendering.SelectList
+        ?? new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Enumerable.Empty<string>());
     var approverUsers = ViewData["ApproverUsers"] as List<ITRepairService.Models.ApplicationUser>
         ?? new List<ITRepairService.Models.ApplicationUser>();
     var selectedApproverUserId = ViewData["SelectedApproverUserId"]?.ToString() ?? Model.ApproverUserId;
@@ -41,10 +43,11 @@
     var isDxUser = !string.IsNullOrWhiteSpace(currentUserDepartment)
         && currentUserDepartment.Trim().Equals("DX", StringComparison.OrdinalIgnoreCase);
     var canEditStatusByUser = ViewData["CanEditStatusByUser"] as bool? ?? true;
-    var isApprovedOrBeyond = Model.Status == ITRepairService.Models.TicketStatus.Approved
-        || Model.Status == ITRepairService.Models.TicketStatus.InProgress
-        || Model.Status == ITRepairService.Models.TicketStatus.Complete
-        || Model.Status == ITRepairService.Models.TicketStatus.Closed;
+    var ticketOriginalStatus = Model.Status;
+    var isApprovedOrBeyond = ticketOriginalStatus == ITRepairService.Models.TicketStatus.Approved
+        || ticketOriginalStatus == ITRepairService.Models.TicketStatus.InProgress
+        || ticketOriginalStatus == ITRepairService.Models.TicketStatus.Complete
+        || ticketOriginalStatus == ITRepairService.Models.TicketStatus.Closed;
     var lockPrimaryStatusSelection = !assigneeCompleteOnlyMode && (hasPriorStatusSteps || !canEditStatusByUser);
 
     Model.Status = flowPrimaryStatus;
@@ -292,7 +295,7 @@
     }
 
     .btn-success {
-        background: linear-gradient(135deg, #a0d4b0, #20c997);
+        background: linear-gradient(135deg, #a0d4b0, #a0d4b0);
         border: none;
         box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
     }
@@ -303,7 +306,7 @@
     }
 
     .btn-danger {
-        background: linear-gradient(135deg, #dc3545, #e4606d);
+        background: linear-gradient(135deg, #e4606d, #e4606d);
         border: none;
         box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
     }
@@ -446,7 +449,12 @@
     .btn-group-action {
         display: flex;
         gap: 0.75rem;
-        flex-wrap: wrap;
+        width: 30%;
+        min-width: 200px;
+    }
+
+    .btn-group-action .btn {
+        width: auto;
     }
 </style>
 
@@ -518,14 +526,7 @@
                             <label asp-for="Department" class="form-label">
                                 <i class="fas fa-building me-1"></i>ฝ่าย
                             </label>
-                            @if (isApprovedOrBeyond)
-                            {
-                                <input asp-for="Department" class="form-control" readonly />
-                            }
-                            else
-                            {
-                                <input asp-for="Department" class="form-control" />
-                            }
+                            <input asp-for="Department" class="form-control" readonly />
                             <span asp-validation-for="Department" class="text-danger small"></span>
                         </div>
                     </div>
@@ -560,13 +561,33 @@
                         <span asp-validation-for="IssueDescription" class="text-danger small"></span>
                     </div>
 
+                    @if (isDriveAccessRepairType)
+                    {
+                        <div class="mb-3" id="driveAccessDepartmentGroup">
+                            <label asp-for="DriveAccessDepartment" class="form-label">
+                                <i class="fas fa-folder-open me-1"></i>ฝ่ายที่ต้องการขอสิทธิ์ Drive
+                            </label>
+                            @if (ticketOriginalStatus != ITRepairService.Models.TicketStatus.Open)
+                            {
+                                <input asp-for="DriveAccessDepartment" class="form-control" readonly />
+                            }
+                            else
+                            {
+                                <select asp-for="DriveAccessDepartment" class="form-select" asp-items="driveAccessDepartments" id="driveAccessDepartmentSelect">
+                                    <option value="">— เลือกฝ่าย —</option>
+                                </select>
+                            }
+                            <span asp-validation-for="DriveAccessDepartment" class="text-danger small"></span>
+                        </div>
+                    }
+
                     <hr class="my-4" />
 
                     <div class="mb-3">
                         <label class="form-label">
                             <i class="fas fa-share me-1"></i>ฝ่ายสำหรับ step ถัดไป
                         </label>
-                        @if (requesterEditMode)
+                        @if (ticketOriginalStatus != ITRepairService.Models.TicketStatus.Open)
                         {
                             <input asp-for="ApproverDepartment" class="form-control" readonly />
                         }
@@ -586,7 +607,7 @@
                         <label class="form-label">
                             <i class="fas fa-user-check me-1"></i>ผู้รับ step ถัดไป
                         </label>
-                        @if (requesterEditMode)
+                        @if (ticketOriginalStatus != ITRepairService.Models.TicketStatus.Open)
                         {
                             var selectedApprover = approverUsers.FirstOrDefault(user => user.Id == selectedApproverUserId);
                             var selectedApproverText = selectedApprover is null
@@ -706,10 +727,10 @@
                                     <span id="statusBadgeText">@GetTicketStatusTimelineDisplayName(flowPrimaryStatus)</span>
                                 </span>
                                 <div class="btn-group-action">
-                                    <button type="button" class="btn btn-success" id="approveBtn">
+                                    <button type="button" class="btn btn-success" style="color:a0d4b0" id="approveBtn">
                                         <i class="fas fa-check me-1"></i>Approve
                                     </button>
-                                    <button type="button" class="btn btn-danger" id="rejectBtn">
+                                    <button type="button" class="btn btn-danger" style="color:e0a0a0" id="rejectBtn">
                                         <i class="fas fa-times me-1"></i>Reject
                                     </button>
                                 </div>
@@ -1129,6 +1150,57 @@
 
                 departmentSelect.addEventListener('change', renderApproverOptions);
                 renderApproverOptions();
+            }
+
+            // Drive Access Department handling
+            const driveAccessDepartmentSelect = document.getElementById('driveAccessDepartmentSelect');
+            const repairTypeSelect = document.querySelector('select[asp-for="RepairType"]');
+            const requesterDepartmentInput = document.querySelector('input[asp-for="Department"]');
+            const driveAccessDepartmentGroup = document.getElementById('driveAccessDepartmentGroup');
+
+            function handleDriveAccessDepartment() {
+                if (!repairTypeSelect || !driveAccessDepartmentGroup) return;
+
+                const isDriveAccess = repairTypeSelect.value === '@((int)ITRepairService.Models.RepairType.DriveAccessPermission)';
+                
+                if (isDriveAccess) {
+                    driveAccessDepartmentGroup.style.display = 'block';
+                    
+                    // Auto-select requester's department only if no option is currently selected
+                    // This preserves the saved value when editing
+                    if (driveAccessDepartmentSelect && requesterDepartmentInput) {
+                        const selectedOption = driveAccessDepartmentSelect.options[driveAccessDepartmentSelect.selectedIndex];
+                        const hasSelection = selectedOption && selectedOption.value;
+                        
+                        if (!hasSelection) {
+                            const requesterDepartment = requesterDepartmentInput.value.trim();
+                            if (requesterDepartment) {
+                                const options = Array.from(driveAccessDepartmentSelect.options);
+                                const matchingOption = options.find(option => 
+                                    option.value && option.value.trim().toLowerCase() === requesterDepartment.toLowerCase()
+                                );
+                                if (matchingOption) {
+                                    driveAccessDepartmentSelect.value = matchingOption.value;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    driveAccessDepartmentGroup.style.display = 'none';
+                    if (driveAccessDepartmentSelect) {
+                        driveAccessDepartmentSelect.value = '';
+                    }
+                }
+            }
+
+            if (repairTypeSelect) {
+                repairTypeSelect.addEventListener('change', handleDriveAccessDepartment);
+                // Initial check - wait for DOM to be fully loaded
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', handleDriveAccessDepartment);
+                } else {
+                    handleDriveAccessDepartment();
+                }
             }
 
             // IT Assignee toggle

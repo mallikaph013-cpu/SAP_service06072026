@@ -444,6 +444,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             RequesterName = ticket.RequesterName,
             Department = ticket.Department,
             DeviceName = ticket.DeviceName,
+            DriveAccessDepartment = ticket.DriveAccessDepartment ?? string.Empty,
             IssueDescription = ticket.IssueDescription,
             RepairType = ticket.RepairType,
             Priority = ticket.Priority,
@@ -554,6 +555,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
                     RequesterName = ticket.RequesterName,
                     Department = ticket.Department,
                     DeviceName = ticket.DeviceName,
+                    DriveAccessDepartment = ticket.DriveAccessDepartment ?? string.Empty,
                     IssueDescription = ticket.IssueDescription,
                     RepairType = ticket.RepairType,
                     Priority = ticket.Priority,
@@ -919,13 +921,14 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
         await PopulateItSupportSelectionsAsync(ticket.AssignedItUserId);
         await PopulateApproverSelectionsAsync(ticket.ApproverDepartment, ticket.ApproverUserId);
+        await PopulateDriveAccessDepartmentSelectionsAsync(ticket.DriveAccessDepartment);
         await PopulateThirdApproverSelectionsAsync(ticket.ThirdApproverUserId);
         return View(ticket);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,RequesterName,Department,DeviceName,IssueDescription,RepairType,Priority,Status,CreatedAt,ApproverDepartment,ApproverUserId,ApproverName,AssignedItUserId")] RepairTicket ticket, string? rejectRemark, List<TicketStatus>? approvalStatuses, string? thirdApproverUserId)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,RequesterName,Department,DeviceName,IssueDescription,RepairType,DriveAccessDepartment,Priority,Status,CreatedAt,ApproverDepartment,ApproverUserId,ApproverName,AssignedItUserId")] RepairTicket ticket, string? rejectRemark, List<TicketStatus>? approvalStatuses, string? thirdApproverUserId)
     {
         if (id != ticket.Id)
         {
@@ -1036,6 +1039,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
             existingTicket.DeviceName = ticket.DeviceName;
             existingTicket.IssueDescription = ticket.IssueDescription;
             existingTicket.RepairType = ticket.RepairType;
+            existingTicket.DriveAccessDepartment = ticket.DriveAccessDepartment?.Trim() ?? string.Empty;
             
             // Allow owner to Close ticket when status is Complete
             if (originalStatus == TicketStatus.Complete && effectiveStatus == TicketStatus.Closed)
@@ -1093,6 +1097,7 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
         existingTicket.DeviceName = ticket.DeviceName;
         existingTicket.IssueDescription = ticket.IssueDescription;
         existingTicket.RepairType = ticket.RepairType;
+        existingTicket.DriveAccessDepartment = ticket.DriveAccessDepartment?.Trim() ?? string.Empty;
         existingTicket.Priority = ticket.Priority;
         existingTicket.Status = effectiveStatus;
         existingTicket.CreatedAt = ticket.CreatedAt;
@@ -1417,8 +1422,19 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
 
     private async Task PopulateThirdApproverSelectionsAsync(string? selectedThirdApproverId)
     {
+        // Third approver (SM/DM of DX) should be users who have both ITSupport and Approve roles
+        var itSupportUsers = await GetItSupportUsersAsync();
         var approverUsers = await GetApproverUsersAsync();
-        ViewData["ThirdApproverUsers"] = approverUsers;
+        
+        // Filter to only users who have both ITSupport and Approve roles
+        var thirdApproverUsers = itSupportUsers
+            .Where(itUser => approverUsers.Any(approver => approver.Id == itUser.Id))
+            .OrderBy(user => user.Department)
+            .ThenBy(user => user.FullName)
+            .ThenBy(user => user.UserName)
+            .ToList();
+        
+        ViewData["ThirdApproverUsers"] = thirdApproverUsers;
         ViewData["SelectedThirdApproverUserId"] = selectedThirdApproverId;
     }
 

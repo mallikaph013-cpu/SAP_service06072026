@@ -303,11 +303,22 @@
                     driveAccessDepartmentSelect.value = '';
                 }
 
-                if (isDriveAccess) {
-                    syncApproverDepartmentFromDriveAccess();
-                } else {
-                    syncApproverDepartmentFromRequester();
+                // Auto-select requester's department for Drive Access Permission
+                if (isDriveAccess && driveAccessDepartmentSelect && requesterDepartmentInput) {
+                    const requesterDepartment = requesterDepartmentInput.value.trim();
+                    if (requesterDepartment && !driveAccessDepartmentSelect.value) {
+                        // Try to find and select the requester's department in the dropdown
+                        const options = Array.from(driveAccessDepartmentSelect.options);
+                        const matchingOption = options.find(option => 
+                            option.value && option.value.trim().toLowerCase() === requesterDepartment.toLowerCase()
+                        );
+                        if (matchingOption) {
+                            driveAccessDepartmentSelect.value = matchingOption.value;
+                        }
+                    }
                 }
+
+                syncApproverDepartmentFromRequester();
             }
 
             function syncApproverDepartmentFromRequester() {
@@ -419,11 +430,7 @@
             });
             approverSelect.addEventListener('change', updateStatusApproverPreview);
             if (requesterDepartmentInput) {
-                requesterDepartmentInput.addEventListener('change', function () {
-                    if (!isDriveAccessRepairType()) {
-                        syncApproverDepartmentFromRequester();
-                    }
-                });
+                requesterDepartmentInput.addEventListener('change', syncApproverDepartmentFromRequester);
             }
             if (driveAccessDepartmentSelect) {
                 driveAccessDepartmentSelect.addEventListener('change', syncApproverDepartmentFromDriveAccess);

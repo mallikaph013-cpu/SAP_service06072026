@@ -10,13 +10,9 @@
         ? Model.CreatedByName
         : (!string.IsNullOrWhiteSpace(Model.RequesterName) ? Model.RequesterName : "-");
     var approverDisplay = string.IsNullOrWhiteSpace(Model.ApproverName) ? "-" : Model.ApproverName;
-    var canSeeInProgress = User.IsInRole(ITRepairService.Models.AppRoles.Admin)
-        || User.IsInRole(ITRepairService.Models.AppRoles.ITSupport);
-    var statusDisplay = !canSeeInProgress && Model.Status == ITRepairService.Models.TicketStatus.InProgress
-        ? "-"
-        : Model.Status == ITRepairService.Models.TicketStatus.Approved && !string.IsNullOrWhiteSpace(Model.ApproverName)
-            ? $"Approved ({Model.ApproverName})"
-            : Model.Status.ToString();
+    var statusDisplay = Model.Status == ITRepairService.Models.TicketStatus.Approved && !string.IsNullOrWhiteSpace(Model.ApproverName)
+        ? $"Approved ({Model.ApproverName})"
+        : Model.Status.ToString();
     var statusClass = Model.Status switch
     {
         ITRepairService.Models.TicketStatus.Open => "status-open",
@@ -27,11 +23,6 @@
         ITRepairService.Models.TicketStatus.Complete => "status-complete",
         _ => string.Empty
     };
-    if (!canSeeInProgress && Model.Status == ITRepairService.Models.TicketStatus.InProgress)
-    {
-        statusClass = "status-restricted";
-    }
-
     string FormatStatus(ITRepairService.Models.TicketStatus? status)
     {
         if (!status.HasValue)
@@ -39,9 +30,18 @@
             return "-";
         }
 
-        return !canSeeInProgress && status.Value == ITRepairService.Models.TicketStatus.InProgress
-            ? "-"
-            : status.Value.ToString();
+        return status.Value.ToString();
+    }
+
+    string GetRepairTypeDisplayName(ITRepairService.Models.RepairType repairType)
+    {
+        var displayAttribute = repairType.GetType()
+            .GetField(repairType.ToString())?
+            .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault();
+
+        return displayAttribute?.GetName() ?? repairType.ToString();
     }
 
 }
@@ -184,7 +184,7 @@
                     </div> *@
                     <div class="col-md-6">
                         <div class="details-key mb-1">@Html.DisplayNameFor(model => model.RepairType)</div>
-                        <div class="fw-semibold">@Model.RepairType</div>
+                        <div class="fw-semibold">@GetRepairTypeDisplayName(Model.RepairType)</div>
                     </div>
                     @* <div class="col-md-6">
                         <div class="details-key mb-1">@Html.DisplayNameFor(model => model.Priority)</div>

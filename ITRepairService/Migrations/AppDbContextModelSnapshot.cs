@@ -236,6 +236,10 @@ namespace ITRepairService.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DriveAccessDepartment")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("IssueDescription")
                         .IsRequired()
                         .HasMaxLength(500)

@@ -33,7 +33,7 @@ public class RepairTicket
     [Display(Name = "ประเภทการแจ้งซ่อม")]
     public RepairType RepairType { get; set; } = RepairType.Hardware;
 
-    [NotMapped]
+    [StringLength(100)]
     [Display(Name = "ต้องการขอสิทธิ์ Drive ของฝ่าย")]
     public string? DriveAccessDepartment { get; set; }
 

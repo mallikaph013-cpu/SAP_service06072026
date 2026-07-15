@@ -49,6 +49,17 @@
         .Cast<ITRepairService.Models.TicketStatus>()
         .ToList();
 
+    string GetRepairTypeDisplayName(ITRepairService.Models.RepairType repairType)
+    {
+        var displayAttribute = repairType.GetType()
+            .GetField(repairType.ToString())?
+            .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault();
+
+        return displayAttribute?.GetName() ?? repairType.ToString();
+    }
+
     string FormatThaiShortDate(DateTime? value)
     {
         if (!value.HasValue)
@@ -374,7 +385,7 @@ border: 1px solid #b8c0c8;
     
 
         <div class="print-section-title">รายละเอียดการแจ้งซ่อม</div>
-        <div class="print-row"><div class="print-row-label">ประเภท:</div><div class="print-row-value">@printTicket.RepairType</div></div>
+        <div class="print-row"><div class="print-row-label">ประเภท:</div><div class="print-row-value">@GetRepairTypeDisplayName(printTicket.RepairType)</div></div>
        
         <div class="print-row"><div class="print-row-label">สถานะปัจจุบัน:</div><div class="print-row-value">@printTicket.Status</div></div>
         <div class="print-row"><div class="print-row-label">ผู้รับผิดชอบ:</div><div class="print-row-value">@itSupportName</div></div>
