@@ -1,4 +1,3 @@
-using static string;
 #nullable enable
 
 using System;
