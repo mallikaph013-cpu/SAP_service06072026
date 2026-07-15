@@ -21,7 +21,8 @@ public class NewsController(
     private const long MaxAttachmentSize = 10 * 1024 * 1024;
     private static readonly HashSet<string> AllowedExtensions =
     [
-        ".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xls", ".xlsx", ".txt"
+        ".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xls", ".xlsx", ".txt",
+        ".mp4", ".mov", ".avi", ".wmv", ".flv", ".webm"
     ];
 
     [HttpGet]

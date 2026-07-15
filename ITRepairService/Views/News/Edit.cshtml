@@ -48,9 +48,9 @@
 
                     <div class="mb-3">
                         <label asp-for="Attachment" class="form-label fw-500"></label>
-                        <input asp-for="Attachment" class="form-control" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt" />
+                        <input asp-for="Attachment" class="form-control" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov,.avi,.wmv,.flv,.webm" />
                         <span asp-validation-for="Attachment" class="text-danger"></span>
-                        <small class="text-muted d-block mt-1">Allowed: PDF, image, Office, TXT (max 10 MB)</small>
+                        <small class="text-muted d-block mt-1">Allowed: PDF, image, Office, TXT, Video (max 10 MB)</small>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(Model.CurrentAttachmentFileName))

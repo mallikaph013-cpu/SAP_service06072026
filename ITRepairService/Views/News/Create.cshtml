@@ -55,10 +55,10 @@
                         <label asp-for="Attachment" class="form-label">
                             <i class="fas fa-paperclip me-1"></i>ไฟล์แนบ
                         </label>
-                        <input asp-for="Attachment" class="form-control" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt" />
+                        <input asp-for="Attachment" class="form-control" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov,.avi,.wmv,.flv,.webm" />
                         <span asp-validation-for="Attachment" class="text-danger small"></span>
                         <small class="form-text d-block mt-1">
-                            <i class="fas fa-info-circle me-1"></i>Allowed: PDF, image, Office, TXT (max 10 MB)
+                            <i class="fas fa-info-circle me-1"></i>Allowed: PDF, image, Office, TXT, Video (max 10 MB)
                         </small>
                     </div>
 
