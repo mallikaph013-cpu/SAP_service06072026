@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Text;
 
 namespace ITRepairService.Controllers;
 
@@ -91,18 +92,27 @@ public class NewsController(
 
             if (model.Attachment is not null && model.Attachment.Length > 0)
             {
-                var uploadRoot = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "news");
-                Directory.CreateDirectory(uploadRoot);
+                try
+                {
+                    var uploadRoot = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "news");
+                    Directory.CreateDirectory(uploadRoot);
 
-                var extension = Path.GetExtension(model.Attachment.FileName).ToLowerInvariant();
-                var storedFileName = $"{Guid.NewGuid():N}{extension}";
-                var fullPath = Path.Combine(uploadRoot, storedFileName);
+                    var originalFileName = Path.GetFileName(model.Attachment.FileName);
+                    var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+                    var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                    var fullPath = Path.Combine(uploadRoot, storedFileName);
 
-                await using var stream = System.IO.File.Create(fullPath);
-                await model.Attachment.CopyToAsync(stream);
+                    await using var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true);
+                    await model.Attachment.CopyToAsync(stream);
 
-                savedAttachmentUrl = $"/uploads/news/{storedFileName}";
-                savedAttachmentName = Path.GetFileName(model.Attachment.FileName);
+                    savedAttachmentUrl = $"/uploads/news/{storedFileName}";
+                    savedAttachmentName = originalFileName;
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError(string.Empty, $"Failed to upload file: {ex.Message}");
+                    return View(model);
+                }
             }
 
             var currentUser = await _userManager.GetUserAsync(User);
