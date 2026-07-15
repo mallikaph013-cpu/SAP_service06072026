@@ -65,66 +65,74 @@ public class NewsController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateNewsViewModel model)
     {
-        string? savedAttachmentUrl = null;
-        string? savedAttachmentName = null;
-
-        if (model.Attachment is not null && model.Attachment.Length > 0)
+        try
         {
-            if (model.Attachment.Length > MaxAttachmentSize)
+            string? savedAttachmentUrl = null;
+            string? savedAttachmentName = null;
+
+            if (model.Attachment is not null && model.Attachment.Length > 0)
             {
-                ModelState.AddModelError(nameof(model.Attachment), "Attachment size must not exceed 10 MB.");
+                if (model.Attachment.Length > MaxAttachmentSize)
+                {
+                    ModelState.AddModelError(nameof(model.Attachment), "Attachment size must not exceed 10 MB.");
+                }
+
+                var extension = Path.GetExtension(model.Attachment.FileName);
+                if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension.ToLowerInvariant()))
+                {
+                    ModelState.AddModelError(nameof(model.Attachment), "Unsupported file type.");
+                }
             }
 
-            var extension = Path.GetExtension(model.Attachment.FileName);
-            if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension.ToLowerInvariant()))
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(nameof(model.Attachment), "Unsupported file type.");
+                return View(model);
             }
+
+            if (model.Attachment is not null && model.Attachment.Length > 0)
+            {
+                var uploadRoot = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "news");
+                Directory.CreateDirectory(uploadRoot);
+
+                var extension = Path.GetExtension(model.Attachment.FileName).ToLowerInvariant();
+                var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                var fullPath = Path.Combine(uploadRoot, storedFileName);
+
+                await using var stream = System.IO.File.Create(fullPath);
+                await model.Attachment.CopyToAsync(stream);
+
+                savedAttachmentUrl = $"/uploads/news/{storedFileName}";
+                savedAttachmentName = Path.GetFileName(model.Attachment.FileName);
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var actorName = GetActorName(currentUser);
+            var nowUtc = DateTime.UtcNow;
+
+            var newsItem = new NewsItem
+            {
+                Title = model.Title.Trim(),
+                Content = model.Content.Trim(),
+                IsActive = model.IsActive,
+                CreatedByName = actorName,
+                UpdatedByName = actorName,
+                AttachmentFileName = savedAttachmentName,
+                AttachmentUrl = savedAttachmentUrl,
+                CreatedAt = nowUtc,
+                UpdatedAt = nowUtc
+            };
+
+            _dbContext.NewsItems.Add(newsItem);
+            await _dbContext.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "News created successfully.";
+            return RedirectToAction("Index", "Home");
         }
-
-        if (!ModelState.IsValid)
+        catch (Exception ex)
         {
+            ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
             return View(model);
         }
-
-        if (model.Attachment is not null && model.Attachment.Length > 0)
-        {
-            var uploadRoot = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "news");
-            Directory.CreateDirectory(uploadRoot);
-
-            var extension = Path.GetExtension(model.Attachment.FileName).ToLowerInvariant();
-            var storedFileName = $"{Guid.NewGuid():N}{extension}";
-            var fullPath = Path.Combine(uploadRoot, storedFileName);
-
-            await using var stream = System.IO.File.Create(fullPath);
-            await model.Attachment.CopyToAsync(stream);
-
-            savedAttachmentUrl = $"/uploads/news/{storedFileName}";
-            savedAttachmentName = Path.GetFileName(model.Attachment.FileName);
-        }
-
-        var currentUser = await _userManager.GetUserAsync(User);
-        var actorName = GetActorName(currentUser);
-        var nowUtc = DateTime.UtcNow;
-
-        var newsItem = new NewsItem
-        {
-            Title = model.Title.Trim(),
-            Content = model.Content.Trim(),
-            IsActive = model.IsActive,
-            CreatedByName = actorName,
-            UpdatedByName = actorName,
-            AttachmentFileName = savedAttachmentName,
-            AttachmentUrl = savedAttachmentUrl,
-            CreatedAt = nowUtc,
-            UpdatedAt = nowUtc
-        };
-
-        _dbContext.NewsItems.Add(newsItem);
-        await _dbContext.SaveChangesAsync();
-
-        TempData["SuccessMessage"] = "News created successfully.";
-        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
