@@ -1,3 +1,4 @@
+using static string;
 #nullable enable
 
 using System;
@@ -224,6 +225,73 @@ public class RepairTicketsController(AppDbContext context, UserManager<Applicati
     {
         var model = await BuildPerformanceReportModelAsync(fromDate, toDate, itName);
         return View(model);
+    }
+
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.ITSupport)]
+    public async Task<IActionResult> AssignedToMe(string? status, string? sort, string? dir)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        var currentUserId = currentUser?.Id;
+
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return Forbid();
+        }
+
+        var query = _context.RepairTickets
+            .AsNoTracking()
+            .Where(ticket => ticket.AssignedItUserId == currentUserId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TicketStatus>(status, true, out var parsedStatus))
+        {
+            query = query.Where(ticket => ticket.Status == parsedStatus);
+            ViewData["CurrentStatus"] = parsedStatus.ToString();
+        }
+
+        var currentSort = string.IsNullOrWhiteSpace(sort) ? "created" : sort.Trim().ToLowerInvariant();
+        var currentDir = string.Equals(dir, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
+
+        query = (currentSort, currentDir) switch
+        {
+            ("requester", "asc") => query.OrderBy(ticket => ticket.RequesterName).ThenByDescending(ticket => ticket.CreatedAt),
+            ("requester", "desc") => query.OrderByDescending(ticket => ticket.RequesterName).ThenByDescending(ticket => ticket.CreatedAt),
+            ("priority", "asc") => query.OrderBy(ticket => ticket.Priority).ThenByDescending(ticket => ticket.CreatedAt),
+            ("priority", "desc") => query.OrderByDescending(ticket => ticket.Priority).ThenByDescending(ticket => ticket.CreatedAt),
+            ("created", "asc") => query.OrderBy(ticket => ticket.CreatedAt),
+            _ => query.OrderByDescending(ticket => ticket.CreatedAt)
+        };
+
+        ViewData["CurrentSort"] = currentSort;
+        ViewData["CurrentDir"] = currentDir;
+
+        var tickets = await query.ToListAsync();
+
+        var latestStatusUpdatedBy = new Dictionary<int, string>();
+        if (tickets.Count > 0)
+        {
+            var ticketIds = tickets.Select(ticket => ticket.Id).ToList();
+            var timeline = await _context.RepairTicketStatusHistories
+                .AsNoTracking()
+                .Where(history => ticketIds.Contains(history.RepairTicketId))
+                .OrderByDescending(history => history.ChangedAt)
+                .ThenByDescending(history => history.Id)
+                .Select(history => new { history.RepairTicketId, history.ChangedByName })
+                .ToListAsync();
+
+            foreach (var item in timeline)
+            {
+                if (!latestStatusUpdatedBy.ContainsKey(item.RepairTicketId)
+                    && !string.IsNullOrWhiteSpace(item.ChangedByName))
+                {
+                    latestStatusUpdatedBy[item.RepairTicketId] = item.ChangedByName.Trim();
+                }
+            }
+        }
+
+        ViewData["LatestStatusUpdatedBy"] = latestStatusUpdatedBy;
+
+        return View(tickets);
     }
 
     [Authorize(Roles = AppRoles.Admin + "," + AppRoles.ITSupport)]

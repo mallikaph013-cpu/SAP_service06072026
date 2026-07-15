@@ -1,0 +1,108 @@
+@model IEnumerable<ITRepairService.Models.RepairTicket>
+
+@{
+    ViewData["Title"] = "งานที่ได้รับมอบหมาย";
+    var latestStatusUpdatedBy = ViewData["LatestStatusUpdatedBy"] as Dictionary<int, string> ?? new Dictionary<int, string>();
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card header-card text-white">
+            <div class="card-body py-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="h2 fw-bold mb-1 d-flex align-items-center gap-2">
+                        <i class="fas fa-laptop-code"></i> งานที่ได้รับมอบหมาย
+                    </h1>
+                    <p class="mb-0 opacity-90">รายการงานที่ได้รับมอบหมายจากผู้อนุมัติ</p>
+                </div>
+                <a asp-action="Index" class="btn btn-light fw-semibold px-4">
+                    <i class="fas fa-arrow-left me-2"></i>กลับ
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card form-card">
+            <div class="card-body">
+                @if (!Model.Any())
+                {
+                    <div class="alert alert-info d-flex align-items-center gap-2">
+                        <i class="fas fa-info-circle fa-lg"></i>
+                        <span>คุณไม่มีงานที่ได้รับมอบหมายในขณะนี้</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>เลขเอกสาร</th>
+                                    <th>ผู้แจ้งซ่อม</th>
+                                    <th>ฝ่าย</th>
+                                    <th>ประเภทการแจ้งซ่อม</th>
+                                    <th>รายละเอียดปัญหา</th>
+                                    <th>สถานะ</th>
+                                    <th>วันที่สร้าง</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ticket in Model)
+                                {
+                                    <tr>
+                                        <td><strong>@ticket.DocumentNo</strong></td>
+                                        <td>@ticket.RequesterName</td>
+                                        <td>@ticket.Department</td>
+                                        <td>@ticket.RepairType.ToString()</td>
+                                        <td>@(ticket.IssueDescription.Length > 50 ? ticket.IssueDescription.Substring(0, 50) + "..." : ticket.IssueDescription)</td>
+                                        <td>
+                                            @{
+                                                var statusBadgeClass = ticket.Status switch
+                                                {
+                                                    ITRepairService.Models.TicketStatus.Open => "bg-warning text-dark",
+                                                    ITRepairService.Models.TicketStatus.InProgress => "bg-info text-white",
+                                                    ITRepairService.Models.TicketStatus.Approved => "bg-success",
+                                                    ITRepairService.Models.TicketStatus.Rejected => "bg-danger",
+                                                    ITRepairService.Models.TicketStatus.Complete => "bg-primary",
+                                                    ITRepairService.Models.TicketStatus.Closed => "bg-secondary",
+                                                    _ => "bg-secondary"
+                                                };
+                                                var statusIcon = ticket.Status switch
+                                                {
+                                                    ITRepairService.Models.TicketStatus.Open => "fa-circle",
+                                                    ITRepairService.Models.TicketStatus.InProgress => "fa-spinner fa-pulse",
+                                                    ITRepairService.Models.TicketStatus.Approved => "fa-check-circle",
+                                                    ITRepairService.Models.TicketStatus.Rejected => "fa-times-circle",
+                                                    ITRepairService.Models.TicketStatus.Complete => "fa-check-double",
+                                                    ITRepairService.Models.TicketStatus.Closed => "fa-lock",
+                                                    _ => "fa-question-circle"
+                                                };
+                                            }
+                                            <span class="badge badge-status @statusBadgeClass">
+                                                <i class="fas @statusIcon me-1"></i>@ticket.Status.ToString()
+                                            </span>
+                                        </td>
+                                        <td>@ticket.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <a asp-action="Edit" asp-route-id="@ticket.Id" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit me-1"></i>แก้ไข
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
