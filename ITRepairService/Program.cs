@@ -60,8 +60,19 @@ builder.Services.AddSingleton<ILdapAuthenticationService, LdapAuthenticationServ
 // Register Department Initializer service
 builder.Services.AddScoped<IDepartmentInitializerService, DepartmentInitializerService>();
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(10 * 1024 * 1024));
+});
 builder.Services.AddRazorPages();
+
+// Configure form options for file upload
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024;
+    options.ValueLengthLimit = 10 * 1024 * 1024;
+    options.MultipartHeadersLengthLimit = 10 * 1024 * 1024;
+});
 
 var app = builder.Build();
 
